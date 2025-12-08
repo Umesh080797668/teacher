@@ -6,8 +6,8 @@ import '../models/class.dart';
 import '../models/payment.dart';
 
 class ApiService {
-  // For production, replace with your Render backend URL
-  static const String baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3004');
+  // For production (hosted backend), use the Vercel URL
+  static const String baseUrl = 'https://teacher-psi-drab.vercel.app';
 
   // Students
   Future<List<Student>> getStudents() async {
