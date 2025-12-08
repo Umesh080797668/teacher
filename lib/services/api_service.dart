@@ -20,7 +20,7 @@ class ApiService {
     }
   }
 
-  Future<Student> createStudent(String name, String? email, String studentId, String? classId) async {
+  Future<Student> createStudent(String name, String? email, String? studentId, String? classId) async {
     final response = await http.post(
       Uri.parse('$baseUrl/api/students'),
       headers: {'Content-Type': 'application/json'},

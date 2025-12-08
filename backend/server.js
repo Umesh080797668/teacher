@@ -24,7 +24,7 @@ const ClassSchema = new mongoose.Schema({
 const StudentSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: String,
-  studentId: { type: String, required: true, unique: true },
+  studentId: { type: String, unique: true },
   classId: String,
 }, { timestamps: true });
 
@@ -66,7 +66,25 @@ app.get('/api/students', async (req, res) => {
 app.post('/api/students', async (req, res) => {
   try {
     const { name, email, studentId, classId } = req.body;
-    const student = new Student({ name, email, studentId, classId });
+    
+    // Auto-generate studentId if not provided
+    let finalStudentId = studentId;
+    if (!finalStudentId) {
+      // Generate a unique student ID based on timestamp and random number
+      const timestamp = Date.now().toString().slice(-6);
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      finalStudentId = `STU${timestamp}${random}`;
+      
+      // Check if it already exists, if so, regenerate
+      let existingStudent = await Student.findOne({ studentId: finalStudentId });
+      while (existingStudent) {
+        const newRandom = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        finalStudentId = `STU${timestamp}${newRandom}`;
+        existingStudent = await Student.findOne({ studentId: finalStudentId });
+      }
+    }
+    
+    const student = new Student({ name, email, studentId: finalStudentId, classId });
     await student.save();
     res.status(201).json(student);
   } catch (error) {

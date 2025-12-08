@@ -53,7 +53,7 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
           .toList();
 
       totalAttendanceRecords += studentAttendance.length;
-      presentCount += studentAttendance.where((record) => record.status == 'present').length;
+      presentCount += studentAttendance.where((record) => record.status.toLowerCase() == 'present').length;
     }
 
     return totalAttendanceRecords > 0 ? (presentCount / totalAttendanceRecords) * 100 : 0.0;
@@ -165,15 +165,10 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                   TextFormField(
                     controller: studentIdController,
                     decoration: const InputDecoration(
-                      labelText: 'Student ID',
+                      labelText: 'Student ID (optional - auto-generated)',
                       border: OutlineInputBorder(),
+                      helperText: 'Leave empty to auto-generate',
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter student ID';
-                      }
-                      return null;
-                    },
                   ),
                 ],
               ),
@@ -203,7 +198,7 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
         await studentsProvider.addStudent(
           nameController.text.trim(),
           emailController.text.trim().isEmpty ? null : emailController.text.trim(),
-          studentIdController.text.trim(),
+          studentIdController.text.trim().isEmpty ? null : studentIdController.text.trim(), // Allow empty for auto-generation
           widget.classObj.id,
         );
         if (mounted) {

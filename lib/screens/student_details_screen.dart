@@ -166,49 +166,53 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
                   if (_isLoadingAttendance)
                     const Center(child: CircularProgressIndicator())
                   else
-                    Row(
+                    Column(
                       children: [
-                        Expanded(
-                          child: _AttendanceStatCard(
-                            title: 'Present',
-                            value: '${_attendanceStats['present'] ?? 0}',
-                            icon: Icons.check_circle,
-                            color: Colors.green,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _AttendanceStatCard(
+                                title: 'Present',
+                                value: '${_attendanceStats['present'] ?? 0}',
+                                icon: Icons.check_circle,
+                                color: Colors.green,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _AttendanceStatCard(
+                                title: 'Absent',
+                                value: '${_attendanceStats['absent'] ?? 0}',
+                                icon: Icons.cancel,
+                                color: Colors.red,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _AttendanceStatCard(
-                            title: 'Absent',
-                            value: '${_attendanceStats['absent'] ?? 0}',
-                            icon: Icons.cancel,
-                            color: Colors.red,
-                          ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _AttendanceStatCard(
+                                title: 'Late',
+                                value: '${_attendanceStats['late'] ?? 0}',
+                                icon: Icons.schedule,
+                                color: Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _AttendanceStatCard(
+                                title: 'Total',
+                                value: '${_studentAttendance.length}',
+                                icon: Icons.calendar_today,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _AttendanceStatCard(
-                          title: 'Late',
-                          value: '${_attendanceStats['late'] ?? 0}',
-                          icon: Icons.schedule,
-                          color: Colors.orange,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _AttendanceStatCard(
-                          title: 'Total',
-                          value: '${_studentAttendance.length}',
-                          icon: Icons.calendar_today,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
 
                   // Recent Attendance
                   const SizedBox(height: 32),
@@ -244,46 +248,50 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
                       ),
                     )
                   else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _studentAttendance.length > 10 ? 10 : _studentAttendance.length,
-                      itemBuilder: (context, index) {
-                        final record = _studentAttendance[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: _getStatusColor(record.status).withOpacity(0.1),
-                              child: Icon(
-                                _getStatusIcon(record.status),
-                                color: _getStatusColor(record.status),
+                    Column(
+                      children: [
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _studentAttendance.length > 10 ? 10 : _studentAttendance.length,
+                          itemBuilder: (context, index) {
+                            final record = _studentAttendance[index];
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: _getStatusColor(record.status).withOpacity(0.1),
+                                  child: Icon(
+                                    _getStatusIcon(record.status),
+                                    color: _getStatusColor(record.status),
+                                  ),
+                                ),
+                                title: Text(
+                                  '${record.date.day}/${record.date.month}/${record.date.year}',
+                                  style: const TextStyle(fontWeight: FontWeight.w500),
+                                ),
+                                subtitle: Text('${record.session} - ${record.status.toUpperCase()}'),
+                                trailing: Text(
+                                  '${record.date.hour}:${record.date.minute.toString().padLeft(2, '0')}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
                               ),
-                            ),
-                            title: Text(
-                              '${record.date.day}/${record.date.month}/${record.date.year}',
-                              style: const TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                            subtitle: Text('${record.session} - ${record.status.toUpperCase()}'),
-                            trailing: Text(
-                              '${record.date.hour}:${record.date.minute.toString().padLeft(2, '0')}',
-                              style: Theme.of(context).textTheme.bodySmall,
+                            );
+                          },
+                        ),
+                        if (_studentAttendance.length > 10)
+                          Center(
+                            child: TextButton(
+                              onPressed: () {
+                                // Could navigate to full attendance history
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Full attendance history coming soon!')),
+                                );
+                              },
+                              child: const Text('View All Records'),
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  if (_studentAttendance.length > 10)
-                    Center(
-                      child: TextButton(
-                        onPressed: () {
-                          // Could navigate to full attendance history
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Full attendance history coming soon!')),
-                          );
-                        },
-                        child: const Text('View All Records'),
-                      ),
+                      ],
                     ),
                 ],
               ),

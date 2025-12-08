@@ -21,7 +21,7 @@ class StudentsProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addStudent(String name, String? email, String studentId, String? classId) async {
+  Future<void> addStudent(String name, String? email, String? studentId, String? classId) async {
     final student = await _apiService.createStudent(name, email, studentId, classId);
     _students.add(student);
     notifyListeners();

@@ -60,7 +60,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
         await provider.addStudent(
           _nameController.text,
           _emailController.text.isEmpty ? null : _emailController.text,
-          _studentIdController.text,
+          _studentIdController.text.isEmpty ? null : _studentIdController.text, // Allow empty for auto-generation
           _selectedClassId,
         );
         _nameController.clear();
@@ -224,15 +224,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               TextFormField(
                                 controller: _studentIdController,
                                 decoration: const InputDecoration(
-                                  labelText: 'Student ID',
+                                  labelText: 'Student ID (optional - auto-generated)',
                                   prefixIcon: Icon(Icons.badge),
+                                  helperText: 'Leave empty to auto-generate',
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter a student ID';
-                                  }
-                                  return null;
-                                },
                               ),
                               const SizedBox(height: 12),
                               Consumer<ClassesProvider>(
