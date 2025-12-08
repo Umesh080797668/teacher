@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../providers/classes_provider.dart';
+import 'class_details_screen.dart';
 
 class ClassesScreen extends StatefulWidget {
   const ClassesScreen({super.key});
@@ -144,17 +145,22 @@ class _ClassesScreenState extends State<ClassesScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _StatCard(
-                          title: 'Total Classes',
-                          value: '${provider.classes.length}',
-                          icon: Icons.class_,
-                          color: Theme.of(context).colorScheme.primary,
+                        Expanded(
+                          child: _StatCard(
+                            title: 'Total Classes',
+                            value: '${provider.classes.length}',
+                            icon: Icons.class_,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                         ),
-                        _StatCard(
-                          title: 'Active',
-                          value: '${provider.classes.length}',
-                          icon: Icons.check_circle,
-                          color: Colors.green,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _StatCard(
+                            title: 'Active',
+                            value: '${provider.classes.length}',
+                            icon: Icons.check_circle,
+                            color: Colors.green,
+                          ),
                         ),
                       ],
                     ),
@@ -356,9 +362,11 @@ class _ClassesScreenState extends State<ClassesScreen> {
                             color: Theme.of(context).colorScheme.outline,
                           ),
                           onTap: () {
-                            // Navigate to class details (could be implemented later)
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Class details for "${classObj.name}" coming soon!')),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ClassDetailsScreen(classObj: classObj),
+                              ),
                             );
                           },
                         ),

@@ -80,6 +80,18 @@ class HomeScreen extends StatelessWidget {
                     padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewPadding.bottom + 24),
                     children: [
                       _FeatureCard(
+                        title: 'Classes',
+                        subtitle: 'Manage class schedules',
+                        icon: Icons.class_rounded,
+                        color: const Color(0xFF00796B),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ClassesScreen()),
+                          );
+                        },
+                      ),
+                      _FeatureCard(
                         title: 'Students',
                         subtitle: 'Manage student records',
                         icon: Icons.people_rounded,
@@ -104,6 +116,18 @@ class HomeScreen extends StatelessWidget {
                         },
                       ),
                       _FeatureCard(
+                        title: 'Payments',
+                        subtitle: 'Manage payments and fees',
+                        icon: Icons.payment_rounded,
+                        color: const Color(0xFF6200EE),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const PaymentScreen()),
+                          );
+                        },
+                      ),
+                      _FeatureCard(
                         title: 'View Records',
                         subtitle: 'Check attendance history',
                         icon: Icons.analytics_rounded,
@@ -124,30 +148,6 @@ class HomeScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const ReportsScreen()),
-                          );
-                        },
-                      ),
-                      _FeatureCard(
-                        title: 'Classes',
-                        subtitle: 'Manage class schedules',
-                        icon: Icons.class_rounded,
-                        color: const Color(0xFF00796B),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const ClassesScreen()),
-                          );
-                        },
-                      ),
-                      _FeatureCard(
-                        title: 'Payments',
-                        subtitle: 'Manage payments and fees',
-                        icon: Icons.payment_rounded,
-                        color: const Color(0xFF6200EE),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const PaymentScreen()),
                           );
                         },
                       ),

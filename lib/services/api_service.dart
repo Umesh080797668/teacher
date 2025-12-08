@@ -107,6 +107,21 @@ class ApiService {
     }
   }
 
+  Future<Class> updateClass(String classId, String name) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/api/classes/$classId'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'name': name,
+      }),
+    );
+    if (response.statusCode == 200) {
+      return Class.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to update class');
+    }
+  }
+
   // Payments
   Future<List<Payment>> getPayments({String? classId, String? studentId}) async {
     final queryParams = <String, String>{};

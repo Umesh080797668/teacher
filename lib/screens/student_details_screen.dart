@@ -32,10 +32,14 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
       final apiService = ApiService();
       final attendance = await apiService.getAttendance(studentId: widget.student.id);
 
+      // Sort attendance by date descending (most recent first)
+      attendance.sort((a, b) => b.date.compareTo(a.date));
+
       // Calculate statistics
       final stats = <String, int>{};
       for (final record in attendance) {
-        stats[record.status] = (stats[record.status] ?? 0) + 1;
+        final status = record.status.toLowerCase().trim();
+        stats[status] = (stats[status] ?? 0) + 1;
       }
 
       setState(() {
@@ -68,10 +72,12 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: RefreshIndicator(
+        onRefresh: _loadStudentAttendance,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Student Info Header
             Container(
               width: double.infinity,
@@ -283,6 +289,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

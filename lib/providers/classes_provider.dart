@@ -32,4 +32,13 @@ class ClassesProvider with ChangeNotifier {
     _classes.removeWhere((classObj) => classObj.id == classId);
     notifyListeners();
   }
+
+  Future<void> updateClass(String classId, String name) async {
+    final updatedClass = await _apiService.updateClass(classId, name);
+    final index = _classes.indexWhere((classObj) => classObj.id == classId);
+    if (index != -1) {
+      _classes[index] = updatedClass;
+      notifyListeners();
+    }
+  }
 }
