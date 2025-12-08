@@ -38,7 +38,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         curve: Curves.easeIn,
       ),
     );
-
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -114,6 +113,35 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
 
+  Future<void> _continueAsGuest() async {
+    setState(() => _isLoading = true);
+
+    try {
+      // Notify global auth provider of guest login
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      await auth.loginAsGuest();
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to continue as guest: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -131,22 +159,46 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF6750A4),
-              const Color(0xFF8B7AB8),
+              const Color(0xFF6366F1), // Indigo
+              const Color(0xFF8B5CF6), // Purple
+              const Color(0xFFA855F7), // Medium Purple
+              const Color(0xFFEC4899), // Pink
             ],
+            stops: [0.0, 0.4, 0.7, 1.0],
           ),
         ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+        child: Stack(
+          children: [
+            // Background pattern overlay
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.05,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment.center,
+                      radius: 1.5,
+                      colors: [
+                        Colors.white,
+                        Colors.transparent,
+                      ],
+                      stops: [0.0, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
                       // Logo
                       Container(
                         width: 100,
@@ -165,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         child: const Icon(
                           Icons.school_rounded,
                           size: 50,
-                          color: Color(0xFF6750A4),
+                          color: Color(0xFF6366F1),
                         ),
                       ),
                       
@@ -301,7 +353,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     child: Text(
                                       'Forgot Password?',
                                       style: GoogleFonts.poppins(
-                                        color: const Color(0xFF6750A4),
+                                        color: const Color(0xFF6366F1),
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -318,7 +370,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 child: ElevatedButton(
                                   onPressed: _isLoading ? null : _login,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF6750A4),
+                                    backgroundColor: const Color(0xFF6366F1),
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
@@ -349,6 +401,31 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ),
                       
                       const SizedBox(height: 24),
+                      
+                      // Continue as Guest Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: OutlinedButton(
+                          onPressed: _isLoading ? null : _continueAsGuest,
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white, width: 2),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Continue as Guest',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 16),
                       
                       // Sign Up Link
                       Row(
@@ -387,8 +464,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   ),
                 ),
               ),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

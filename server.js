@@ -18,18 +18,18 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/teacher_a
 // Models
 const ClassSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  teacherId: { type: String, required: true },
+  teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', required: true },
 }, { timestamps: true });
 
 const StudentSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: String,
   studentId: { type: String, required: true, unique: true },
-  classId: String,
+  classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' },
 }, { timestamps: true });
 
 const AttendanceSchema = new mongoose.Schema({
-  studentId: { type: String, required: true },
+  studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   date: { type: Date, required: true },
   session: { type: String, default: 'daily' }, // Changed default to 'daily'
   status: { type: String, enum: ['present', 'absent', 'late'], required: true },
@@ -38,11 +38,19 @@ const AttendanceSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const PaymentSchema = new mongoose.Schema({
-  studentId: { type: String, required: true },
-  classId: { type: String, required: true },
+  studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
+  classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
   amount: { type: Number, required: true },
   type: { type: String, enum: ['full', 'half', 'free'], required: true },
   date: { type: Date, default: Date.now },
+}, { timestamps: true });
+
+const TeacherSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  teacherId: { type: String, unique: true },
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
 }, { timestamps: true });
 
 AttendanceSchema.index({ studentId: 1, year: 1, month: 1 });
@@ -51,6 +59,7 @@ const Student = mongoose.model('Student', StudentSchema);
 const Attendance = mongoose.model('Attendance', AttendanceSchema);
 const Class = mongoose.model('Class', ClassSchema);
 const Payment = mongoose.model('Payment', PaymentSchema);
+const Teacher = mongoose.model('Teacher', TeacherSchema);
 
 // Routes
 // Students
@@ -66,7 +75,31 @@ app.get('/api/students', async (req, res) => {
 app.post('/api/students', async (req, res) => {
   try {
     const { name, email, studentId, classId } = req.body;
-    const student = new Student({ name, email, studentId, classId });
+    
+    // Auto-generate studentId if not provided
+    let finalStudentId = studentId;
+    if (!finalStudentId) {
+      // Generate a unique student ID based on timestamp and random number
+      const timestamp = Date.now().toString().slice(-6);
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      finalStudentId = `STU${timestamp}${random}`;
+      
+      // Check if it already exists, if so, regenerate
+      let existingStudent = await Student.findOne({ studentId: finalStudentId });
+      while (existingStudent) {
+        const newRandom = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        finalStudentId = `STU${timestamp}${newRandom}`;
+        existingStudent = await Student.findOne({ studentId: finalStudentId });
+      }
+    }
+    
+    // Convert classId to ObjectId if it's a string
+    let classObjectId = classId;
+    if (classId && typeof classId === 'string' && classId.match(/^[0-9a-fA-F]{24}$/)) {
+      classObjectId = new mongoose.Types.ObjectId(classId);
+    }
+    
+    const student = new Student({ name, email, studentId: finalStudentId, classId: classObjectId });
     await student.save();
     res.status(201).json(student);
   } catch (error) {
@@ -93,9 +126,16 @@ app.get('/api/attendance', async (req, res) => {
 app.post('/api/attendance', async (req, res) => {
   try {
     const { studentId, date, session = 'daily', status } = req.body;
+    
+    // Convert studentId to ObjectId if it's a string
+    let studentObjectId = studentId;
+    if (typeof studentId === 'string' && studentId.match(/^[0-9a-fA-F]{24}$/)) {
+      studentObjectId = new mongoose.Types.ObjectId(studentId);
+    }
+    
     const attendanceDate = new Date(date);
     const attendance = new Attendance({
-      studentId,
+      studentId: studentObjectId,
       date: attendanceDate,
       session,
       status,
@@ -122,7 +162,14 @@ app.get('/api/classes', async (req, res) => {
 app.post('/api/classes', async (req, res) => {
   try {
     const { name, teacherId } = req.body;
-    const classObj = new Class({ name, teacherId });
+    
+    // Convert teacherId to ObjectId if it's a string
+    let teacherObjectId = teacherId;
+    if (typeof teacherId === 'string' && teacherId.match(/^[0-9a-fA-F]{24}$/)) {
+      teacherObjectId = new mongoose.Types.ObjectId(teacherId);
+    }
+    
+    const classObj = new Class({ name, teacherId: teacherObjectId });
     await classObj.save();
     res.status(201).json(classObj);
   } catch (error) {
@@ -172,7 +219,19 @@ app.get('/api/payments', async (req, res) => {
 app.post('/api/payments', async (req, res) => {
   try {
     const { studentId, classId, amount, type } = req.body;
-    const payment = new Payment({ studentId, classId, amount, type });
+    
+    // Convert IDs to ObjectId if they're strings
+    let studentObjectId = studentId;
+    let classObjectId = classId;
+    
+    if (typeof studentId === 'string' && studentId.match(/^[0-9a-fA-F]{24}$/)) {
+      studentObjectId = new mongoose.Types.ObjectId(studentId);
+    }
+    if (typeof classId === 'string' && classId.match(/^[0-9a-fA-F]{24}$/)) {
+      classObjectId = new mongoose.Types.ObjectId(classId);
+    }
+    
+    const payment = new Payment({ studentId: studentObjectId, classId: classObjectId, amount, type });
     await payment.save();
     res.status(201).json(payment);
   } catch (error) {
@@ -187,6 +246,92 @@ app.delete('/api/payments/:id', async (req, res) => {
     res.status(200).json({ message: 'Payment deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete payment' });
+  }
+});
+
+// Teachers
+app.get('/api/teachers', async (req, res) => {
+  try {
+    const { status } = req.query;
+    let query = {};
+    if (status) query.status = status;
+    
+    const teachers = await Teacher.find(query);
+    res.json(teachers);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch teachers' });
+  }
+});
+
+app.post('/api/teachers', async (req, res) => {
+  try {
+    const { name, email, password, teacherId, status = 'active' } = req.body;
+    
+    // Auto-generate teacherId if not provided
+    let finalTeacherId = teacherId;
+    if (!finalTeacherId) {
+      // Generate a unique teacher ID based on timestamp and random number
+      const timestamp = Date.now().toString().slice(-6);
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      finalTeacherId = `TCH${timestamp}${random}`;
+      
+      // Check if it already exists, if so, regenerate
+      let existingTeacher = await Teacher.findOne({ teacherId: finalTeacherId });
+      while (existingTeacher) {
+        const newRandom = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        finalTeacherId = `TCH${timestamp}${newRandom}`;
+        existingTeacher = await Teacher.findOne({ teacherId: finalTeacherId });
+      }
+    }
+    
+    const teacher = new Teacher({ name, email, password, teacherId: finalTeacherId, status });
+    await teacher.save();
+    res.status(201).json(teacher);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create teacher' });
+  }
+});
+
+app.put('/api/teachers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, password, status } = req.body;
+    const updatedTeacher = await Teacher.findByIdAndUpdate(id, { name, email, password, status }, { new: true });
+    if (!updatedTeacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    res.status(200).json(updatedTeacher);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update teacher' });
+  }
+});
+
+app.put('/api/teachers/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!['active', 'inactive'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be active or inactive' });
+    }
+    
+    const updatedTeacher = await Teacher.findByIdAndUpdate(id, { status }, { new: true });
+    if (!updatedTeacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    res.status(200).json(updatedTeacher);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update teacher status' });
+  }
+});
+
+app.delete('/api/teachers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Teacher.findByIdAndDelete(id);
+    res.status(200).json({ message: 'Teacher deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete teacher' });
   }
 });
 

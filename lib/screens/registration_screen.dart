@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:provider/provider.dart';
+import 'email_confirmation_screen.dart';
 import 'home_screen.dart';
 import '../providers/auth_provider.dart';
 
@@ -71,35 +73,77 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Implement actual API call
-      // Simulating API call
-      await Future.delayed(const Duration(seconds: 2));
-      
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_email', _emailController.text);
-    await prefs.setString('user_name', _nameController.text);
+      // Send verification code
+      final response = await http.post(
+        Uri.parse('https://teacher-psi-drab.vercel.app/api/auth/send-verification-code'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': _emailController.text}),
+      );
 
-    if (!mounted) return; // avoid using BuildContext across async gap
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    await auth.login(_emailController.text, _nameController.text);
+      if (response.statusCode == 200) {
+        if (!mounted) return;
 
-      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Registration successful!'),
+            content: Text('Verification code sent to your email!'),
             backgroundColor: Colors.green,
           ),
         );
-        
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+
+        // Navigate to email confirmation screen
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => EmailConfirmationScreen(
+              email: _emailController.text,
+              name: _nameController.text,
+              phone: _phoneController.text,
+              password: _passwordController.text,
+            ),
+          ),
+        );
+      } else {
+        final error = json.decode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error['error'] ?? 'Failed to send verification code'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Registration failed: ${e.toString()}'),
+            content: Text('Network error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _continueAsGuest() async {
+    setState(() => _isLoading = true);
+
+    try {
+      // Notify global auth provider of guest login
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      await auth.loginAsGuest();
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to continue as guest: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -128,25 +172,49 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
             colors: [
-              const Color(0xFF6750A4),
-              const Color(0xFF8B7AB8),
+              const Color(0xFF06B6D4), // Cyan
+              const Color(0xFF3B82F6), // Blue
+              const Color(0xFF8B5CF6), // Purple
+              const Color(0xFFEC4899), // Pink
             ],
+            stops: [0.0, 0.4, 0.7, 1.0],
           ),
         ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+        child: Stack(
+          children: [
+            // Background pattern overlay
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.05,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment.center,
+                      radius: 1.5,
+                      colors: [
+                        Colors.white,
+                        Colors.transparent,
+                      ],
+                      stops: [0.0, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
                       // Logo
                       Container(
                         width: 80,
@@ -165,7 +233,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                         child: const Icon(
                           Icons.person_add_rounded,
                           size: 40,
-                          color: Color(0xFF6750A4),
+                          color: Color(0xFF06B6D4),
                         ),
                       ),
                       
@@ -383,7 +451,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                                             'Terms and Conditions',
                                             style: GoogleFonts.poppins(
                                               fontSize: 12,
-                                              color: const Color(0xFF6750A4),
+                                              color: const Color(0xFF06B6D4),
                                               fontWeight: FontWeight.w600,
                                               decoration: TextDecoration.underline,
                                             ),
@@ -404,7 +472,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                                 child: ElevatedButton(
                                   onPressed: _isLoading ? null : _register,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF6750A4),
+                                    backgroundColor: const Color(0xFF06B6D4),
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
@@ -435,6 +503,31 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                       ),
                       
                       const SizedBox(height: 24),
+                      
+                      // Continue as Guest Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: OutlinedButton(
+                          onPressed: _isLoading ? null : _continueAsGuest,
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white, width: 2),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Continue as Guest',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 16),
                       
                       // Sign In Link
                       Row(
@@ -468,10 +561,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                   ),
                 ),
               ),
+                
             ),
           ),
         ),
-      ),
+          ],
+    )
+      )
     );
-  }
+  
+}
 }

@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ReportsProvider()),
       ],
       child: MaterialApp(
-        title: 'Teacher Attendance',
+        title: 'Eduverse Teacher Panel',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
