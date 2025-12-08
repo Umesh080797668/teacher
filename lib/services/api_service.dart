@@ -6,7 +6,8 @@ import '../models/class.dart';
 import '../models/payment.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:3004'; // Mobile app backend
+  // For production, replace with your Render backend URL
+  static const String baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:3004');
 
   // Students
   Future<List<Student>> getStudents() async {
