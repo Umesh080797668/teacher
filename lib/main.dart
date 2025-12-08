@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/home_screen.dart';
+import 'screens/splash_screen.dart';
+import 'providers/auth_provider.dart';
 import 'providers/students_provider.dart';
 import 'providers/attendance_provider.dart';
 import 'providers/classes_provider.dart';
@@ -19,6 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => StudentsProvider()),
         ChangeNotifierProvider(create: (_) => AttendanceProvider()),
         ChangeNotifierProvider(create: (_) => ClassesProvider()),
@@ -66,7 +68,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const HomeScreen(),
+        home: const SplashScreen(),
       ),
     );
   }

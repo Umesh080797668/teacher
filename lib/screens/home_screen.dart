@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'students_screen.dart';
 import 'attendance_mark_screen.dart';
 import 'attendance_view_screen.dart';
 import 'classes_screen.dart';
 import 'payment_screen.dart';
 import 'reports_screen.dart';
+import 'login_screen.dart';
+import '../providers/auth_provider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -54,14 +57,61 @@ class HomeScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        CircleAvatar(
-                          radius: 28,
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          child: Icon(
-                            Icons.person,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            size: 28,
+                        PopupMenuButton<String>(
+                          icon: CircleAvatar(
+                            radius: 28,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            child: Icon(
+                              Icons.person,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              size: 28,
+                            ),
                           ),
+                          onSelected: (value) async {
+                            if (value == 'logout') {
+                              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                              await authProvider.logout();
+                              if (context.mounted) {
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                                  (route) => false,
+                                );
+                              }
+                            }
+                          },
+                          itemBuilder: (BuildContext context) => [
+                            PopupMenuItem<String>(
+                              value: 'profile',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.person_outline, color: Theme.of(context).colorScheme.primary),
+                                  const SizedBox(width: 12),
+                                  const Text('Profile'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'settings',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.settings_outlined, color: Theme.of(context).colorScheme.primary),
+                                  const SizedBox(width: 12),
+                                  const Text('Settings'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuDivider(),
+                            PopupMenuItem<String>(
+                              value: 'logout',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.logout, color: Colors.red[700]),
+                                  const SizedBox(width: 12),
+                                  Text('Logout', style: TextStyle(color: Colors.red[700])),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
