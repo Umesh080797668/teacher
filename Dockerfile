@@ -1,23 +1,19 @@
-# Use the official Flutter image as base
-FROM cirrusci/flutter:latest
+# Build stage
+FROM cirrusci/flutter:latest AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy pubspec files first for better caching
 COPY pubspec.* ./
-
-# Get dependencies
 RUN flutter pub get
 
-# Copy the rest of the code
 COPY . .
-
-# Build for web
 RUN flutter build web --release
 
-# Expose port (though for static, not needed)
-EXPOSE 8080
+# Production stage
+FROM nginx:alpine
 
-# For Render static site, the build output is in build/web
-# This Dockerfile is for building, Render will serve the static files
+COPY --from=build /app/build/web /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
