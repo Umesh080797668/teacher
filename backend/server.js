@@ -35,11 +35,19 @@ async function connectToDatabase() {
     console.log('Connecting to MongoDB...');
     console.log('MongoDB URI present:', !!process.env.MONGODB_URI); // Debug log
     
+    // Use slightly more permissive timeouts and smaller pools for serverless
     cachedConnection = await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 10000,
+      // Give the driver more time to find servers in transient serverless networks
+      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 20000,
       socketTimeoutMS: 45000,
+      // Keep pool small for serverless to avoid too many concurrent sockets
       maxPoolSize: 10,
-      minPoolSize: 1,
+      minPoolSize: 0,
+      // Try to prefer IPv4 where possible (may help in some environments)
+      family: 4,
+      // Don't buffer commands while connecting to surface errors quickly
+      bufferCommands: false,
     });
     
     console.log('MongoDB connected successfully');
