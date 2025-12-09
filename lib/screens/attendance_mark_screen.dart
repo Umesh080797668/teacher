@@ -5,7 +5,6 @@ import '../models/student.dart';
 import '../services/api_service.dart';
 import '../providers/classes_provider.dart';
 import '../providers/students_provider.dart';
-import '../models/class.dart' as class_model;
 
 class AttendanceMarkScreen extends StatefulWidget {
   const AttendanceMarkScreen({super.key});

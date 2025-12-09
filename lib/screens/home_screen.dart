@@ -246,12 +246,20 @@ class HomeScreen extends StatelessWidget {
                             subtitle: 'Check attendance history',
                             icon: Icons.analytics_rounded,
                             color: const Color(0xFFFF6F00),
-                            onTap: () {
+                            onTap: auth.isGuest ? () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please login to view attendance records'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                            } : () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const AttendanceViewScreen()),
                               );
                             },
+                            isDisabled: auth.isGuest,
                           ),
                           _FeatureCard(
                             title: 'Reports',
