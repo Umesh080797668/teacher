@@ -93,7 +93,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: NetworkImage('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1171&q=80'),
+            image: AssetImage('assets/images/background.png'),
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(
               Color.fromRGBO(0, 0, 0, 0.4),
@@ -151,11 +151,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                               width: 4,
                             ),
                           ),
-                          child: Image.asset(
-                            'assets/images/Gemini_Generated_Image_iirantiirantiira.png',
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.contain,
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/Gemini_Generated_Image_iirantiirantiira.png',
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
                       ),
