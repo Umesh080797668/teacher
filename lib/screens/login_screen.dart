@@ -91,7 +91,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
       // Notify global auth provider of successful login
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      await auth.login(_emailController.text, teacher['name']);
+      await auth.login(
+        _emailController.text, 
+        teacher['name'], 
+        teacherId: teacher['teacherId'],
+        teacherData: teacher,
+      );
 
       if (mounted) {
         Navigator.of(context).pushReplacement(

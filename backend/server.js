@@ -307,16 +307,17 @@ app.post('/api/classes', async (req, res) => {
   try {
     const { name, teacherId } = req.body;
     
-    // Convert teacherId to ObjectId if it's a string
-    let teacherObjectId = teacherId;
-    if (typeof teacherId === 'string' && teacherId.match(/^[0-9a-fA-F]{24}$/)) {
-      teacherObjectId = new mongoose.Types.ObjectId(teacherId);
+    // Find teacher by teacherId string
+    const teacher = await Teacher.findOne({ teacherId });
+    if (!teacher) {
+      return res.status(400).json({ error: 'Teacher not found' });
     }
     
-    const classObj = new Class({ name, teacherId: teacherObjectId });
+    const classObj = new Class({ name, teacherId: teacher._id });
     await classObj.save();
     res.status(201).json(classObj);
   } catch (error) {
+    console.error('Error creating class:', error);
     res.status(500).json({ error: 'Failed to create class' });
   }
 });

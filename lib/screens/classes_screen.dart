@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../providers/classes_provider.dart';
+import '../providers/auth_provider.dart';
 import 'class_details_screen.dart';
 
 class ClassesScreen extends StatefulWidget {
@@ -47,9 +48,19 @@ class _ClassesScreenState extends State<ClassesScreen> {
   Future<void> _addClass() async {
     if (_formKey.currentState!.validate()) {
       final provider = Provider.of<ClassesProvider>(context, listen: false);
+      final auth = Provider.of<AuthProvider>(context, listen: false);
       try {
-        // For now, using a hardcoded teacherId. In a real app, this would come from authentication
-        await provider.addClass(_nameController.text, 'teacher123');
+        final teacherId = auth.teacherId;
+        if (teacherId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Teacher ID not found. Please login again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+        await provider.addClass(_nameController.text, teacherId);
         _nameController.clear();
         setState(() {
           _showForm = false;

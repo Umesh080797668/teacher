@@ -186,7 +186,7 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
   Future<void> _registerTeacher() async {
     try {
       // Register teacher using centralized service
-      await ApiService.registerTeacher(
+      final teacher = await ApiService.registerTeacher(
         name: widget.name,
         email: widget.email,
         phone: widget.phone,
@@ -196,7 +196,12 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
       if (!mounted) return;
 
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      await auth.login(widget.email, widget.name);
+      await auth.login(
+        widget.email, 
+        widget.name,
+        teacherId: teacher['teacherId'],
+        teacherData: teacher,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
