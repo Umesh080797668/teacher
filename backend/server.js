@@ -33,16 +33,20 @@ async function connectToDatabase() {
   try {
     const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/teacher_attendance_mobile';
     console.log('Connecting to MongoDB...');
+    console.log('MongoDB URI present:', !!process.env.MONGODB_URI); // Debug log
     
     cachedConnection = await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
+      maxPoolSize: 10,
+      minPoolSize: 1,
     });
     
     console.log('MongoDB connected successfully');
     return cachedConnection;
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    console.error('MongoDB connection error:', error.message);
+    console.error('Full error:', error);
     throw error;
   }
 }
