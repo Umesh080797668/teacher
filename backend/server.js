@@ -149,6 +149,20 @@ app.get('/api/debug/env', (req, res) => {
   });
 });
 
+// Debug endpoint for MongoDB connection details
+app.get('/api/debug/mongodb', (req, res) => {
+  res.json({
+    readyState: mongoose.connection.readyState,
+    readyStateText: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown',
+    name: mongoose.connection.name,
+    host: mongoose.connection.host,
+    port: mongoose.connection.port,
+    db: mongoose.connection.db ? mongoose.connection.db.databaseName : null,
+    mongoUriPresent: !!process.env.MONGODB_URI,
+    mongoUriLength: process.env.MONGODB_URI ? process.env.MONGODB_URI.length : 0
+  });
+});
+
 // Students
 app.get('/api/students', async (req, res) => {
   try {
