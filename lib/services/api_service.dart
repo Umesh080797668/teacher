@@ -597,6 +597,7 @@ class ApiService {
         final dateKey = sortedDates[i];
         final dateAttendance = attendanceByDate[dateKey]!;
         final date = dateAttendance.first.date;
+        final createdAt = dateAttendance.first.createdAt ?? date;
 
         activities.add(
           RecentActivity(
@@ -605,7 +606,7 @@ class ApiService {
             title: 'Attendance Marked',
             subtitle:
                 'Attendance recorded for ${dateAttendance.length} students',
-            timestamp: date,
+            timestamp: createdAt,
           ),
         );
       }

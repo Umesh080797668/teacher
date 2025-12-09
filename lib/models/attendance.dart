@@ -6,6 +6,7 @@ class Attendance {
   final String status;
   final int month;
   final int year;
+  final DateTime? createdAt;
 
   Attendance({
     required this.id,
@@ -15,6 +16,7 @@ class Attendance {
     required this.status,
     required this.month,
     required this.year,
+    this.createdAt,
   });
 
   factory Attendance.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class Attendance {
       status: json['status'],
       month: json['month'],
       year: json['year'],
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
     );
   }
 
