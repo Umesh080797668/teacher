@@ -5,6 +5,7 @@ import '../models/student.dart';
 import '../services/api_service.dart';
 import '../providers/classes_provider.dart';
 import '../providers/students_provider.dart';
+import '../providers/auth_provider.dart';
 
 class AttendanceMarkScreen extends StatefulWidget {
   const AttendanceMarkScreen({super.key});
@@ -22,8 +23,9 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
       Provider.of<StudentsProvider>(context, listen: false).loadStudents();
-      Provider.of<ClassesProvider>(context, listen: false).loadClasses();
+      Provider.of<ClassesProvider>(context, listen: false).loadClasses(teacherId: auth.teacherId);
     });
   }
 
@@ -137,7 +139,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                               Text(
                                 'Date',
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -164,7 +166,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                     child: Consumer<ClassesProvider>(
                       builder: (context, classesProvider, child) {
                         return DropdownButtonFormField<String>(
-                          value: _selectedClassId,
+                          initialValue: _selectedClassId,
                           decoration: InputDecoration(
                             labelText: 'Select Class',
                             prefixIcon: Icon(
@@ -288,10 +290,10 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                       session: 'daily', // Changed from _selectedSession to 'daily'
                       onStatusChanged: (status) {
                         setState(() {
-                          _attendanceStatus[student.studentId] = status;
+                          _attendanceStatus[student.id] = status;
                         });
                       },
-                      currentStatus: _attendanceStatus[student.studentId],
+                      currentStatus: _attendanceStatus[student.id],
                     );
                   },
                 );
@@ -405,7 +407,7 @@ class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
                   Text(
                     'ID: ${widget.student.studentId}',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       fontSize: 12,
                     ),
                   ),
@@ -484,7 +486,7 @@ class _StatusChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color : color.withValues(alpha: 0.1),
+          color: isSelected ? color : color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: color,
