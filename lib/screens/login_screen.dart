@@ -350,40 +350,47 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               
                               // Remember Me & Forgot Password
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  Row(
-                                    children: [
-                                      Checkbox(
-                                        value: _rememberMe,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _rememberMe = value ?? false;
-                                          });
-                                        },
-                                      ),
-                                      Text(
-                                        'Remember me',
-                                        style: GoogleFonts.poppins(fontSize: 14),
-                                      ),
-                                    ],
+                                  Flexible(
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Checkbox(
+                                          value: _rememberMe,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _rememberMe = value ?? false;
+                                            });
+                                          },
+                                        ),
+                                        Flexible(
+                                          child: Text(
+                                            'Remember me',
+                                            style: GoogleFonts.poppins(fontSize: 14),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  TextButton(
-                                    onPressed: () {
-                                      // TODO: Implement forgot password
-                                    },
-                                    child: Text(
-                                      'Forgot Password?',
-                                      style: GoogleFonts.poppins(
-                                        color: const Color(0xFF6366F1),
-                                        fontWeight: FontWeight.w600,
+                                  Flexible(
+                                    child: TextButton(
+                                      onPressed: () {
+                                        // TODO: Implement forgot password
+                                      },
+                                      child: Text(
+                                        'Forgot Password?',
+                                        style: GoogleFonts.poppins(
+                                          color: const Color(0xFF6366F1),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ),
                                 ],
-                              ),
-                              
-                              const SizedBox(height: 24),
+                              ),                              const SizedBox(height: 24),
                               
                               // Login Button
                               SizedBox(
