@@ -258,6 +258,30 @@ class ApiService {
     return json.decode(response.body);
   }
 
+  static Future<Map<String, dynamic>> updateTeacher(String teacherId, Map<String, dynamic> updateData) async {
+    final response = await _makeRequest(
+      'PUT',
+      '/api/teachers/$teacherId',
+      body: updateData,
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException('Failed to update teacher', statusCode: response.statusCode);
+    }
+
+    return json.decode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> getTeacher(String teacherId) async {
+    final response = await _makeRequest('GET', '/api/teachers/$teacherId');
+
+    if (response.statusCode != 200) {
+      throw ApiException('Failed to fetch teacher', statusCode: response.statusCode);
+    }
+
+    return json.decode(response.body);
+  }
+
   // Students
   static Future<List<Student>> getStudents() async {
     final response = await _makeRequest('GET', '/api/students');

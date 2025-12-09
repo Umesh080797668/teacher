@@ -8,6 +8,8 @@ import 'classes_screen.dart';
 import 'payment_screen.dart';
 import 'reports_screen.dart';
 import 'login_screen.dart';
+import 'profile_screen.dart';
+import 'settings_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../models/home_stats.dart';
@@ -396,6 +398,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 const LoginScreen(),
                                           ),
                                           (route) => false,
+                                        );
+                                      }
+                                    } else if (value == 'profile') {
+                                      if (context.mounted) {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const ProfileScreen(),
+                                          ),
+                                        );
+                                      }
+                                    } else if (value == 'settings') {
+                                      if (context.mounted) {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const SettingsScreen(),
+                                          ),
                                         );
                                       }
                                     }

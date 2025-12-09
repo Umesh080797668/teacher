@@ -463,6 +463,19 @@ app.get('/api/teachers', async (req, res) => {
   }
 });
 
+app.get('/api/teachers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const teacher = await Teacher.findById(id);
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    res.json(teacher);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch teacher' });
+  }
+});
+
 app.post('/api/teachers', async (req, res) => {
   try {
     const { name, email, phone, password, teacherId, status = 'active' } = req.body;
