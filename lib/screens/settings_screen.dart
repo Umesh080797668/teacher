@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
+import '../services/notification_service.dart';
+import '../services/backup_service.dart';
+import '../services/data_export_service.dart';
+import 'profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,13 +19,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _darkMode = false;
   bool _autoBackup = true;
-  String _language = 'English';
   bool _isLoading = false;
+  final _notificationService = NotificationService();
+  final _backupService = BackupService();
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _initializeServices();
+  }
+
+  Future<void> _initializeServices() async {
+    await _notificationService.initialize();
+    await _backupService.initialize();
   }
 
   Future<void> _loadSettings() async {
@@ -29,7 +41,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
       _darkMode = prefs.getBool('dark_mode') ?? false;
       _autoBackup = prefs.getBool('auto_backup') ?? true;
-      _language = prefs.getString('language') ?? 'English';
     });
   }
 
@@ -46,19 +57,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
     try {
       await _saveSetting(key, value);
-      // Update local state
+      // Update local state and call respective services
       switch (key) {
         case 'notifications_enabled':
           _notificationsEnabled = value;
+          await _notificationService.setNotificationsEnabled(value);
           break;
         case 'dark_mode':
           _darkMode = value;
+          if (mounted) {
+            final themeProvider = Provider.of<ThemeProvider>(
+              context,
+              listen: false,
+            );
+            await themeProvider.toggleTheme(value);
+          }
           break;
         case 'auto_backup':
           _autoBackup = value;
-          break;
-        case 'language':
-          _language = value;
+          await _backupService.setAutoBackup(value);
           break;
       }
 
@@ -74,7 +91,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -85,7 +104,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             content: Text('Failed to update setting: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -130,7 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => const Placeholder(), // Will be replaced with profile screen
+                          builder: (context) => const ProfileScreen(),
                         ),
                       );
                     },
@@ -166,11 +187,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     title: const Text('Push Notifications'),
-                    subtitle: const Text('Receive notifications for important updates'),
+                    subtitle: const Text(
+                      'Receive notifications for important updates',
+                    ),
                     value: _notificationsEnabled,
                     onChanged: _isLoading
                         ? null
-                        : (value) => _updateSetting('notifications_enabled', value),
+                        : (value) =>
+                              _updateSetting('notifications_enabled', value),
                   ),
                   const Divider(height: 1),
 
@@ -181,7 +205,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     title: const Text('Dark Mode'),
-                    subtitle: const Text('Switch between light and dark themes'),
+                    subtitle: const Text(
+                      'Switch between light and dark themes',
+                    ),
                     value: _darkMode,
                     onChanged: _isLoading
                         ? null
@@ -201,19 +227,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onChanged: _isLoading
                         ? null
                         : (value) => _updateSetting('auto_backup', value),
-                  ),
-                  const Divider(height: 1),
-
-                  // Language
-                  ListTile(
-                    leading: Icon(
-                      Icons.language,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    title: const Text('Language'),
-                    subtitle: Text(_language),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () => _showLanguageDialog(),
                   ),
                 ],
               ),
@@ -241,10 +254,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    leading: Icon(
-                      Icons.delete_outline,
-                      color: Colors.red,
-                    ),
+                    leading: Icon(Icons.delete_outline, color: Colors.red),
                     title: const Text('Clear Local Data'),
                     subtitle: const Text('Remove all locally stored data'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -351,100 +361,151 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showLanguageDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Language'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioMenuButton<String>(
-              value: 'English',
-              groupValue: _language,
-              onChanged: (value) {
-                if (value != null) {
-                  _updateSetting('language', value);
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text('English'),
+  Future<void> _exportData() async {
+    setState(() => _isLoading = true);
+    try {
+      final filePath = await DataExportService.exportData();
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 12),
+                Text('Export Successful'),
+              ],
             ),
-            RadioMenuButton<String>(
-              value: 'Spanish',
-              groupValue: _language,
-              onChanged: (value) {
-                if (value != null) {
-                  _updateSetting('language', value);
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text('Spanish'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Your data has been exported successfully!'),
+                const SizedBox(height: 12),
+                const Text(
+                  'File saved to:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  filePath ?? 'Unknown location',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
             ),
-            RadioMenuButton<String>(
-              value: 'French',
-              groupValue: _language,
-              onChanged: (value) {
-                if (value != null) {
-                  _updateSetting('language', value);
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text('French'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  void _exportData() {
-    // TODO: Implement data export functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Data export feature coming soon!'),
-        backgroundColor: Colors.blue,
-      ),
-    );
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.error, color: Colors.red),
+                SizedBox(width: 12),
+                Text('Export Failed'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Failed to export data:'),
+                const SizedBox(height: 8),
+                Text(
+                  e.toString(),
+                  style: const TextStyle(fontSize: 12, color: Colors.red),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   void _showClearDataDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        icon: const Icon(
+          Icons.warning_amber_rounded,
+          color: Colors.orange,
+          size: 48,
+        ),
         title: const Text('Clear Local Data'),
         content: const Text(
           'This will remove all locally stored data including settings and cached information. '
-          'Your data on the server will remain intact. This action cannot be undone.',
+          'Your data on the server will remain intact. This action cannot be undone.\n\n'
+          'Are you sure you want to continue?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () async {
-              // Clear all local data
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear();
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Local data cleared successfully'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+              try {
+                await DataExportService.clearAllData();
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text('Local data cleared successfully'),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                  // Reload settings
+                  _loadSettings();
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to clear data: $e'),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
+              }
             },
-            child: const Text(
-              'Clear Data',
-              style: TextStyle(color: Colors.red),
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Clear Data'),
           ),
         ],
       ),
@@ -455,17 +516,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Help & Support'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            Text('For help and support:'),
-            SizedBox(height: 8),
-            Text('• Email: support@teacherapp.com'),
-            Text('• Phone: +1 (555) 123-4567'),
-            Text('• Website: www.teacherapp.com/support'),
+            Icon(
+              Icons.help_outline,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            const Text('Help & Support'),
           ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Need assistance? We\'re here to help!',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              _buildContactItem(Icons.email, 'Email', 'support@eduverse.com'),
+              const SizedBox(height: 12),
+              _buildContactItem(Icons.phone, 'Phone', '+1 (555) 123-4567'),
+              const SizedBox(height: 12),
+              _buildContactItem(
+                Icons.language,
+                'Website',
+                'www.eduverse.com/support',
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 16),
+              const Text(
+                'Office Hours',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              const Text('Monday - Friday: 9:00 AM - 6:00 PM'),
+              const Text('Saturday: 10:00 AM - 4:00 PM'),
+              const Text('Sunday: Closed'),
+              const SizedBox(height: 16),
+              const Text(
+                'Response Time',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'We typically respond within 24 hours during business days.',
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -477,28 +578,101 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildContactItem(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(value, style: const TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showPrivacyPolicy() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Privacy Policy'),
-        content: const SingleChildScrollView(
+        title: Row(
+          children: [
+            Icon(
+              Icons.privacy_tip_outlined,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            const Text('Privacy Policy'),
+          ],
+        ),
+        content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Privacy Policy',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              const Text(
+                'Your Privacy Matters',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              SizedBox(height: 8),
-              Text(
-                'We collect and use your information to provide and improve our services. '
-                'Your data is stored securely and never shared with third parties without your consent.',
+              const SizedBox(height: 16),
+              _buildPrivacySection(
+                'Data Collection',
+                'We collect only essential information needed to provide our services, including '
+                    'your name, email, and attendance records. We do not collect unnecessary personal data.',
               ),
-              SizedBox(height: 8),
+              _buildPrivacySection(
+                'Data Usage',
+                'Your data is used solely for attendance tracking and reporting purposes. '
+                    'We do not sell or share your information with third parties without your explicit consent.',
+              ),
+              _buildPrivacySection(
+                'Data Security',
+                'We implement industry-standard security measures to protect your data, including '
+                    'encryption, secure authentication, and regular security audits.',
+              ),
+              _buildPrivacySection(
+                'Data Retention',
+                'Your data is stored as long as your account is active. You can request data deletion '
+                    'at any time by contacting our support team.',
+              ),
+              _buildPrivacySection(
+                'Your Rights',
+                'You have the right to access, modify, or delete your personal data. You can export '
+                    'your data at any time using the export feature in settings.',
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 16),
+              const Text(
+                'Last Updated: December 2024',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'For the complete privacy policy, visit:',
+                style: TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 4),
               Text(
-                'For more details, please visit our full privacy policy on our website.',
+                'www.eduverse.com/privacy',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.primary,
+                  decoration: TextDecoration.underline,
+                ),
               ),
             ],
           ),
@@ -508,6 +682,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Close'),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrivacySection(String title, String content) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          const SizedBox(height: 6),
+          Text(content, style: const TextStyle(fontSize: 13, height: 1.4)),
         ],
       ),
     );

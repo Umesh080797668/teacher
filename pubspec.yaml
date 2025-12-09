@@ -42,6 +42,7 @@ dependencies:
   fl_chart: ^1.1.1
   animations: ^2.0.11
   flutter_slidable: ^4.0.3
+  path_provider: ^2.1.2
 
 dev_dependencies:
   flutter_test:
