@@ -129,11 +129,23 @@ const EmailVerification = mongoose.model('EmailVerification', EmailVerificationS
 // Routes
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Server is running',
     timestamp: new Date().toISOString(),
     mongoStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
+// Debug endpoint to check environment variables (safe - no sensitive data)
+app.get('/api/debug/env', (req, res) => {
+  res.json({
+    hasMongoUri: !!process.env.MONGODB_URI,
+    hasEmailUser: !!process.env.EMAIL_USER,
+    hasEmailPass: !!process.env.EMAIL_PASS,
+    nodeEnv: process.env.NODE_ENV,
+    mongoUriLength: process.env.MONGODB_URI ? process.env.MONGODB_URI.length : 0,
+    mongoUriStartsWith: process.env.MONGODB_URI ? process.env.MONGODB_URI.substring(0, 20) + '...' : null
   });
 });
 
