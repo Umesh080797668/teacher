@@ -114,7 +114,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -133,13 +133,13 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
                         Icon(
                           Icons.email,
                           size: 16,
-                          color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
+                          color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           widget.student.email!,
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
+                            color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -259,7 +259,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
                               margin: const EdgeInsets.only(bottom: 8),
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: _getStatusColor(record.status).withOpacity(0.1),
+                                  backgroundColor: _getStatusColor(record.status).withValues(alpha: 0.1),
                                   child: Icon(
                                     _getStatusIcon(record.status),
                                     color: _getStatusColor(record.status),
@@ -351,7 +351,7 @@ class _AttendanceStatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -373,7 +373,7 @@ class _AttendanceStatCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],

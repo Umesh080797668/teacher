@@ -21,8 +21,8 @@ class HomeScreen extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-              Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3),
+              Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+              Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
             ],
           ),
         ),
@@ -60,7 +60,7 @@ class HomeScreen extends StatelessWidget {
                                     ? 'Browse attendance records (read-only)'
                                     : 'Manage your classroom attendance',
                                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                   ),
                                 );
                               },
@@ -316,7 +316,7 @@ class _FeatureCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: isDisabled ? 2 : 4,
-      shadowColor: color.withOpacity(isDisabled ? 0.2 : 0.4),
+      shadowColor: color.withValues(alpha: isDisabled ? 0.2 : 0.4),
       child: InkWell(
         onTap: isDisabled ? null : onTap,
         borderRadius: BorderRadius.circular(16),
@@ -328,8 +328,8 @@ class _FeatureCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                color.withOpacity(isDisabled ? 0.05 : 0.1),
-                color.withOpacity(isDisabled ? 0.02 : 0.05),
+                color.withValues(alpha: isDisabled ? 0.05 : 0.1),
+                color.withValues(alpha: isDisabled ? 0.02 : 0.05),
               ],
             ),
           ),
@@ -340,13 +340,13 @@ class _FeatureCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(isDisabled ? 0.1 : 0.2),
+                  color: color.withValues(alpha: isDisabled ? 0.1 : 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
                   size: 32,
-                  color: isDisabled ? color.withOpacity(0.5) : color,
+                  color: isDisabled ? color.withValues(alpha: 0.5) : color,
                 ),
               ),
               const SizedBox(height: 16),
@@ -355,7 +355,7 @@ class _FeatureCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: isDisabled 
-                    ? Theme.of(context).colorScheme.onSurface.withOpacity(0.5)
+                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)
                     : Theme.of(context).colorScheme.onSurface,
                 ),
               ),
@@ -364,8 +364,8 @@ class _FeatureCard extends StatelessWidget {
                 subtitle,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: isDisabled 
-                    ? Theme.of(context).colorScheme.onSurface.withOpacity(0.4)
-                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -375,7 +375,7 @@ class _FeatureCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(

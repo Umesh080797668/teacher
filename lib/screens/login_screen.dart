@@ -6,6 +6,7 @@ import 'registration_screen.dart';
 import 'home_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -102,32 +103,55 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
       String errorMessage = e.message;
       
-      // Customize error messages based on error codes
+      // Customize error messages based on error codes and status codes
       if (e.errorCode == 'INVALID_CREDENTIALS') {
         errorMessage = 'Invalid email or password. Please check your credentials and try again.';
       } else if (e.errorCode == 'ACCOUNT_INACTIVE') {
         errorMessage = 'Your account is not active. Please contact support for assistance.';
       } else if (e.errorCode == 'MISSING_CREDENTIALS') {
         errorMessage = 'Please enter both email and password.';
+      } else if (e.statusCode == 401) {
+        errorMessage = 'Invalid email or password. Please try again.';
       } else if (e.statusCode == 429) {
         errorMessage = 'Too many login attempts. Please wait a few minutes and try again.';
+      } else if (e.statusCode == 500 || e.statusCode == 502 || e.statusCode == 503) {
+        errorMessage = 'Server is currently unavailable. Please try again later.';
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text(errorMessage)),
+            ],
+          ),
+          backgroundColor: Colors.red.shade700,
           duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } catch (e) {
+      // Catch any other unexpected errors
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('An unexpected error occurred: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          content: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.white),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Unable to connect. Please check your internet connection and try again.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange.shade700,
           duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } finally {
@@ -379,7 +403,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   Flexible(
                                     child: TextButton(
                                       onPressed: () {
-                                        // TODO: Implement forgot password
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const ForgotPasswordScreen(),
+                                          ),
+                                        );
                                       },
                                       child: Text(
                                         'Forgot Password?',

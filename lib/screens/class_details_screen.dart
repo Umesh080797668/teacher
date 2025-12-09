@@ -291,7 +291,7 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                           Text(
                             'Teacher ID: ${widget.classObj.teacherId}',
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
+                              color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
                             ),
                           ),
                         ],
@@ -471,7 +471,7 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -493,7 +493,7 @@ class _StatCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],

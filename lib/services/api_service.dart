@@ -77,13 +77,14 @@ class ApiService {
 
         try {
           final errorData = json.decode(response.body);
-          errorMessage = errorData['error'] ?? errorMessage;
+          errorMessage = errorData['error'] ?? errorData['message'] ?? errorMessage;
           errorCode = errorData['code'];
         } catch (e) {
           // If response body is not JSON, use status code based messages
           errorMessage = _getErrorMessageFromStatusCode(response.statusCode);
         }
 
+        // Throw ApiException without printing to console
         throw ApiException(errorMessage, statusCode: response.statusCode, errorCode: errorCode);
       }
 
@@ -96,19 +97,21 @@ class ApiService {
       }
       throw ApiException('Request timed out. Please check your internet connection and try again.');
 
-    } on http.ClientException catch (e) {
+    } on http.ClientException {
       if (retryCount < maxRetries) {
         await Future.delayed(retryDelay);
         return _makeRequest(method, endpoint, headers: headers, body: body, retryCount: retryCount + 1);
       }
-      throw ApiException('Network error: ${e.message}. Please check your internet connection.');
+      // Don't expose internal error details to avoid console errors
+      throw ApiException('Network error. Please check your internet connection and try again.');
 
     } on FormatException {
       throw ApiException('Invalid response format from server. Please try again.');
 
     } catch (e) {
       if (e is ApiException) rethrow;
-      throw ApiException('An unexpected error occurred: ${e.toString()}');
+      // Catch all other exceptions and provide user-friendly message without exposing details
+      throw ApiException('Unable to connect to server. Please check your connection and try again.');
     }
   }
 
@@ -159,6 +162,24 @@ class ApiService {
     final response = await _makeRequest('POST', '/api/auth/verify-code', body: {
       'email': email,
       'code': code,
+    });
+
+    return json.decode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> forgotPasswordRequest(String email) async {
+    final response = await _makeRequest('POST', '/api/auth/forgot-password', body: {
+      'email': email,
+    });
+
+    return json.decode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> resetPassword(String email, String resetCode, String newPassword) async {
+    final response = await _makeRequest('POST', '/api/auth/reset-password', body: {
+      'email': email,
+      'resetCode': resetCode,
+      'newPassword': newPassword,
     });
 
     return json.decode(response.body);

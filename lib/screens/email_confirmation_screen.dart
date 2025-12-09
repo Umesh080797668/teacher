@@ -33,6 +33,10 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  // Timer variables
+  int _remainingSeconds = 10 * 60; // 10 minutes in seconds
+  bool _canResend = false;
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +68,30 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNodes[0].requestFocus();
     });
+
+    // Start countdown timer
+    _startCountdownTimer();
+  }
+
+  void _startCountdownTimer() {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted && _remainingSeconds > 0) {
+        setState(() {
+          _remainingSeconds--;
+        });
+        _startCountdownTimer();
+      } else if (mounted && _remainingSeconds == 0) {
+        setState(() {
+          _canResend = true;
+        });
+      }
+    });
+  }
+
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -115,9 +143,17 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text(errorMessage)),
+            ],
+          ),
+          backgroundColor: Colors.red.shade700,
           duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } catch (e) {
@@ -125,9 +161,19 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('An unexpected error occurred: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          content: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.white),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Unable to verify code. Please check your connection and try again.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange.shade700,
           duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } finally {
@@ -176,9 +222,17 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text(errorMessage)),
+            ],
+          ),
+          backgroundColor: Colors.red.shade700,
           duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } catch (e) {
@@ -186,9 +240,19 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('An unexpected error occurred: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          content: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.white),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Unable to complete registration. Please try again.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange.shade700,
           duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     }
@@ -200,6 +264,13 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
     try {
       // Resend verification code using centralized service
       await ApiService.sendVerificationCode(widget.email);
+
+      // Reset timer
+      setState(() {
+        _remainingSeconds = 10 * 60;
+        _canResend = false;
+      });
+      _startCountdownTimer();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -217,17 +288,35 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text(errorMessage)),
+            ],
+          ),
+          backgroundColor: Colors.red.shade700,
           duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('An unexpected error occurred: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          content: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.white),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Unable to send code. Please check your connection and try again.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange.shade700,
           duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } finally {
@@ -402,27 +491,40 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
 
                       const SizedBox(height: 16),
 
-                      // Resend Code
-                      TextButton(
-                        onPressed: _isResending ? null : _resendCode,
-                        child: _isResending
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                'Didn\'t receive the code? Resend',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: Colors.white,
-                                ),
+                      // Timer and Resend Code
+                      Column(
+                        children: [
+                          if (!_canResend)
+                            Text(
+                              'Resend code in ${_formatTime(_remainingSeconds)}',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 14,
                               ),
+                            )
+                          else
+                            TextButton(
+                              onPressed: _isResending ? null : _resendCode,
+                              child: _isResending
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Didn\'t receive the code? Resend',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        decoration: TextDecoration.underline,
+                                        decorationColor: Colors.white,
+                                      ),
+                                    ),
+                            ),
+                        ],
                       ),
 
                       const SizedBox(height: 16),

@@ -139,6 +139,15 @@ const EmailVerificationSchema = new mongoose.Schema({
 // Add TTL index to automatically delete expired codes
 EmailVerificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
+const PasswordResetSchema = new mongoose.Schema({
+  email: { type: String, required: true },
+  resetCode: { type: String, required: true },
+  expiresAt: { type: Date, required: true },
+}, { timestamps: true });
+
+// Add TTL index to automatically delete expired reset codes
+PasswordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
 AttendanceSchema.index({ studentId: 1, year: 1, month: 1 });
 
 const Student = mongoose.model('Student', StudentSchema);
@@ -147,6 +156,7 @@ const Class = mongoose.model('Class', ClassSchema);
 const Payment = mongoose.model('Payment', PaymentSchema);
 const Teacher = mongoose.model('Teacher', TeacherSchema);
 const EmailVerification = mongoose.model('EmailVerification', EmailVerificationSchema);
+const PasswordReset = mongoose.model('PasswordReset', PasswordResetSchema);
 
 // Database connection middleware
 app.use(async (req, res, next) => {
@@ -597,17 +607,157 @@ app.post('/api/auth/send-verification-code', async (req, res) => {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
-      subject: 'Email Verification Code',
+      subject: 'Verify Your Email - Teacher Attendance App',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #6750A4;">Email Verification</h2>
-          <p>Your verification code is:</p>
-          <div style="background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px;">
-            ${code}
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Email Verification</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 0;
+              padding: 0;
+              background-color: #f8fafc;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              background-color: #ffffff;
+              border-radius: 16px;
+              overflow: hidden;
+              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+              background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #A855F7 100%);
+              padding: 40px 30px;
+              text-align: center;
+              color: white;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 28px;
+              font-weight: 700;
+              letter-spacing: -0.5px;
+            }
+            .header p {
+              margin: 8px 0 0 0;
+              font-size: 16px;
+              opacity: 0.9;
+            }
+            .content {
+              padding: 40px 30px;
+              text-align: center;
+            }
+            .code-container {
+              background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+              border: 2px solid #e2e8f0;
+              border-radius: 12px;
+              padding: 30px 20px;
+              margin: 30px 0;
+              display: inline-block;
+              min-width: 200px;
+            }
+            .code {
+              font-size: 36px;
+              font-weight: 800;
+              letter-spacing: 8px;
+              color: #6366F1;
+              font-family: 'Courier New', monospace;
+              margin: 0;
+              text-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+            }
+            .info-text {
+              color: #64748b;
+              font-size: 16px;
+              line-height: 1.6;
+              margin: 20px 0;
+            }
+            .warning-box {
+              background-color: #fef3c7;
+              border: 1px solid #f59e0b;
+              border-radius: 8px;
+              padding: 16px;
+              margin: 20px 0;
+              text-align: left;
+            }
+            .warning-box p {
+              margin: 0;
+              color: #92400e;
+              font-size: 14px;
+            }
+            .footer {
+              background-color: #f8fafc;
+              padding: 30px;
+              text-align: center;
+              border-top: 1px solid #e2e8f0;
+            }
+            .footer p {
+              margin: 0;
+              color: #64748b;
+              font-size: 14px;
+              line-height: 1.5;
+            }
+            .app-name {
+              font-weight: 700;
+              color: #6366F1;
+            }
+            .icon {
+              width: 60px;
+              height: 60px;
+              background: linear-gradient(135deg, #6366F1, #8B5CF6);
+              border-radius: 50%;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              margin-bottom: 20px;
+              box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+            }
+            .icon::before {
+              content: '🎓';
+              font-size: 28px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="icon"></div>
+              <h1>Welcome to Teacher Attendance</h1>
+              <p>Verify your email to get started</p>
+            </div>
+            
+            <div class="content">
+              <h2 style="color: #1e293b; margin: 0 0 10px 0; font-size: 24px;">Verify Your Email Address</h2>
+              <p class="info-text">
+                To complete your registration and secure your account, please enter the verification code below in the app.
+              </p>
+              
+              <div class="code-container">
+                <div class="code">${code}</div>
+              </div>
+              
+              <p class="info-text">
+                <strong>This code will expire in 10 minutes</strong> for security reasons.
+              </p>
+              
+              <div class="warning-box">
+                <p><strong>Security Notice:</strong> If you didn't create an account with Teacher Attendance, please ignore this email. Your email address will not be used.</p>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p>
+                <span class="app-name">Teacher Attendance App</span><br>
+                Secure • Reliable • Easy to Use<br>
+                © 2025 Teacher Attendance. All rights reserved.
+              </p>
+            </div>
           </div>
-          <p>This code will expire in 10 minutes.</p>
-          <p>If you didn't request this code, please ignore this email.</p>
-        </div>
+        </body>
+        </html>
       `
     };
     
@@ -757,6 +907,277 @@ app.post('/api/auth/login', async (req, res) => {
       error: 'An error occurred during login. Please try again later.',
       code: 'INTERNAL_ERROR'
     });
+  }
+});
+
+// Forgot Password Routes
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    
+    // Check if teacher exists
+    const teacher = await Teacher.findOne({ email: email.toLowerCase().trim() });
+    if (!teacher) {
+      // Don't reveal if email exists or not for security
+      return res.json({ message: 'If an account with this email exists, a password reset code has been sent.' });
+    }
+    
+    // Generate 6-digit reset code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Set expiration time (10 minutes from now)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    
+    // Save reset code
+    await PasswordReset.findOneAndUpdate(
+      { email },
+      { resetCode, expiresAt },
+      { upsert: true, new: true }
+    );
+    
+    // Send email
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Reset Your Password - Teacher Attendance App',
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Password Reset</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 0;
+              padding: 0;
+              background-color: #f8fafc;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              background-color: #ffffff;
+              border-radius: 16px;
+              overflow: hidden;
+              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+              background: linear-gradient(135deg, #DC2626 0%, #EF4444 50%, #F87171 100%);
+              padding: 40px 30px;
+              text-align: center;
+              color: white;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 28px;
+              font-weight: 700;
+              letter-spacing: -0.5px;
+            }
+            .header p {
+              margin: 8px 0 0 0;
+              font-size: 16px;
+              opacity: 0.9;
+            }
+            .content {
+              padding: 40px 30px;
+              text-align: center;
+            }
+            .code-container {
+              background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+              border: 2px solid #fecaca;
+              border-radius: 12px;
+              padding: 30px 20px;
+              margin: 30px 0;
+              display: inline-block;
+              min-width: 200px;
+            }
+            .code {
+              font-size: 36px;
+              font-weight: 800;
+              letter-spacing: 6px;
+              color: #DC2626;
+              font-family: 'Courier New', monospace;
+              margin: 0;
+              text-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+            }
+            .info-text {
+              color: #64748b;
+              font-size: 16px;
+              line-height: 1.6;
+              margin: 20px 0;
+            }
+            .warning-box {
+              background-color: #fef3c7;
+              border: 1px solid #f59e0b;
+              border-radius: 8px;
+              padding: 16px;
+              margin: 20px 0;
+              text-align: left;
+            }
+            .warning-box p {
+              margin: 0;
+              color: #92400e;
+              font-size: 14px;
+            }
+            .security-tips {
+              background-color: #f0f9ff;
+              border: 1px solid #0ea5e9;
+              border-radius: 8px;
+              padding: 16px;
+              margin: 20px 0;
+              text-align: left;
+            }
+            .security-tips h3 {
+              margin: 0 0 8px 0;
+              color: #0c4a6e;
+              font-size: 16px;
+            }
+            .security-tips ul {
+              margin: 0;
+              padding-left: 20px;
+              color: #0c4a6e;
+            }
+            .security-tips li {
+              margin: 4px 0;
+              font-size: 14px;
+            }
+            .footer {
+              background-color: #f8fafc;
+              padding: 30px;
+              text-align: center;
+              border-top: 1px solid #e2e8f0;
+            }
+            .footer p {
+              margin: 0;
+              color: #64748b;
+              font-size: 14px;
+              line-height: 1.5;
+            }
+            .app-name {
+              font-weight: 700;
+              color: #DC2626;
+            }
+            .icon {
+              width: 60px;
+              height: 60px;
+              background: linear-gradient(135deg, #DC2626, #EF4444);
+              border-radius: 50%;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              margin-bottom: 20px;
+              box-shadow: 0 8px 16px rgba(220, 38, 38, 0.3);
+            }
+            .icon::before {
+              content: '🔐';
+              font-size: 28px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="icon"></div>
+              <h1>Password Reset Request</h1>
+              <p>Secure your Teacher Attendance account</p>
+            </div>
+            
+            <div class="content">
+              <h2 style="color: #1e293b; margin: 0 0 10px 0; font-size: 24px;">Reset Your Password</h2>
+              <p class="info-text">
+                We received a request to reset your password. Use the code below to create a new password for your account.
+              </p>
+              
+              <div class="code-container">
+                <div class="code">${resetCode}</div>
+              </div>
+              
+              <p class="info-text">
+                <strong>This code will expire in 10 minutes</strong> for your security.
+              </p>
+              
+              <div class="warning-box">
+                <p><strong>Security Alert:</strong> If you didn't request this password reset, please ignore this email and consider changing your password immediately if you suspect unauthorized access.</p>
+              </div>
+              
+              <div class="security-tips">
+                <h3>🔒 Password Security Tips</h3>
+                <ul>
+                  <li>Use at least 8 characters with a mix of letters, numbers, and symbols</li>
+                  <li>Avoid using personal information or common words</li>
+                  <li>Don't reuse passwords from other accounts</li>
+                  <li>Consider using a password manager</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p>
+                <span class="app-name">Teacher Attendance App</span><br>
+                Secure • Reliable • Easy to Use<br>
+                © 2025 Teacher Attendance. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+    
+    await transporter.sendMail(mailOptions);
+    
+    res.json({ message: 'If an account with this email exists, a password reset code has been sent.' });
+  } catch (error) {
+    console.error('Error sending reset code:', error);
+    res.status(500).json({ error: 'Failed to send reset code' });
+  }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { email, resetCode, newPassword } = req.body;
+    
+    if (!email || !resetCode || !newPassword) {
+      return res.status(400).json({ error: 'Email, reset code, and new password are required' });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    
+    // Find reset code
+    const resetDoc = await PasswordReset.findOne({ email, resetCode });
+    
+    if (!resetDoc) {
+      return res.status(400).json({ error: 'Invalid reset code', code: 'INVALID_RESET_CODE' });
+    }
+    
+    // Check if code is expired
+    if (resetDoc.expiresAt < new Date()) {
+      return res.status(400).json({ error: 'Reset code has expired', code: 'RESET_CODE_EXPIRED' });
+    }
+    
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    
+    // Update teacher password
+    await Teacher.findOneAndUpdate(
+      { email: email.toLowerCase().trim() },
+      { password: hashedPassword }
+    );
+    
+    // Delete the reset code
+    await PasswordReset.deleteOne({ _id: resetDoc._id });
+    
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 });
 

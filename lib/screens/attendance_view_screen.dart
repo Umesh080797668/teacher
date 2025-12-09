@@ -113,7 +113,7 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
                               Text(
                                 'Filter by Date',
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -371,7 +371,7 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
                                   margin: const EdgeInsets.only(bottom: 8),
                                   child: ListTile(
                                     leading: CircleAvatar(
-                                      backgroundColor: statusColor.withOpacity(0.2),
+                                      backgroundColor: statusColor.withValues(alpha: 0.2),
                                       child: Icon(
                                         statusIcon,
                                         color: statusColor,
@@ -392,7 +392,7 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
                                           'Session: ${attendance.session.toUpperCase()}',
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                           ),
                                         ),
                                       ],
@@ -400,7 +400,7 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
                                     trailing: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(
-                                        color: statusColor.withOpacity(0.2),
+                                        color: statusColor.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(color: statusColor, width: 1),
                                       ),
