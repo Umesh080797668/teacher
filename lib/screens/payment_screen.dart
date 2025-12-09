@@ -190,120 +190,56 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
                   return Column(
                     children: [
-                      // Make the stat cards responsive
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          // On smaller screens, stack vertically
-                          if (constraints.maxWidth < 400) {
-                            return Column(
-                              children: [
-                                _StatCard(
-                                  title: 'Total Revenue',
-                                  value: 'LKR ${totalRevenue.toStringAsFixed(0)}',
-                                  icon: Icons.attach_money,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(height: 16),
-                                _StatCard(
-                                  title: 'Total Payments',
-                                  value: '${provider.payments.length}',
-                                  icon: Icons.receipt,
-                                  color: Colors.green,
-                                ),
-                              ],
-                            );
-                          } else {
-                            // On larger screens, show in row
-                            return Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                Flexible(
-                                  child: _StatCard(
-                                    title: 'Total Revenue',
-                                    value: 'LKR ${totalRevenue.toStringAsFixed(0)}',
-                                    icon: Icons.attach_money,
-                                    color: Theme.of(context).colorScheme.primary,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Flexible(
-                                  child: _StatCard(
-                                    title: 'Total Payments',
-                                    value: '${provider.payments.length}',
-                                    icon: Icons.receipt,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                              ],
-                            );
-                          }
-                        },
+                      // Total Revenue and Total Payments in one line
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Flexible(
+                            child: _StatCard(
+                              title: 'Total Revenue',
+                              value: 'LKR ${totalRevenue.toStringAsFixed(0)}',
+                              icon: Icons.attach_money,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Flexible(
+                            child: _StatCard(
+                              title: 'Total Payments',
+                              value: '${provider.payments.length}',
+                              icon: Icons.receipt,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
-                      // Make payment type cards responsive
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          if (constraints.maxWidth < 350) {
-                            // Stack payment type cards vertically on very small screens
-                            return Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                  children: [
-                                    _PaymentTypeCard(
-                                      title: 'Full',
-                                      count: fullPayments,
-                                      color: Colors.blue,
-                                    ),
-                                    _PaymentTypeCard(
-                                      title: 'Half',
-                                      count: halfPayments,
-                                      color: Colors.orange,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    _PaymentTypeCard(
-                                      title: 'Free',
-                                      count: freePayments,
-                                      color: Colors.purple,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            );
-                          } else {
-                            return Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                Flexible(
-                                  child: _PaymentTypeCard(
-                                    title: 'Full',
-                                    count: fullPayments,
-                                    color: Colors.blue,
-                                  ),
-                                ),
-                                Flexible(
-                                  child: _PaymentTypeCard(
-                                    title: 'Half',
-                                    count: halfPayments,
-                                    color: Colors.orange,
-                                  ),
-                                ),
-                                Flexible(
-                                  child: _PaymentTypeCard(
-                                    title: 'Free',
-                                    count: freePayments,
-                                    color: Colors.purple,
-                                  ),
-                                ),
-                              ],
-                            );
-                          }
-                        },
+                      // Full, Free, Half cards in one line
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Flexible(
+                            child: _PaymentTypeCard(
+                              title: 'Full',
+                              count: fullPayments,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          Flexible(
+                            child: _PaymentTypeCard(
+                              title: 'Half',
+                              count: halfPayments,
+                              color: Colors.orange,
+                            ),
+                          ),
+                          Flexible(
+                            child: _PaymentTypeCard(
+                              title: 'Free',
+                              count: freePayments,
+                              color: Colors.purple,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   );
