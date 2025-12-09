@@ -21,24 +21,44 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/teacher_attendance_mobile', {
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-})
-.then(() => console.log('MongoDB connected successfully'))
-.catch(err => {
-  console.error('MongoDB connection error:', err);
-  console.error('MongoDB URI:', process.env.MONGODB_URI ? 'Set (hidden)' : 'Not set');
-});
+// MongoDB connection with connection reuse for serverless
+let cachedConnection = null;
+
+async function connectToDatabase() {
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    console.log('Using cached database connection');
+    return cachedConnection;
+  }
+
+  try {
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/teacher_attendance_mobile';
+    console.log('Connecting to MongoDB...');
+    
+    cachedConnection = await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    
+    console.log('MongoDB connected successfully');
+    return cachedConnection;
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
+}
+
+// Initialize connection
+connectToDatabase();
 
 // Handle MongoDB connection errors after initial connection
 mongoose.connection.on('error', err => {
   console.error('MongoDB connection error:', err);
+  cachedConnection = null;
 });
 
 mongoose.connection.on('disconnected', () => {
   console.log('MongoDB disconnected');
+  cachedConnection = null;
 });
 
 mongoose.connection.on('connected', () => {
@@ -570,6 +590,13 @@ app.post('/api/auth/verify-code', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     console.log('Login request received');
+    
+    // Check MongoDB connection status
+    if (mongoose.connection.readyState !== 1) {
+      console.error('MongoDB not connected. ReadyState:', mongoose.connection.readyState);
+      return res.status(503).json({ error: 'Database connection unavailable. Please try again.' });
+    }
+    
     const { email, password } = req.body;
     
     // Validate input
