@@ -20,6 +20,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? _selectedStudentId;
   String? _selectedClassId;
   String _selectedPaymentType = 'full';
+  final TextEditingController _amountController = TextEditingController();
   bool _showForm = false;
 
   @override
@@ -50,13 +51,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  double _getPaymentAmount(String type, String classId) {
-    // You can customize pricing based on class
+  double _getDefaultPaymentAmount(String type) {
+    // Default amounts for reference, but users can override
     switch (type) {
       case 'full':
-        return 100.0; // Full payment amount
+        return 5000.0; // Default full payment in LKR
       case 'half':
-        return 50.0; // Half payment amount
+        return 2500.0; // Default half payment in LKR
       case 'free':
         return 0.0; // Free
       default:
@@ -67,7 +68,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Future<void> _addPayment() async {
     if (_formKey.currentState!.validate() && _selectedStudentId != null && _selectedClassId != null) {
       final paymentProvider = Provider.of<PaymentProvider>(context, listen: false);
-      final amount = _getPaymentAmount(_selectedPaymentType, _selectedClassId!);
+      final amount = double.tryParse(_amountController.text) ?? 0.0;
+
+      if (amount <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a valid amount greater than 0'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
 
       try {
         await paymentProvider.addPayment(
@@ -81,6 +92,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _selectedStudentId = null;
           _selectedClassId = null;
           _selectedPaymentType = 'full';
+          _amountController.clear();
           _showForm = false;
         });
 
@@ -91,7 +103,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 children: [
                   const Icon(Icons.check_circle, color: Colors.white),
                   const SizedBox(width: 12),
-                  Text('Payment recorded successfully ($_selectedPaymentType)'),
+                  Text('Payment recorded successfully (LKR ${amount.toStringAsFixed(2)})'),
                 ],
               ),
               backgroundColor: Colors.green,
@@ -182,7 +194,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       children: [
                         _StatCard(
                           title: 'Total Revenue',
-                          value: '\$${totalRevenue.toStringAsFixed(0)}',
+                          value: 'LKR ${totalRevenue.toStringAsFixed(0)}',
                           icon: Icons.attach_money,
                           color: Theme.of(context).colorScheme.primary,
                         ),
@@ -362,35 +374,34 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 onChanged: (value) {
                                   setState(() {
                                     _selectedPaymentType = value!;
+                                    // Set default amount based on type
+                                    if (_amountController.text.isEmpty || _amountController.text == '0') {
+                                      _amountController.text = _getDefaultPaymentAmount(_selectedPaymentType).toStringAsFixed(2);
+                                    }
                                   });
                                 },
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
 
-                              // Amount Display
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(8),
+                              // Amount Input
+                              TextFormField(
+                                controller: _amountController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Amount (LKR)',
+                                  prefixIcon: Icon(Icons.attach_money),
+                                  hintText: 'Enter payment amount',
                                 ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text(
-                                      'Amount:',
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                    Text(
-                                      '\$${_getPaymentAmount(_selectedPaymentType, _selectedClassId ?? '').toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter an amount';
+                                  }
+                                  final amount = double.tryParse(value);
+                                  if (amount == null || amount <= 0) {
+                                    return 'Please enter a valid amount greater than 0';
+                                  }
+                                  return null;
+                                },
                               ),
                               const SizedBox(height: 16),
 
@@ -545,7 +556,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             ),
                           ),
                           trailing: Text(
-                            '\$${payment.amount.toStringAsFixed(2)}',
+                            'LKR ${payment.amount.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -563,6 +574,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
   }
 
   Color _getPaymentTypeColor(String type) {
