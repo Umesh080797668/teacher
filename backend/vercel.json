@@ -14,7 +14,7 @@
   ],
   "env": {
     "MONGODB_URI": "@MONGODB_URI",
-    "EMAIL_USER": "@Email_USER",
-    "EMAIL_PASS": "@Email_PASS"
+    "EMAIL_USER": "@EMAIL_USER",
+    "EMAIL_PASS": "@EMAIL_PASS"
   }
 }
