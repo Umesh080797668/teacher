@@ -30,7 +30,7 @@ The issue was related to MongoDB connection handling in Vercel's serverless envi
 
 The fixes have been pushed to GitHub and will auto-deploy to Vercel.
 
-**Deployment URL**: https://teacher-ebon.vercel.app
+**Deployment URL**: https://teacher-eight-chi.vercel.app
 
 ## Testing Steps
 
@@ -39,7 +39,7 @@ Check deployment status: https://vercel.com/dashboard
 
 ### 2. Test Health Endpoint
 ```bash
-curl https://teacher-ebon.vercel.app/api/health
+curl https://teacher-eight-chi.vercel.app/api/health
 ```
 Expected response:
 ```json
@@ -53,7 +53,7 @@ Expected response:
 
 ### 3. Test Login with Invalid Credentials
 ```bash
-curl -X POST https://teacher-ebon.vercel.app/api/auth/login \
+curl -X POST https://teacher-eight-chi.vercel.app/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"wrong@email.com","password":"wrongpass"}'
 ```

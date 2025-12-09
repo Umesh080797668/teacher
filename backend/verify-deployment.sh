@@ -6,7 +6,7 @@ echo ""
 
 # Test health endpoint
 echo "1️⃣ Testing Health Endpoint..."
-HEALTH=$(curl -s https://teacher-ebon.vercel.app/api/health)
+HEALTH=$(curl -s https://teacher-eight-chi.vercel.app/api/health)
 echo "Response: $HEALTH"
 echo ""
 

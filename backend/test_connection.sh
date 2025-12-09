@@ -5,7 +5,7 @@ echo ""
 
 # Test health endpoint
 echo "📡 Testing health endpoint..."
-HEALTH_RESPONSE=$(curl -s https://teacher-ebon.vercel.app/api/health)
+HEALTH_RESPONSE=$(curl -s https://teacher-eight-chi.vercel.app/api/health)
 
 if [ $? -eq 0 ]; then
     echo "✅ Health endpoint responded"
@@ -30,7 +30,7 @@ echo ""
 echo "🔐 Testing login endpoint..."
 
 # Test login with wrong credentials
-LOGIN_RESPONSE=$(curl -s -X POST https://teacher-ebon.vercel.app/api/auth/login \
+LOGIN_RESPONSE=$(curl -s -X POST https://teacher-eight-chi.vercel.app/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@test.com","password":"test"}')
 

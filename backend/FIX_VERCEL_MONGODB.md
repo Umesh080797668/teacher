@@ -70,7 +70,7 @@ cd "/home/imantha/Desktop/Attendance/mobile attendence/teacher_attendance/backen
 
 Or test manually:
 ```bash
-curl https://teacher-ebon.vercel.app/api/health
+curl https://teacher-eight-chi.vercel.app/api/health
 ```
 
 You should see:
@@ -149,10 +149,10 @@ Before running verify script:
 ---
 
 ## 📞 Your Deployment URL
-https://teacher-ebon.vercel.app
+https://teacher-eight-chi.vercel.app
 
 ## 🏥 Health Check Endpoint
-https://teacher-ebon.vercel.app/api/health
+https://teacher-eight-chi.vercel.app/api/health
 
 ---
 

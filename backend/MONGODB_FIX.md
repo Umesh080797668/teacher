@@ -44,7 +44,7 @@ Wait 2-3 minutes for deployment, then test:
 
 ```bash
 # Check health endpoint
-curl https://teacher-ebon.vercel.app/api/health
+curl https://teacher-eight-chi.vercel.app/api/health
 ```
 
 Should show:
@@ -59,7 +59,7 @@ Should show:
 
 ```bash
 # Test login with wrong credentials
-curl -X POST https://teacher-ebon.vercel.app/api/auth/login \
+curl -X POST https://teacher-eight-chi.vercel.app/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@test.com","password":"test"}'
 ```
@@ -102,7 +102,7 @@ Should show:
 After setting the environment variable and redeploying, run this command:
 
 ```bash
-curl https://teacher-ebon.vercel.app/api/health | python3 -c "import sys, json; data=json.load(sys.stdin); print('✅ Connected!' if data.get('mongoStatus') == 'connected' else '❌ Still disconnected')"
+curl https://teacher-eight-chi.vercel.app/api/health | python3 -c "import sys, json; data=json.load(sys.stdin); print('✅ Connected!' if data.get('mongoStatus') == 'connected' else '❌ Still disconnected')"
 ```
 
 If it shows "✅ Connected!", then your login should work properly!

@@ -69,14 +69,14 @@ Wait 2-3 minutes for deployment, then test:
 
 ```bash
 # Check health endpoint
-curl https://teacher-ebon.vercel.app/api/health
+curl https://teacher-eight-chi.vercel.app/api/health
 
 # Should show: "mongoStatus": "connected"
 ```
 
 ```bash
 # Test login
-curl -X POST https://teacher-ebon.vercel.app/api/auth/login \
+curl -X POST https://teacher-eight-chi.vercel.app/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@test.com","password":"test"}'
 
