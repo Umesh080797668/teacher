@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 class DataExportService {
   static Future<bool> requestStoragePermission() async {
     if (Platform.isAndroid) {
+      // Try to request storage permission
       final status = await Permission.storage.request();
       if (status.isGranted) {
         return true;
@@ -16,7 +17,8 @@ class DataExportService {
         await openAppSettings();
         return false;
       } else {
-        return false;
+        // If storage permission is denied, try to use app documents directory as fallback
+        return false; // Will use documents directory as fallback
       }
     } else if (Platform.isIOS) {
       // iOS doesn't require explicit storage permission for documents directory
@@ -29,9 +31,30 @@ class DataExportService {
   static Future<String?> exportData() async {
     try {
       // Request storage permissions
-      final hasPermission = await requestStoragePermission();
-      if (!hasPermission) {
-        throw Exception('Storage permission denied');
+      final hasExternalPermission = await requestStoragePermission();
+
+      // Get the directory to save the file
+      Directory? directory;
+      if (Platform.isAndroid) {
+        if (hasExternalPermission) {
+          directory = await getExternalStorageDirectory();
+        } else {
+          // Fallback to app documents directory
+          directory = await getApplicationDocumentsDirectory();
+          // Create an "Exports" subdirectory
+          directory = Directory('${directory.path}/Exports');
+          if (!await directory.exists()) {
+            await directory.create(recursive: true);
+          }
+        }
+      } else if (Platform.isIOS) {
+        directory = await getApplicationDocumentsDirectory();
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      if (directory == null) {
+        throw Exception('Could not get storage directory');
       }
 
       // Get all data from SharedPreferences
@@ -52,20 +75,6 @@ class DataExportService {
 
       // Convert to JSON
       final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
-
-      // Get the directory to save the file
-      Directory? directory;
-      if (Platform.isAndroid) {
-        directory = await getExternalStorageDirectory();
-      } else if (Platform.isIOS) {
-        directory = await getApplicationDocumentsDirectory();
-      } else {
-        directory = await getApplicationDocumentsDirectory();
-      }
-
-      if (directory == null) {
-        throw Exception('Could not get storage directory');
-      }
 
       // Create filename with timestamp
       final timestamp = DateTime.now()

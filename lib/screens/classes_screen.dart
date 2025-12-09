@@ -137,262 +137,271 @@ class _ClassesScreenState extends State<ClassesScreen> {
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
       ),
-      body: Column(
-        children: [
-          // Header with stats
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Header with stats
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+              ),
+              child: Consumer<ClassesProvider>(
+                builder: (context, provider, child) {
+                  return Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Expanded(
+                            child: _StatCard(
+                              title: 'Total Classes',
+                              value: '${provider.classes.length}',
+                              icon: Icons.class_,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _StatCard(
+                              title: 'Active',
+                              value: '${provider.classes.length}',
+                              icon: Icons.check_circle,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
-            child: Consumer<ClassesProvider>(
-              builder: (context, provider, child) {
-                return Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Expanded(
-                          child: _StatCard(
-                            title: 'Total Classes',
-                            value: '${provider.classes.length}',
-                            icon: Icons.class_,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _StatCard(
-                            title: 'Active',
-                            value: '${provider.classes.length}',
-                            icon: Icons.check_circle,
-                            color: Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
 
-          // Add Class Button
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              child: !_showForm
-                  ? ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _showForm = true;
-                        });
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add New Class'),
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50),
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                    )
-                  : Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Add New Class',
-                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
+            // Add Class Button
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                child: !_showForm
+                    ? ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _showForm = true;
+                          });
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add New Class'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      )
+                    : Card(
+                        elevation: 4,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Add New Class',
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
+                                    IconButton(
+                                      icon: const Icon(Icons.close),
+                                      onPressed: () {
+                                        setState(() {
+                                          _showForm = false;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _nameController,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface,
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.close),
-                                    onPressed: () {
-                                      setState(() {
-                                        _showForm = false;
-                                      });
-                                    },
+                                  decoration: const InputDecoration(
+                                    labelText: 'Class Name',
+                                    prefixIcon: Icon(Icons.class_),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _nameController,
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter a class name';
+                                    }
+                                    return null;
+                                  },
                                 ),
-                                decoration: const InputDecoration(
-                                  labelText: 'Class Name',
-                                  prefixIcon: Icon(Icons.class_),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _addClass,
+                                  icon: const Icon(Icons.save),
+                                  label: const Text('Save Class'),
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(double.infinity, 50),
+                                    backgroundColor: Theme.of(context).colorScheme.primary,
+                                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                                  ),
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter a class name';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton.icon(
-                                onPressed: _addClass,
-                                icon: const Icon(Icons.save),
-                                label: const Text('Save Class'),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(double.infinity, 50),
-                                  backgroundColor: Theme.of(context).colorScheme.primary,
-                                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
+              ),
             ),
-          ),
 
-          // Classes List
-          Expanded(
-            child: Consumer<ClassesProvider>(
+            // Classes List
+            Consumer<ClassesProvider>(
               builder: (context, provider, child) {
                 if (provider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const SizedBox(
+                    height: 200,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
                 }
 
                 if (provider.classes.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.class_outlined,
-                          size: 80,
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No classes yet',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  return SizedBox(
+                    height: 200,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.class_outlined,
+                            size: 80,
                             color: Theme.of(context).colorScheme.outline,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Add your first class to get started',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
+                          const SizedBox(height: 16),
+                          Text(
+                            'No classes yet',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            'Add your first class to get started',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: provider.classes.length,
-                  itemBuilder: (context, index) {
-                    final classObj = provider.classes[index];
-                    return Slidable(
-                      endActionPane: ActionPane(
-                        motion: const ScrollMotion(),
-                        children: [
-                          SlidableAction(
-                            onPressed: (context) {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return AlertDialog(
-                                    title: const Text('Delete Class'),
-                                    content: Text('Are you sure you want to delete "${classObj.name}"?'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.of(context).pop(),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.of(context).pop();
-                                          _deleteClass(classObj.id);
-                                        },
-                                        style: TextButton.styleFrom(foregroundColor: Colors.red),
-                                        child: const Text('Delete'),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            icon: Icons.delete,
-                            label: 'Delete',
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ],
-                      ),
-                      child: Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: CircleAvatar(
-                            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                            radius: 28,
-                            child: Icon(
-                              Icons.class_,
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
-                              size: 28,
+                return SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.5, // Fixed height for scrollable area
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: provider.classes.length,
+                    itemBuilder: (context, index) {
+                      final classObj = provider.classes[index];
+                      return Slidable(
+                        endActionPane: ActionPane(
+                          motion: const ScrollMotion(),
+                          children: [
+                            SlidableAction(
+                              onPressed: (context) {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: const Text('Delete Class'),
+                                      content: Text('Are you sure you want to delete "${classObj.name}"?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                            _deleteClass(classObj.id);
+                                          },
+                                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              icon: Icons.delete,
+                              label: 'Delete',
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ),
-                          title: Text(
-                            classObj.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
+                          ],
+                        ),
+                        child: Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(16),
+                            leading: CircleAvatar(
+                              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                              radius: 28,
+                              child: Icon(
+                                Icons.class_,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                size: 28,
+                              ),
                             ),
-                          ),
-                          subtitle: Text(
-                            'Teacher ID: ${classObj.teacherId}',
-                            style: TextStyle(
+                            title: Text(
+                              classObj.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                            subtitle: Text(
+                              'Teacher ID: ${classObj.teacherId}',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right,
                               color: Theme.of(context).colorScheme.outline,
                             ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ClassDetailsScreen(classObj: classObj),
+                                ),
+                              );
+                            },
                           ),
-                          trailing: Icon(
-                            Icons.chevron_right,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ClassDetailsScreen(classObj: classObj),
-                              ),
-                            );
-                          },
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 );
               },
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

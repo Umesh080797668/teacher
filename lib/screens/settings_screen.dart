@@ -369,29 +369,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green),
-                SizedBox(width: 12),
-                Text('Export Successful'),
+                const Icon(Icons.check_circle, color: Colors.green),
+                const SizedBox(width: 12),
+                Text(
+                  'Export Successful',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
               ],
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Your data has been exported successfully!'),
+                Text(
+                  'Your data has been exported successfully!',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'File saved to:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   filePath ?? 'Unknown location',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontStyle: FontStyle.italic,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -410,22 +424,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.error, color: Colors.red),
-                SizedBox(width: 12),
-                Text('Export Failed'),
+                const Icon(Icons.error, color: Colors.red),
+                const SizedBox(width: 12),
+                Text(
+                  'Export Failed',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
               ],
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Failed to export data:'),
+                Text(
+                  'Failed to export data:',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   e.toString(),
-                  style: const TextStyle(fontSize: 12, color: Colors.red),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                 ),
               ],
             ),
@@ -452,11 +479,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           color: Colors.orange,
           size: 48,
         ),
-        title: const Text('Clear Local Data'),
-        content: const Text(
+        title: Text(
+          'Clear Local Data',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        content: Text(
           'This will remove all locally stored data including settings and cached information. '
           'Your data on the server will remain intact. This action cannot be undone.\n\n'
           'Are you sure you want to continue?',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         actions: [
           TextButton(
@@ -523,7 +558,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(width: 12),
-            const Text('Help & Support'),
+            Text(
+              'Help & Support',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -531,9 +571,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Need assistance? We\'re here to help!',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 16),
               _buildContactItem(Icons.email, 'Email', 'support@eduverse.com'),
@@ -548,22 +592,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Office Hours',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 8),
-              const Text('Monday - Friday: 9:00 AM - 6:00 PM'),
-              const Text('Saturday: 10:00 AM - 4:00 PM'),
-              const Text('Sunday: Closed'),
+              Text(
+                'Monday - Friday: 9:00 AM - 6:00 PM',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              Text(
+                'Saturday: 10:00 AM - 4:00 PM',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              Text(
+                'Sunday: Closed',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Response Time',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'We typically respond within 24 hours during business days.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ],
           ),
@@ -590,13 +660,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 2),
-              Text(value, style: const TextStyle(fontSize: 14)),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
             ],
           ),
         ),
@@ -615,7 +692,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(width: 12),
-            const Text('Privacy Policy'),
+            Text(
+              'Privacy Policy',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -623,9 +705,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Your Privacy Matters',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 16),
               _buildPrivacySection(
@@ -695,10 +781,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 6),
-          Text(content, style: const TextStyle(fontSize: 13, height: 1.4)),
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
         ],
       ),
     );

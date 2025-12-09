@@ -111,7 +111,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
       ),
-      body: Column(
+      body: SingleChildScrollView(
+        child: Column(
         children: [
           // Header with stats
           Container(
@@ -129,19 +130,23 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 return Column(
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _StatCard(
-                          title: 'Total Students',
-                          value: '${provider.students.length}',
-                          icon: Icons.people,
-                          color: Theme.of(context).colorScheme.primary,
+                        Expanded(
+                          child: _StatCard(
+                            title: 'Total Students',
+                            value: '${provider.students.length}',
+                            icon: Icons.people,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                         ),
-                        _StatCard(
-                          title: 'Active',
-                          value: '${provider.students.length}',
-                          icon: Icons.check_circle,
-                          color: Colors.green,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _StatCard(
+                            title: 'Active',
+                            value: '${provider.students.length}',
+                            icon: Icons.check_circle,
+                            color: Colors.green,
+                          ),
                         ),
                       ],
                     ),
@@ -173,6 +178,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     )
                   : Card(
                       elevation: 4,
+                      color: Theme.of(context).colorScheme.surface,
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Form(
@@ -187,10 +193,14 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                     'Add New Student',
                                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.onSurface,
                                     ),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.close),
+                                    icon: Icon(
+                                      Icons.close,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
                                     onPressed: () {
                                       setState(() {
                                         _showForm = false;
@@ -202,9 +212,18 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _nameController,
-                                decoration: const InputDecoration(
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                                decoration: InputDecoration(
                                   labelText: 'Name',
-                                  prefixIcon: Icon(Icons.person),
+                                  prefixIcon: Icon(
+                                    Icons.person,
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                  ),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                  ),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
@@ -216,19 +235,40 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               const SizedBox(height: 12),
                               TextFormField(
                                 controller: _emailController,
-                                decoration: const InputDecoration(
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                                decoration: InputDecoration(
                                   labelText: 'Email (optional)',
-                                  prefixIcon: Icon(Icons.email),
+                                  prefixIcon: Icon(
+                                    Icons.email,
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                  ),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                  ),
                                 ),
                                 keyboardType: TextInputType.emailAddress,
                               ),
                               const SizedBox(height: 12),
                               TextFormField(
                                 controller: _studentIdController,
-                                decoration: const InputDecoration(
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                                decoration: InputDecoration(
                                   labelText: 'Student ID (optional - auto-generated)',
-                                  prefixIcon: Icon(Icons.badge),
+                                  prefixIcon: Icon(
+                                    Icons.badge,
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                  ),
+                                  labelStyle: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                  ),
                                   helperText: 'Leave empty to auto-generate',
+                                  helperStyle: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -236,19 +276,39 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                 builder: (context, classesProvider, child) {
                                   return DropdownButtonFormField<String>(
                                     initialValue: _selectedClassId,
-                                    decoration: const InputDecoration(
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                    dropdownColor: Theme.of(context).colorScheme.surface,
+                                    decoration: InputDecoration(
                                       labelText: 'Class (optional)',
-                                      prefixIcon: Icon(Icons.class_),
+                                      prefixIcon: Icon(
+                                        Icons.class_,
+                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                      ),
+                                      labelStyle: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                      ),
                                     ),
                                     items: [
-                                      const DropdownMenuItem<String>(
+                                      DropdownMenuItem<String>(
                                         value: null,
-                                        child: Text('No class assigned'),
+                                        child: Text(
+                                          'No class assigned',
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.onSurface,
+                                          ),
+                                        ),
                                       ),
                                       ...classesProvider.classes.map((classObj) {
                                         return DropdownMenuItem<String>(
                                           value: classObj.id,
-                                          child: Text(classObj.name),
+                                          child: Text(
+                                            classObj.name,
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                            ),
+                                          ),
                                         );
                                       }),
                                     ],
@@ -280,15 +340,21 @@ class _StudentsScreenState extends State<StudentsScreen> {
           ),
           
           // Students List
-          Expanded(
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.5, // Fixed height for scrollable area
             child: Consumer<StudentsProvider>(
               builder: (context, provider, child) {
-                if (provider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                
-                if (provider.students.isEmpty) {
-                  return Center(
+              if (provider.isLoading) {
+                return const SizedBox(
+                  height: 200,
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              
+              if (provider.students.isEmpty) {
+                return SizedBox(
+                  height: 200,
+                  child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -313,10 +379,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
                         ),
                       ],
                     ),
-                  );
-                }
-                
-                return ListView.builder(
+                  ),
+                );
+              }                return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: provider.students.length,
                   itemBuilder: (context, index) {
@@ -430,6 +495,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
           ),
         ],
       ),
+      )
     );
   }
 }
@@ -452,11 +518,11 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

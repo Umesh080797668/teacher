@@ -167,265 +167,414 @@ class _PaymentScreenState extends State<PaymentScreen> {
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
       ),
-      body: Column(
-        children: [
-          // Header with stats
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Header with stats
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+              ),
+              child: Consumer<PaymentProvider>(
+                builder: (context, provider, child) {
+                  final totalRevenue = provider.payments.fold<double>(0, (sum, payment) => sum + payment.amount);
+                  final fullPayments = provider.payments.where((p) => p.type == 'full').length;
+                  final halfPayments = provider.payments.where((p) => p.type == 'half').length;
+                  final freePayments = provider.payments.where((p) => p.type == 'free').length;
+
+                  return Column(
+                    children: [
+                      // Make the stat cards responsive
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          // On smaller screens, stack vertically
+                          if (constraints.maxWidth < 400) {
+                            return Column(
+                              children: [
+                                _StatCard(
+                                  title: 'Total Revenue',
+                                  value: 'LKR ${totalRevenue.toStringAsFixed(0)}',
+                                  icon: Icons.attach_money,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(height: 16),
+                                _StatCard(
+                                  title: 'Total Payments',
+                                  value: '${provider.payments.length}',
+                                  icon: Icons.receipt,
+                                  color: Colors.green,
+                                ),
+                              ],
+                            );
+                          } else {
+                            // On larger screens, show in row
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Flexible(
+                                  child: _StatCard(
+                                    title: 'Total Revenue',
+                                    value: 'LKR ${totalRevenue.toStringAsFixed(0)}',
+                                    icon: Icons.attach_money,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Flexible(
+                                  child: _StatCard(
+                                    title: 'Total Payments',
+                                    value: '${provider.payments.length}',
+                                    icon: Icons.receipt,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      // Make payment type cards responsive
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (constraints.maxWidth < 350) {
+                            // Stack payment type cards vertically on very small screens
+                            return Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                  children: [
+                                    _PaymentTypeCard(
+                                      title: 'Full',
+                                      count: fullPayments,
+                                      color: Colors.blue,
+                                    ),
+                                    _PaymentTypeCard(
+                                      title: 'Half',
+                                      count: halfPayments,
+                                      color: Colors.orange,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    _PaymentTypeCard(
+                                      title: 'Free',
+                                      count: freePayments,
+                                      color: Colors.purple,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            );
+                          } else {
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Flexible(
+                                  child: _PaymentTypeCard(
+                                    title: 'Full',
+                                    count: fullPayments,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                                Flexible(
+                                  child: _PaymentTypeCard(
+                                    title: 'Half',
+                                    count: halfPayments,
+                                    color: Colors.orange,
+                                  ),
+                                ),
+                                Flexible(
+                                  child: _PaymentTypeCard(
+                                    title: 'Free',
+                                    count: freePayments,
+                                    color: Colors.purple,
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
-            child: Consumer<PaymentProvider>(
-              builder: (context, provider, child) {
-                final totalRevenue = provider.payments.fold<double>(0, (sum, payment) => sum + payment.amount);
-                final fullPayments = provider.payments.where((p) => p.type == 'full').length;
-                final halfPayments = provider.payments.where((p) => p.type == 'half').length;
-                final freePayments = provider.payments.where((p) => p.type == 'free').length;
 
-                return Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _StatCard(
-                          title: 'Total Revenue',
-                          value: 'LKR ${totalRevenue.toStringAsFixed(0)}',
-                          icon: Icons.attach_money,
-                          color: Theme.of(context).colorScheme.primary,
+            // Add Payment Button
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                child: !_showForm
+                    ? ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _showForm = true;
+                          });
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text('Record New Payment'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
                         ),
-                        _StatCard(
-                          title: 'Total Payments',
-                          value: '${provider.payments.length}',
-                          icon: Icons.receipt,
-                          color: Colors.green,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _PaymentTypeCard(
-                          title: 'Full',
-                          count: fullPayments,
-                          color: Colors.blue,
-                        ),
-                        _PaymentTypeCard(
-                          title: 'Half',
-                          count: halfPayments,
-                          color: Colors.orange,
-                        ),
-                        _PaymentTypeCard(
-                          title: 'Free',
-                          count: freePayments,
-                          color: Colors.purple,
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-
-          // Add Payment Button
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              child: !_showForm
-                  ? ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _showForm = true;
-                        });
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text('Record New Payment'),
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50),
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                    )
-                  : Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Record Payment',
-                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
+                      )
+                    : Card(
+                        elevation: 4,
+                        color: Theme.of(context).colorScheme.surface,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Record Payment',
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                      ),
                                     ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.close),
-                                    onPressed: () {
-                                      setState(() {
-                                        _showForm = false;
-                                      });
-                                    },
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Class Selection
-                              Consumer<ClassesProvider>(
-                                builder: (context, classesProvider, child) {
-                                  return DropdownButtonFormField<String>(
-                                    initialValue: _selectedClassId,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Select Class',
-                                      prefixIcon: Icon(Icons.class_),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.close,
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _showForm = false;
+                                        });
+                                      },
                                     ),
-                                    items: classesProvider.classes.map((classObj) {
-                                      return DropdownMenuItem<String>(
-                                        value: classObj.id,
-                                        child: Text(classObj.name),
-                                      );
-                                    }).toList(),
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _selectedClassId = value;
-                                        _selectedStudentId = null; // Reset student selection
-                                      });
-                                    },
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Please select a class';
-                                      }
-                                      return null;
-                                    },
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 12),
-
-                              // Student Selection (filtered by class)
-                              Consumer2<StudentsProvider, ClassesProvider>(
-                                builder: (context, studentsProvider, classesProvider, child) {
-                                  final classStudents = studentsProvider.students
-                                      .where((student) => student.classId == _selectedClassId)
-                                      .toList();
-
-                                  return DropdownButtonFormField<String>(
-                                    initialValue: _selectedStudentId,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Select Student',
-                                      prefixIcon: Icon(Icons.person),
-                                    ),
-                                    items: classStudents.map((student) {
-                                      return DropdownMenuItem<String>(
-                                        value: student.id,
-                                        child: Text(student.name),
-                                      );
-                                    }).toList(),
-                                    onChanged: _selectedClassId != null ? (value) {
-                                      setState(() {
-                                        _selectedStudentId = value;
-                                      });
-                                    } : null,
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Please select a student';
-                                      }
-                                      return null;
-                                    },
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 12),
-
-                              // Payment Type Selection
-                              DropdownButtonFormField<String>(
-                                initialValue: _selectedPaymentType,
-                                decoration: const InputDecoration(
-                                  labelText: 'Payment Type',
-                                  prefixIcon: Icon(Icons.payment),
+                                  ],
                                 ),
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'full',
-                                    child: Text('Full Payment'),
+                                const SizedBox(height: 16),
+
+                                // Class Selection
+                                Consumer<ClassesProvider>(
+                                  builder: (context, classesProvider, child) {
+                                    return DropdownButtonFormField<String>(
+                                      initialValue: _selectedClassId,
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                      ),
+                                      dropdownColor: Theme.of(context).colorScheme.surface,
+                                      decoration: InputDecoration(
+                                        labelText: 'Select Class',
+                                        labelStyle: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                        ),
+                                        prefixIcon: Icon(
+                                          Icons.class_,
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                      items: classesProvider.classes.map((classObj) {
+                                        return DropdownMenuItem<String>(
+                                          value: classObj.id,
+                                          child: Text(
+                                            classObj.name,
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedClassId = value;
+                                          _selectedStudentId = null; // Reset student selection
+                                        });
+                                      },
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Please select a class';
+                                        }
+                                        return null;
+                                      },
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+
+                                // Student Selection (filtered by class)
+                                Consumer2<StudentsProvider, ClassesProvider>(
+                                  builder: (context, studentsProvider, classesProvider, child) {
+                                    final classStudents = studentsProvider.students
+                                        .where((student) => student.classId == _selectedClassId)
+                                        .toList();
+
+                                    return DropdownButtonFormField<String>(
+                                      initialValue: _selectedStudentId,
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                      ),
+                                      dropdownColor: Theme.of(context).colorScheme.surface,
+                                      decoration: InputDecoration(
+                                        labelText: 'Select Student',
+                                        labelStyle: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                        ),
+                                        prefixIcon: Icon(
+                                          Icons.person,
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                      items: classStudents.map((student) {
+                                        return DropdownMenuItem<String>(
+                                          value: student.id,
+                                          child: Text(
+                                            student.name,
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                      onChanged: _selectedClassId != null ? (value) {
+                                        setState(() {
+                                          _selectedStudentId = value;
+                                        });
+                                      } : null,
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Please select a student';
+                                        }
+                                        return null;
+                                      },
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+
+                                // Payment Type Selection
+                                DropdownButtonFormField<String>(
+                                  initialValue: _selectedPaymentType,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface,
                                   ),
-                                  DropdownMenuItem(
-                                    value: 'half',
-                                    child: Text('Half Payment'),
+                                  dropdownColor: Theme.of(context).colorScheme.surface,
+                                  decoration: InputDecoration(
+                                    labelText: 'Payment Type',
+                                    labelStyle: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                    ),
+                                    prefixIcon: Icon(
+                                      Icons.payment,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
                                   ),
-                                  DropdownMenuItem(
-                                    value: 'free',
-                                    child: Text('Free'),
+                                  items: [
+                                    DropdownMenuItem(
+                                      value: 'full',
+                                      child: Text(
+                                        'Full Payment',
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'half',
+                                      child: Text(
+                                        'Half Payment',
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'free',
+                                      child: Text(
+                                        'Free',
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedPaymentType = value!;
+                                      // Set default amount based on type
+                                      if (_amountController.text.isEmpty || _amountController.text == '0') {
+                                        _amountController.text = _getDefaultPaymentAmount(_selectedPaymentType).toStringAsFixed(2);
+                                      }
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+
+                                // Amount Input
+                                TextFormField(
+                                  controller: _amountController,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface,
                                   ),
-                                ],
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedPaymentType = value!;
-                                    // Set default amount based on type
-                                    if (_amountController.text.isEmpty || _amountController.text == '0') {
-                                      _amountController.text = _getDefaultPaymentAmount(_selectedPaymentType).toStringAsFixed(2);
+                                  decoration: InputDecoration(
+                                    labelText: 'Amount (LKR)',
+                                    labelStyle: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                    ),
+                                    prefixIcon: Icon(
+                                      Icons.attach_money,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
+                                    hintText: 'Enter payment amount',
+                                    hintStyle: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter an amount';
                                     }
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 12),
-
-                              // Amount Input
-                              TextFormField(
-                                controller: _amountController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Amount (LKR)',
-                                  prefixIcon: Icon(Icons.attach_money),
-                                  hintText: 'Enter payment amount',
+                                    final amount = double.tryParse(value);
+                                    if (amount == null || amount <= 0) {
+                                      return 'Please enter a valid amount greater than 0';
+                                    }
+                                    return null;
+                                  },
                                 ),
-                                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter an amount';
-                                  }
-                                  final amount = double.tryParse(value);
-                                  if (amount == null || amount <= 0) {
-                                    return 'Please enter a valid amount greater than 0';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
+                                const SizedBox(height: 16),
 
-                              ElevatedButton.icon(
-                                onPressed: _addPayment,
-                                icon: const Icon(Icons.save),
-                                label: const Text('Record Payment'),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(double.infinity, 50),
-                                  backgroundColor: Theme.of(context).colorScheme.primary,
-                                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                                ElevatedButton.icon(
+                                  onPressed: _addPayment,
+                                  icon: const Icon(Icons.save),
+                                  label: const Text('Record Payment'),
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(double.infinity, 50),
+                                    backgroundColor: Theme.of(context).colorScheme.primary,
+                                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
+              ),
             ),
-          ),
 
-          // Payments List
-          Expanded(
-            child: Consumer<PaymentProvider>(
+            // Payments List
+            Consumer<PaymentProvider>(
               builder: (context, provider, child) {
                 if (provider.isLoading) {
                   return const Center(child: CircularProgressIndicator());
@@ -461,6 +610,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 }
 
                 return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: provider.payments.length,
                   itemBuilder: (context, index) {
@@ -570,8 +721,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 );
               },
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -638,35 +789,45 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      constraints: const BoxConstraints(minWidth: 120, maxWidth: 160),
+      padding: const EdgeInsets.all(12), // Reduced padding
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 32),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
+          Icon(icon, color: color, size: 28), // Slightly smaller icon
+          const SizedBox(height: 6), // Reduced spacing
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 20, // Slightly smaller font
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+              maxLines: 1,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+          const SizedBox(height: 2), // Reduced spacing
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              maxLines: 1,
             ),
           ),
         ],
@@ -689,27 +850,37 @@ class _PaymentTypeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      constraints: const BoxConstraints(minWidth: 70, maxWidth: 100),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // Reduced padding
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            count.toString(),
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              count.toString(),
+              style: TextStyle(
+                fontSize: 16, // Slightly smaller font
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+              maxLines: 1,
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
+          const SizedBox(height: 1), // Reduced spacing
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 11, // Slightly smaller font
+                color: color,
+              ),
+              maxLines: 1,
             ),
           ),
         ],

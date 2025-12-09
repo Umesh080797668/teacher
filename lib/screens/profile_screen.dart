@@ -211,9 +211,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       TextFormField(
                         controller: _nameController,
                         enabled: _isEditing,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                         decoration: InputDecoration(
                           labelText: 'Full Name',
-                          prefixIcon: const Icon(Icons.person_outline),
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.person_outline,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -236,9 +245,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         controller: _emailController,
                         enabled: _isEditing,
                         keyboardType: TextInputType.emailAddress,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                         decoration: InputDecoration(
                           labelText: 'Email Address',
-                          prefixIcon: const Icon(Icons.email_outlined),
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.email_outlined,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -264,9 +282,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         controller: _phoneController,
                         enabled: _isEditing,
                         keyboardType: TextInputType.phone,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                         decoration: InputDecoration(
                           labelText: 'Phone Number',
-                          prefixIcon: const Icon(Icons.phone_outlined),
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.phone_outlined,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -283,9 +310,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         TextFormField(
                           initialValue: _teacher!.teacherId,
                           enabled: false,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                           decoration: InputDecoration(
                             labelText: 'Teacher ID',
-                            prefixIcon: const Icon(Icons.badge_outlined),
+                            labelStyle: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.badge_outlined,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),

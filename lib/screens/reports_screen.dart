@@ -75,9 +75,13 @@ class _AttendanceSummaryTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Overall Attendance Summary',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 16),
           Row(
@@ -124,9 +128,13 @@ class _AttendanceSummaryTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             'Monthly Overview',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 16),
           _MonthlyOverviewChart(reportsProvider: reportsProvider),
@@ -159,7 +167,11 @@ class _StudentReportsTab extends StatelessWidget {
               children: [
                 Text(
                   report['studentName'] ?? 'Unknown Student',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -211,9 +223,13 @@ class _MonthlyStatsTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Monthly Statistics',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 16),
           ...monthlyStats.map((stat) => Card(
@@ -225,7 +241,11 @@ class _MonthlyStatsTab extends StatelessWidget {
                 children: [
                   Text(
                     '${stat['month']}/${stat['year']}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -256,7 +276,10 @@ class _MonthlyStatsTab extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Average Rate: ${stat['averageRate']?.toStringAsFixed(1) ?? '0.0'}%',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                 ],
               ),
@@ -379,9 +402,13 @@ class _MonthlyOverviewChart extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Last 6 Months',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -414,7 +441,10 @@ class _MonthlyOverviewChart extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             '${stat['month']}',
-                            style: const TextStyle(fontSize: 10),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                           ),
                         ],
                       ),

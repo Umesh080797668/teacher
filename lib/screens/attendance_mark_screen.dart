@@ -109,6 +109,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                 // Date Picker
                 Card(
                   elevation: 2,
+                  color: Theme.of(context).colorScheme.surface,
                   child: InkWell(
                     onTap: () async {
                       final picked = await showDatePicker(
@@ -139,7 +140,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                               Text(
                                 'Date',
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -147,6 +148,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                                 DateFormat('EEEE, MMMM d, y').format(_selectedDate),
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             ],
@@ -161,14 +163,22 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                 // Class Selector
                 Card(
                   elevation: 2,
+                  color: Theme.of(context).colorScheme.surface,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Consumer<ClassesProvider>(
                       builder: (context, classesProvider, child) {
                         return DropdownButtonFormField<String>(
                           initialValue: _selectedClassId,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          dropdownColor: Theme.of(context).colorScheme.surface,
                           decoration: InputDecoration(
                             labelText: 'Select Class',
+                            labelStyle: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            ),
                             prefixIcon: Icon(
                               Icons.class_,
                               color: Theme.of(context).colorScheme.primary,
@@ -176,14 +186,24 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                             border: InputBorder.none,
                           ),
                           items: [
-                            const DropdownMenuItem<String>(
+                            DropdownMenuItem<String>(
                               value: null,
-                              child: Text('All Classes'),
+                              child: Text(
+                                'All Classes',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
                             ),
                             ...classesProvider.classes.map((classObj) {
                               return DropdownMenuItem<String>(
                                 value: classObj.id,
-                                child: Text(classObj.name),
+                                child: Text(
+                                  classObj.name,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
                               );
                             }),
                           ],
@@ -308,6 +328,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
               icon: const Icon(Icons.save),
               label: Text('Save (${_attendanceStatus.length})'),
               backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             )
           : null,
     );
@@ -375,6 +396,7 @@ class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
+      color: Theme.of(context).colorScheme.surface,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
@@ -398,16 +420,17 @@ class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
                 children: [
                   Text(
                     widget.student.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'ID: ${widget.student.studentId}',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       fontSize: 12,
                     ),
                   ),
@@ -486,7 +509,7 @@ class _StatusChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color : color.withOpacity(0.1),
+          color: isSelected ? color : color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: color,

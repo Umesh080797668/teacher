@@ -97,15 +97,16 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
               children: [
                 Card(
                   elevation: 2,
+                  color: Theme.of(context).colorScheme.surface,
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(12.0),
                     child: Row(
                       children: [
                         Icon(
                           Icons.filter_list,
                           color: Theme.of(context).colorScheme.primary,
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,14 +124,26 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
                                   Expanded(
                                     child: DropdownButtonFormField<int>(
                                       initialValue: _selectedMonth,
-                                      decoration: const InputDecoration(
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                      ),
+                                      dropdownColor: Theme.of(context).colorScheme.surface,
+                                      decoration: InputDecoration(
                                         labelText: 'Month',
-                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        labelStyle: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                        ),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                       ),
                                       items: List.generate(12, (index) {
                                         return DropdownMenuItem(
                                           value: index + 1,
-                                          child: Text(DateFormat.MMMM().format(DateTime(2000, index + 1))),
+                                          child: Text(
+                                            DateFormat.MMMM().format(DateTime(2000, index + 1)),
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                            ),
+                                          ),
                                         );
                                       }),
                                       onChanged: (value) {
@@ -141,19 +154,31 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
                                       },
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 8),
                                   // Year Selector
                                   Expanded(
                                     child: DropdownButtonFormField<int>(
                                       initialValue: _selectedYear,
-                                      decoration: const InputDecoration(
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                      ),
+                                      dropdownColor: Theme.of(context).colorScheme.surface,
+                                      decoration: InputDecoration(
                                         labelText: 'Year',
-                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        labelStyle: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                        ),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                       ),
                                       items: List.generate(10, (index) {
                                         return DropdownMenuItem(
                                           value: 2020 + index,
-                                          child: Text('${2020 + index}'),
+                                          child: Text(
+                                            '${2020 + index}',
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                            ),
+                                          ),
                                         );
                                       }),
                                       onChanged: (value) {
@@ -260,6 +285,7 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
                           padding: const EdgeInsets.all(16.0),
                           child: Card(
                             elevation: 2,
+                            color: Theme.of(context).colorScheme.surface,
                             child: Padding(
                               padding: const EdgeInsets.all(20.0),
                               child: Column(
@@ -269,11 +295,12 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
                                     'Attendance Overview',
                                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.onSurface,
                                     ),
                                   ),
                                   const SizedBox(height: 20),
                                   SizedBox(
-                                    height: 200,
+                                    height: 280,
                                     child: PieChart(
                                       PieChartData(
                                         sections: [
@@ -337,6 +364,7 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
                                 'Attendance Records (${provider.attendance.length})',
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -467,7 +495,9 @@ class _StatCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               title,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
               textAlign: TextAlign.center,
             ),
           ],

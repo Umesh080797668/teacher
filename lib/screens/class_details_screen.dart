@@ -66,23 +66,43 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Edit Class'),
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          title: Text(
+            'Edit Class',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+          ),
           content: TextField(
             controller: nameController,
-            decoration: const InputDecoration(
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            decoration: InputDecoration(
               labelText: 'Class Name',
-              border: OutlineInputBorder(),
+              labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              border: OutlineInputBorder(
+                borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+              ),
             ),
             autofocus: true,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(nameController.text.trim()),
-              child: const Text('Save'),
+              child: Text(
+                'Save',
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+              ),
             ),
           ],
         );
@@ -132,7 +152,11 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Add Student to Class'),
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          title: Text(
+            'Add Student to Class',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+          ),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -141,9 +165,19 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                 children: [
                   TextFormField(
                     controller: nameController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                    decoration: InputDecoration(
                       labelText: 'Student Name',
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -155,19 +189,40 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: emailController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                    decoration: InputDecoration(
                       labelText: 'Email (Optional)',
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                      ),
                     ),
                     keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: studentIdController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                    decoration: InputDecoration(
                       labelText: 'Student ID (optional - auto-generated)',
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       helperText: 'Leave empty to auto-generate',
+                      helperStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                      ),
                     ),
                   ),
                 ],
@@ -177,7 +232,10 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+              ),
             ),
             TextButton(
               onPressed: () {
@@ -185,7 +243,10 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                   Navigator.of(context).pop(true);
                 }
               },
-              child: const Text('Add'),
+              child: Text(
+                'Add',
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+              ),
             ),
           ],
         );
@@ -467,11 +528,11 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
