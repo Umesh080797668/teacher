@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../models/teacher.dart';
 import '../providers/auth_provider.dart';
@@ -64,8 +65,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Call API to update teacher
       final updatedTeacherData = await ApiService.updateTeacher(auth.teacherId!, updatedData);
 
+      // Debug: Print the API response
+      debugPrint('API Response: $updatedTeacherData');
+
       // Create updated teacher object with proper null handling
       final updatedTeacher = Teacher.fromJson(updatedTeacherData);
+
+      // Debug: Print the teacher object
+      debugPrint('Updated Teacher: ${updatedTeacher.name}, ${updatedTeacher.email}');
 
       // Update local auth provider
       await auth.login(
