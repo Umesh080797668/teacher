@@ -28,7 +28,7 @@ else
     echo "3. Click: Settings → Environment Variables"
     echo "4. Add these variables for ALL environments:"
     echo ""
-    echo "   MONGODB_URI = mongodb+srv://imantha:imanthaumesh@teacher.vnkyd3n.mongodb.net/teacher_attendance_mobile?retryWrites=true&w=majority&appName=teacher"
+    echo "   MONGODB_URI = mongodb+srv://umesh:imanthaumesh@teacher.vnkyd3n.mongodb.net/teacher_attendance_mobile?retryWrites=true&w=majority&appName=teacher"
     echo "   EMAIL_USER = umeshbandara08@gmail.com"
     echo "   EMAIL_PASS = qfxr vmms ieek cjsz"
     echo ""

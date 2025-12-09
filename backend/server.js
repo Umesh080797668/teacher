@@ -73,8 +73,8 @@ async function connectToDatabase() {
   }
 }
 
-// Initialize connection
-connectToDatabase();
+// Initialize connection - REMOVED for Vercel
+// connectToDatabase();
 
 // Handle MongoDB connection errors after initial connection
 mongoose.connection.on('error', err => {
@@ -147,6 +147,17 @@ const Class = mongoose.model('Class', ClassSchema);
 const Payment = mongoose.model('Payment', PaymentSchema);
 const Teacher = mongoose.model('Teacher', TeacherSchema);
 const EmailVerification = mongoose.model('EmailVerification', EmailVerificationSchema);
+
+// Database connection middleware
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (error) {
+    console.error('Database connection failed in middleware:', error);
+    res.status(500).json({ error: 'Database connection failed' });
+  }
+});
 
 // Routes
 // Health check endpoint

@@ -21,7 +21,7 @@ Your new backend URL `https://teacher-eight-chi.vercel.app` is running but **Mon
 **Variable 1:**
 ```
 Name: MONGODB_URI
-Value: mongodb+srv://imantha:imanthaumesh@teacher.vnkyd3n.mongodb.net/teacher_attendance_mobile?retryWrites=true&w=majority&appName=teacher
+Value: mongodb+srv://umesh:imanthaumesh@teacher.vnkyd3n.mongodb.net/teacher_attendance_mobile?retryWrites=true&w=majority&appName=teacher
 Environments: ✅ Production ✅ Preview ✅ Development
 ```
 

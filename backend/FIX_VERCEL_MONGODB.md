@@ -30,7 +30,7 @@ Click **"Add New"** for each variable:
 **Variable 1:**
 ```
 Name: MONGODB_URI
-Value: mongodb+srv://imantha:imanthaumesh@teacher.vnkyd3n.mongodb.net/teacher_attendance_mobile?retryWrites=true&w=majority&appName=teacher
+Value: mongodb+srv://umesh:imanthaumesh@teacher.vnkyd3n.mongodb.net/teacher_attendance_mobile?retryWrites=true&w=majority&appName=teacher
 Environments: ✅ Production ✅ Preview ✅ Development (SELECT ALL!)
 ```
 
