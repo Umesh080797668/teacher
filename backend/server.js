@@ -299,17 +299,35 @@ app.get('/api/classes', async (req, res) => {
     const { teacherId } = req.query;
     let query = {};
 
+    console.log('GET /api/classes called with teacherId:', teacherId);
+
     if (teacherId) {
       // Find teacher by teacherId string and get their _id
-      const teacher = await Teacher.findOne({ teacherId });
+      console.log('Looking for teacher with teacherId:', teacherId);
+      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      console.log('Teacher found:', !!teacher, teacher ? teacher._id : null);
       if (teacher) {
         query.teacherId = teacher._id;
+        console.log('Query:', query);
       } else {
-        return res.status(404).json({ error: 'Teacher not found' });
+        console.log('Teacher not found for teacherId:', teacherId, '- returning empty array');
+        return res.json([]); // Return empty array instead of 404
       }
     }
 
-    const classes = await Class.find(query).populate('teacherId', 'name email teacherId');
+    console.log('Executing Class.find with query:', query);
+    const classes = await Class.find(query);
+    console.log('Found classes:', classes.length);
+    
+    // Populate teacher info if needed
+    try {
+      await Class.populate(classes, { path: 'teacherId', select: 'name email teacherId' });
+      console.log('Populate successful');
+    } catch (populateError) {
+      console.error('Populate error:', populateError);
+      // Continue without populate
+    }
+    
     res.json(classes);
   } catch (error) {
     console.error('Error fetching classes:', error);
