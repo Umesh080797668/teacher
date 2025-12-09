@@ -542,26 +542,49 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
+    // Validate input
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
     
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+    
     // Find teacher by email
-    const teacher = await Teacher.findOne({ email });
+    const teacher = await Teacher.findOne({ email: email.toLowerCase().trim() });
     
     if (!teacher) {
+      console.log('Login attempt failed: Teacher not found for email:', email);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
-    // Check password using bcrypt
-    const isPasswordValid = await bcrypt.compare(password, teacher.password);
+    // Check if teacher has a password set
+    if (!teacher.password) {
+      console.error('Login attempt failed: Teacher has no password set:', email);
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    
+    // Check password using bcrypt with additional error handling
+    let isPasswordValid = false;
+    try {
+      isPasswordValid = await bcrypt.compare(password, teacher.password);
+    } catch (bcryptError) {
+      console.error('Bcrypt comparison error:', bcryptError);
+      return res.status(500).json({ error: 'Authentication error. Please try again.' });
+    }
+    
     if (!isPasswordValid) {
+      console.log('Login attempt failed: Invalid password for email:', email);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
     // Check if teacher is active
     if (teacher.status !== 'active') {
-      return res.status(401).json({ error: 'Account is not active' });
+      console.log('Login attempt failed: Inactive account for email:', email);
+      return res.status(403).json({ error: 'Account is not active. Please contact support.' });
     }
     
     // Return teacher data (excluding password)
@@ -574,10 +597,12 @@ app.post('/api/auth/login', async (req, res) => {
       status: teacher.status
     };
     
+    console.log('Login successful for email:', email);
     res.json({ message: 'Login successful', teacher: teacherData });
   } catch (error) {
     console.error('Error during login:', error);
-    res.status(500).json({ error: 'Failed to login' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ error: 'An error occurred during login. Please try again later.' });
   }
 });
 

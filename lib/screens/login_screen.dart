@@ -117,8 +117,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           // If response body is not JSON (e.g., HTML error page), use status code
           if (response.statusCode == 500) {
             errorMessage = 'Server error. Please try again later.';
+          } else if (response.statusCode == 401) {
+            errorMessage = 'Invalid email or password. Please try again.';
+          } else if (response.statusCode == 403) {
+            errorMessage = 'Account is not active. Please contact support.';
+          } else if (response.statusCode == 400) {
+            errorMessage = 'Please check your email and password.';
           } else {
-            errorMessage = 'Login failed (${response.statusCode})';
+            errorMessage = 'Login failed. Please try again. (${response.statusCode})';
           }
         }
         if (mounted) {
@@ -126,6 +132,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             SnackBar(
               content: Text(errorMessage),
               backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
             ),
           );
         }
