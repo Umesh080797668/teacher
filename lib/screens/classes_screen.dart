@@ -31,8 +31,9 @@ class _ClassesScreenState extends State<ClassesScreen> {
 
   Future<void> _loadClasses() async {
     final provider = Provider.of<ClassesProvider>(context, listen: false);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
     try {
-      await provider.loadClasses();
+      await provider.loadClasses(teacherId: auth.teacherId);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

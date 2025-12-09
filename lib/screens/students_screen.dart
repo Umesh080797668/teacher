@@ -4,6 +4,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../models/class.dart' as class_model;
 import '../providers/students_provider.dart';
 import '../providers/classes_provider.dart';
+import '../providers/auth_provider.dart';
 import 'student_details_screen.dart';
 
 class StudentsScreen extends StatefulWidget {
@@ -38,9 +39,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
   Future<void> _loadStudents() async {
     final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
     final classesProvider = Provider.of<ClassesProvider>(context, listen: false);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
     try {
       await studentsProvider.loadStudents();
-      await classesProvider.loadClasses();
+      await classesProvider.loadClasses(teacherId: auth.teacherId);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

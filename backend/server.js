@@ -296,9 +296,23 @@ app.post('/api/attendance', async (req, res) => {
 // Classes
 app.get('/api/classes', async (req, res) => {
   try {
-    const classes = await Class.find({});
+    const { teacherId } = req.query;
+    let query = {};
+
+    if (teacherId) {
+      // Find teacher by teacherId string and get their _id
+      const teacher = await Teacher.findOne({ teacherId });
+      if (teacher) {
+        query.teacherId = teacher._id;
+      } else {
+        return res.status(404).json({ error: 'Teacher not found' });
+      }
+    }
+
+    const classes = await Class.find(query).populate('teacherId', 'name email teacherId');
     res.json(classes);
   } catch (error) {
+    console.error('Error fetching classes:', error);
     res.status(500).json({ error: 'Failed to fetch classes' });
   }
 });

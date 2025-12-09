@@ -4,6 +4,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../providers/payment_provider.dart';
 import '../providers/students_provider.dart';
 import '../providers/classes_provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/student.dart';
 import '../models/class.dart' as class_model;
 
@@ -31,11 +32,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final paymentProvider = Provider.of<PaymentProvider>(context, listen: false);
     final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
     final classesProvider = Provider.of<ClassesProvider>(context, listen: false);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
 
     try {
       await paymentProvider.loadPayments();
       await studentsProvider.loadStudents();
-      await classesProvider.loadClasses();
+      await classesProvider.loadClasses(teacherId: auth.teacherId);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

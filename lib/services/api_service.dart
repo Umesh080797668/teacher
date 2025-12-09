@@ -326,8 +326,9 @@ class ApiService {
   }
 
   // Classes
-  static Future<List<Class>> getClasses() async {
-    final response = await _makeRequest('GET', '/api/classes');
+  static Future<List<Class>> getClasses({String? teacherId}) async {
+    final endpoint = teacherId != null ? '/api/classes?teacherId=$teacherId' : '/api/classes';
+    final response = await _makeRequest('GET', endpoint);
     List<dynamic> data = json.decode(response.body);
     return data.map((json) => Class.fromJson(json)).toList();
   }
