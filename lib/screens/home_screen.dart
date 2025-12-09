@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'students_screen.dart';
@@ -26,16 +27,28 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   List<Map<String, dynamic>> _searchResults = [];
+  Timer? _refreshTimer;
+  Timer? _timeUpdateTimer;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    // Refresh data every 30 seconds for real-time updates
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      _loadData(silent: true);
+    });
+    // Update time displays every minute
+    _timeUpdateTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      setState(() {}); // Force rebuild to update time displays
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _refreshTimer?.cancel();
+    _timeUpdateTimer?.cancel();
     super.dispose();
   }
 
@@ -163,11 +176,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  Future<void> _loadData({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
 
     try {
       final stats = await ApiService.getHomeStats();
@@ -176,13 +191,17 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _stats = stats;
         _activities = activities;
-        _isLoading = false;
+        if (!silent) {
+          _isLoading = false;
+        }
       });
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      if (!silent) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 

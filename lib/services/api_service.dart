@@ -572,11 +572,13 @@ class ApiService {
         ApiService.getAttendance(),
         ApiService.getStudents(),
         ApiService.getPayments(),
+        ApiService.getClasses(),
       ]);
 
       final allAttendance = results[0] as List<Attendance>;
       final students = results[1] as List<Student>;
       final payments = results[2] as List<Payment>;
+      final classes = results[3] as List<Class>;
 
       final activities = <RecentActivity>[];
 
@@ -639,6 +641,26 @@ class ApiService {
             timestamp: recentPayment.date,
           ),
         );
+      }
+
+      // Get recently added classes (last 2)
+      if (classes.isNotEmpty) {
+        final recentClasses = classes.where((c) => c.createdAt != null)
+            .toList()
+          ..sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
+        
+        for (var i = 0; i < recentClasses.length && i < 2; i++) {
+          final classItem = recentClasses[i];
+          activities.add(
+            RecentActivity(
+              id: 'class_${classItem.id}',
+              type: 'class',
+              title: 'New Class Added',
+              subtitle: '${classItem.name} has been created',
+              timestamp: classItem.createdAt ?? DateTime.now(),
+            ),
+          );
+        }
       }
 
       // Sort by timestamp descending and return top 3
