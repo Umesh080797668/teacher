@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:async';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
@@ -62,23 +61,35 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    Timer(const Duration(seconds: 4), () {
-      if (!mounted) return;
+    // Wait for auth provider to load, then navigate
+    _waitForAuthAndNavigate();
+  }
 
-      // Check auth state and navigate accordingly
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      final target = auth.isAuthenticated ? const HomeScreen() : const LoginScreen();
+  Future<void> _waitForAuthAndNavigate() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Wait for auth provider to finish loading
+    while (auth.isLoading) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
 
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => target,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: const Duration(milliseconds: 800),
-        ),
-      );
-    });
+    // Minimum splash duration of 2 seconds
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    // Check auth state and navigate accordingly
+    final target = auth.isAuthenticated ? const HomeScreen() : const LoginScreen();
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => target,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 800),
+      ),
+    );
   }
 
   @override

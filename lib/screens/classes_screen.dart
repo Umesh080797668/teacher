@@ -233,6 +233,9 @@ class _ClassesScreenState extends State<ClassesScreen> {
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _nameController,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
                                 decoration: const InputDecoration(
                                   labelText: 'Class Name',
                                   prefixIcon: Icon(Icons.class_),
@@ -413,7 +416,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
