@@ -30,32 +30,46 @@ async function connectToDatabase() {
     return cachedConnection;
   }
 
-  try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/teacher_attendance_mobile';
-    console.log('Connecting to MongoDB...');
-    console.log('MongoDB URI present:', !!process.env.MONGODB_URI); // Debug log
-    
-    // Use slightly more permissive timeouts and smaller pools for serverless
-    cachedConnection = await mongoose.connect(mongoUri, {
-      // Give the driver more time to find servers in transient serverless networks
-      serverSelectionTimeoutMS: 30000,
-      connectTimeoutMS: 20000,
-      socketTimeoutMS: 45000,
-      // Keep pool small for serverless to avoid too many concurrent sockets
-      maxPoolSize: 10,
-      minPoolSize: 0,
-      // Try to prefer IPv4 where possible (may help in some environments)
-      family: 4,
-      // Don't buffer commands while connecting to surface errors quickly
-      bufferCommands: false,
-    });
-    
-    console.log('MongoDB connected successfully');
-    return cachedConnection;
-  } catch (error) {
-    console.error('MongoDB connection error:', error.message);
-    console.error('Full error:', error);
-    throw error;
+  const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/teacher_attendance_mobile';
+  console.log('Connecting to MongoDB...');
+  console.log('MongoDB URI present:', !!process.env.MONGODB_URI); // Debug log
+
+  // Retry loop to handle transient network issues on serverless platforms
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`MongoDB connect attempt ${attempt}/${maxAttempts}`);
+      cachedConnection = await mongoose.connect(mongoUri, {
+        // Allow extra time for server selection and TLS handshake on cold starts
+        serverSelectionTimeoutMS: 60000,
+        connectTimeoutMS: 45000,
+        socketTimeoutMS: 60000,
+        // Keep pool small for serverless to avoid too many concurrent sockets
+        maxPoolSize: 5,
+        minPoolSize: 0,
+        // Prefer IPv4 where possible
+        family: 4,
+        // Don't buffer commands while connecting
+        bufferCommands: false,
+      });
+
+      console.log('MongoDB connected successfully');
+      return cachedConnection;
+    } catch (error) {
+      console.error(`MongoDB connection error on attempt ${attempt}:`, error && error.message ? error.message : error);
+      // Log topology if available for deeper insight
+      if (error && error.reason) {
+        console.error('Topology reason:', error.reason);
+      }
+      if (attempt < maxAttempts) {
+        const backoff = Math.pow(2, attempt) * 1000; // exponential backoff
+        console.log(`Retrying MongoDB connection in ${backoff}ms...`);
+        await new Promise(res => setTimeout(res, backoff));
+      } else {
+        console.error('All MongoDB connection attempts failed');
+        throw error;
+      }
+    }
   }
 }
 
