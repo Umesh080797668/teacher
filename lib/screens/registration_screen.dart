@@ -102,10 +102,23 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
           ),
         );
       } else {
-        final error = json.decode(response.body);
+        String errorMessage = 'Failed to send verification code';
+        try {
+          final error = json.decode(response.body);
+          errorMessage = error['error'] ?? 'Failed to send verification code';
+        } catch (e) {
+          // If response body is not JSON (e.g., 404 HTML page), use status code
+          if (response.statusCode == 404) {
+            errorMessage = 'Registration service not available. Please try again later.';
+          } else if (response.statusCode == 500) {
+            errorMessage = 'Server error. Please try again later.';
+          } else {
+            errorMessage = 'Registration failed (${response.statusCode})';
+          }
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error['error'] ?? 'Failed to send verification code'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );

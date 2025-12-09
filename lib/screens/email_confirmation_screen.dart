@@ -108,10 +108,23 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
         // Code verified, now register the teacher
         await _registerTeacher();
       } else {
-        final error = json.decode(response.body);
+        String errorMessage = 'Invalid verification code';
+        try {
+          final error = json.decode(response.body);
+          errorMessage = error['error'] ?? 'Invalid verification code';
+        } catch (e) {
+          // If response body is not JSON (e.g., 404 HTML page), use status code
+          if (response.statusCode == 404) {
+            errorMessage = 'Verification service not available. Please try again later.';
+          } else if (response.statusCode == 500) {
+            errorMessage = 'Server error. Please try again later.';
+          } else {
+            errorMessage = 'Verification failed (${response.statusCode})';
+          }
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error['error'] ?? 'Invalid verification code'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -160,10 +173,23 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       } else {
-        final error = json.decode(response.body);
+        String errorMessage = 'Registration failed';
+        try {
+          final error = json.decode(response.body);
+          errorMessage = error['error'] ?? 'Registration failed';
+        } catch (e) {
+          // If response body is not JSON (e.g., 404 HTML page), use status code
+          if (response.statusCode == 404) {
+            errorMessage = 'Registration service not available. Please try again later.';
+          } else if (response.statusCode == 500) {
+            errorMessage = 'Server error. Please try again later.';
+          } else {
+            errorMessage = 'Registration failed (${response.statusCode})';
+          }
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error['error'] ?? 'Registration failed'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -196,10 +222,23 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
           ),
         );
       } else {
-        final error = json.decode(response.body);
+        String errorMessage = 'Failed to resend code';
+        try {
+          final error = json.decode(response.body);
+          errorMessage = error['error'] ?? 'Failed to resend code';
+        } catch (e) {
+          // If response body is not JSON (e.g., 404 HTML page), use status code
+          if (response.statusCode == 404) {
+            errorMessage = 'Resend service not available. Please try again later.';
+          } else if (response.statusCode == 500) {
+            errorMessage = 'Server error. Please try again later.';
+          } else {
+            errorMessage = 'Failed to resend code (${response.statusCode})';
+          }
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error['error'] ?? 'Failed to resend code'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
