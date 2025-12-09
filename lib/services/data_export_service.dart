@@ -3,12 +3,27 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class DataExportService {
   static Future<bool> requestStoragePermission() async {
-    // For now, we'll assume permission is granted
-    // In a production app, you would use permission_handler package
-    return true;
+    if (Platform.isAndroid) {
+      final status = await Permission.storage.request();
+      if (status.isGranted) {
+        return true;
+      } else if (status.isPermanentlyDenied) {
+        // Open app settings if permanently denied
+        await openAppSettings();
+        return false;
+      } else {
+        return false;
+      }
+    } else if (Platform.isIOS) {
+      // iOS doesn't require explicit storage permission for documents directory
+      return true;
+    } else {
+      return true;
+    }
   }
 
   static Future<String?> exportData() async {
