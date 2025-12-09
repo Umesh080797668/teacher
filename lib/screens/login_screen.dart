@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'registration_screen.dart';
 import 'home_screen.dart';
@@ -71,37 +73,57 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Implement actual API call
-      // Simulating API call
-      await Future.delayed(const Duration(seconds: 2));
-      
-      // Persist remember-me email preference
-      final prefs = await SharedPreferences.getInstance();
-      if (_rememberMe) {
-        await prefs.setString('saved_email', _emailController.text);
-        await prefs.setBool('remember_me', true);
+      // Make API call to login
+      final response = await http.post(
+        Uri.parse('https://teacher-psi-drab.vercel.app/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': _emailController.text,
+          'password': _passwordController.text,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final teacher = data['teacher'];
+        
+        // Persist remember-me email preference
+        final prefs = await SharedPreferences.getInstance();
+        if (_rememberMe) {
+          await prefs.setString('saved_email', _emailController.text);
+          await prefs.setBool('remember_me', true);
+        } else {
+          await prefs.remove('saved_email');
+          await prefs.setBool('remember_me', false);
+        }
+
+        if (!mounted) return; // avoid using BuildContext across async gap
+
+        // Notify global auth provider of successful login
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        await auth.login(_emailController.text, teacher['name']);
+
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        }
       } else {
-        await prefs.remove('saved_email');
-        await prefs.setBool('remember_me', false);
-      }
-
-      if (!mounted) return; // avoid using BuildContext across async gap
-
-      // Notify global auth provider of successful login
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      final nameGuess = _emailController.text.split('@').first;
-      await auth.login(_emailController.text, nameGuess);
-
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
+        final error = json.decode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error['error'] ?? 'Login failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Login failed: ${e.toString()}'),
+            content: Text('Network error: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );

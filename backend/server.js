@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const app = express();
@@ -58,6 +59,7 @@ const PaymentSchema = new mongoose.Schema({
 const TeacherSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
+  phone: { type: String },
   password: { type: String, required: true },
   teacherId: { type: String, unique: true },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
@@ -285,7 +287,7 @@ app.get('/api/teachers', async (req, res) => {
 
 app.post('/api/teachers', async (req, res) => {
   try {
-    const { name, email, password, teacherId, status = 'active' } = req.body;
+    const { name, email, phone, password, teacherId, status = 'active' } = req.body;
     
     // Auto-generate teacherId if not provided
     let finalTeacherId = teacherId;
@@ -304,7 +306,11 @@ app.post('/api/teachers', async (req, res) => {
       }
     }
     
-    const teacher = new Teacher({ name, email, password, teacherId: finalTeacherId, status });
+    // Hash the password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    
+    const teacher = new Teacher({ name, email, phone, password: hashedPassword, teacherId: finalTeacherId, status });
     await teacher.save();
     res.status(201).json(teacher);
   } catch (error) {
@@ -315,8 +321,18 @@ app.post('/api/teachers', async (req, res) => {
 app.put('/api/teachers/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, password, status } = req.body;
-    const updatedTeacher = await Teacher.findByIdAndUpdate(id, { name, email, password, status }, { new: true });
+    const { name, email, phone, password, status } = req.body;
+    
+    // Prepare update object
+    const updateData = { name, email, phone, status };
+    
+    // Hash password if provided
+    if (password) {
+      const saltRounds = 10;
+      updateData.password = await bcrypt.hash(password, saltRounds);
+    }
+    
+    const updatedTeacher = await Teacher.findByIdAndUpdate(id, updateData, { new: true });
     if (!updatedTeacher) {
       return res.status(404).json({ error: 'Teacher not found' });
     }
@@ -519,6 +535,49 @@ app.post('/api/auth/verify-code', async (req, res) => {
   } catch (error) {
     console.error('Error verifying code:', error);
     res.status(500).json({ error: 'Failed to verify code' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    // Find teacher by email
+    const teacher = await Teacher.findOne({ email });
+    
+    if (!teacher) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    
+    // Check password using bcrypt
+    const isPasswordValid = await bcrypt.compare(password, teacher.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    
+    // Check if teacher is active
+    if (teacher.status !== 'active') {
+      return res.status(401).json({ error: 'Account is not active' });
+    }
+    
+    // Return teacher data (excluding password)
+    const teacherData = {
+      _id: teacher._id,
+      name: teacher.name,
+      email: teacher.email,
+      phone: teacher.phone,
+      teacherId: teacher.teacherId,
+      status: teacher.status
+    };
+    
+    res.json({ message: 'Login successful', teacher: teacherData });
+  } catch (error) {
+    console.error('Error during login:', error);
+    res.status(500).json({ error: 'Failed to login' });
   }
 });
 

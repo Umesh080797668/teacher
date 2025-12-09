@@ -138,6 +138,7 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
         body: json.encode({
           'name': widget.name,
           'email': widget.email,
+          'phone': widget.phone,
           'password': widget.password,
         }),
       );
