@@ -209,10 +209,27 @@ app.get('/api/debug/mongodb', (req, res) => {
 // Students
 app.get('/api/students', async (req, res) => {
   try {
+    console.log('GET /api/students called');
+    console.log('MongoDB connection state:', mongoose.connection.readyState);
     const students = await Student.find({});
-    res.json(students);
+    console.log('Found students count:', students.length);
+    
+    // Convert to plain objects and ensure classId is a string
+    const result = students.map(student => {
+      const obj = student.toObject();
+      if (obj.classId && obj.classId._id) {
+        obj.classId = obj.classId._id.toString();
+      } else if (obj.classId && typeof obj.classId === 'object') {
+        obj.classId = obj.classId.toString();
+      }
+      return obj;
+    });
+    
+    console.log('Returning students:', result.length);
+    res.json(result);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch students' });
+    console.error('Error fetching students:', error);
+    res.status(500).json({ error: 'Failed to fetch students', details: error.message });
   }
 });
 
