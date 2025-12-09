@@ -26,12 +26,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.teacherData != null) {
       _teacher = Teacher.fromJson(auth.teacherData!);
-      _nameController = TextEditingController(text: _teacher!.name);
-      _emailController = TextEditingController(text: _teacher!.email);
+      _nameController = TextEditingController(text: _teacher!.name.isNotEmpty ? _teacher!.name : '');
+      _emailController = TextEditingController(text: _teacher!.email.isNotEmpty ? _teacher!.email : '');
       _phoneController = TextEditingController(text: _teacher!.phone ?? '');
     } else {
-      _nameController = TextEditingController(text: auth.userName ?? '');
-      _emailController = TextEditingController(text: auth.userEmail ?? '');
+      _nameController = TextEditingController(text: auth.userName?.isNotEmpty == true ? auth.userName! : '');
+      _emailController = TextEditingController(text: auth.userEmail?.isNotEmpty == true ? auth.userEmail! : '');
       _phoneController = TextEditingController();
     }
   }
@@ -62,14 +62,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       };
 
       // Call API to update teacher
-      await ApiService.updateTeacher(auth.teacherId!, updatedData);
+      final updatedTeacherData = await ApiService.updateTeacher(auth.teacherId!, updatedData);
+
+      // Create updated teacher object with proper null handling
+      final updatedTeacher = Teacher.fromJson(updatedTeacherData);
 
       // Update local auth provider
-      final updatedTeacher = Teacher.fromJson({..._teacher?.toJson() ?? {}, ...updatedData});
       await auth.login(
-        updatedTeacher.email,
-        updatedTeacher.name,
-        teacherId: updatedTeacher.id,
+        updatedTeacher.email.isNotEmpty ? updatedTeacher.email : auth.userEmail ?? '',
+        updatedTeacher.name.isNotEmpty ? updatedTeacher.name : auth.userName ?? '',
+        teacherId: updatedTeacher.teacherId ?? updatedTeacher.id,
         teacherData: updatedTeacher.toJson(),
       );
 
