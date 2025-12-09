@@ -295,14 +295,20 @@ app.get('/api/attendance', async (req, res) => {
 app.post('/api/attendance', async (req, res) => {
   try {
     const { studentId, date, session = 'daily', status } = req.body;
+    console.log('POST /api/attendance received:', { studentId, date, session, status });
     
     // Convert studentId to ObjectId if it's a string
     let studentObjectId = studentId;
     if (typeof studentId === 'string' && studentId.match(/^[0-9a-fA-F]{24}$/)) {
       studentObjectId = new mongoose.Types.ObjectId(studentId);
+      console.log('Converted studentId to ObjectId:', studentObjectId);
+    } else {
+      console.log('studentId is not a valid ObjectId string:', studentId);
     }
     
     const attendanceDate = new Date(date);
+    console.log('Parsed date:', attendanceDate);
+    
     const attendance = new Attendance({
       studentId: studentObjectId,
       date: attendanceDate,
@@ -311,10 +317,12 @@ app.post('/api/attendance', async (req, res) => {
       month: attendanceDate.getMonth() + 1,
       year: attendanceDate.getFullYear(),
     });
+    console.log('Saving attendance:', attendance);
     await attendance.save();
     res.status(201).json(attendance);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create attendance record' });
+    console.error('Error creating attendance record:', error);
+    res.status(500).json({ error: 'Failed to create attendance record', details: error.message });
   }
 });
 
