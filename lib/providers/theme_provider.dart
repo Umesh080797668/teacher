@@ -12,7 +12,16 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> _loadThemePreference() async {
     final prefs = await SharedPreferences.getInstance();
-    _isDarkMode = prefs.getBool('dark_mode') ?? false;
+    final savedTheme = prefs.getBool('dark_mode');
+    if (savedTheme != null) {
+      _isDarkMode = savedTheme;
+    } else {
+      // First time, use system preference
+      final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+      _isDarkMode = brightness == Brightness.dark;
+      // Save it so next time it's remembered
+      await prefs.setBool('dark_mode', _isDarkMode);
+    }
     notifyListeners();
   }
 
