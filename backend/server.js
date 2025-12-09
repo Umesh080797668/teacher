@@ -318,16 +318,6 @@ app.get('/api/classes', async (req, res) => {
     console.log('Executing Class.find with query:', query);
     const classes = await Class.find(query);
     console.log('Found classes:', classes.length);
-    
-    // Populate teacher info if needed
-    try {
-      await Class.populate(classes, { path: 'teacherId', select: 'name email teacherId' });
-      console.log('Populate successful');
-    } catch (populateError) {
-      console.error('Populate error:', populateError);
-      // Continue without populate
-    }
-    
     res.json(classes);
   } catch (error) {
     console.error('Error fetching classes:', error);
