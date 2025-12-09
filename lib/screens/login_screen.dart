@@ -114,10 +114,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           final error = json.decode(response.body);
           errorMessage = error['error'] ?? 'Login failed';
         } catch (e) {
-          // If response body is not JSON (e.g., 404 HTML page), use status code
-          if (response.statusCode == 404) {
-            errorMessage = 'Authentication service not available. Please try again later.';
-          } else if (response.statusCode == 500) {
+          // If response body is not JSON (e.g., HTML error page), use status code
+          if (response.statusCode == 500) {
             errorMessage = 'Server error. Please try again later.';
           } else {
             errorMessage = 'Login failed (${response.statusCode})';
