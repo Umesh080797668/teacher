@@ -4,6 +4,7 @@ class Student {
   final String? email;
   final String studentId;
   final String? classId;
+  final DateTime? createdAt;
 
   Student({
     required this.id,
@@ -11,6 +12,7 @@ class Student {
     this.email,
     required this.studentId,
     this.classId,
+    this.createdAt,
   });
 
   factory Student.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class Student {
       email: json['email'],
       studentId: json['studentId'],
       classId: json['classId'],
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
     );
   }
 

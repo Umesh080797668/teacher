@@ -612,17 +612,19 @@ class ApiService {
 
       // Get recently added students (last 2)
       if (students.isNotEmpty) {
-        final recentStudents = students.take(2);
-        for (var student in recentStudents) {
+        final recentStudents = students.where((s) => s.createdAt != null)
+            .toList()
+          ..sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
+        
+        for (var i = 0; i < recentStudents.length && i < 2; i++) {
+          final student = recentStudents[i];
           activities.add(
             RecentActivity(
               id: 'student_${student.id}',
               type: 'student',
               title: 'New Student Added',
               subtitle: '${student.name} has been registered',
-              timestamp: DateTime.now().subtract(
-                Duration(hours: activities.length * 2),
-              ),
+              timestamp: student.createdAt ?? DateTime.now(),
             ),
           );
         }
