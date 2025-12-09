@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
 
 class ReportsProvider with ChangeNotifier {
-  final ApiService _apiService = ApiService();
   bool _isLoading = false;
 
   Map<String, dynamic> _attendanceSummary = {};
@@ -32,7 +31,7 @@ class ReportsProvider with ChangeNotifier {
 
   Future<void> _loadAttendanceSummary() async {
     try {
-      final response = await _apiService.getAttendanceSummary();
+      final response = await ApiService.getAttendanceSummary();
       _attendanceSummary = response;
     } catch (e) {
       debugPrint('Error loading attendance summary: $e');
@@ -42,7 +41,7 @@ class ReportsProvider with ChangeNotifier {
 
   Future<void> _loadStudentReports() async {
     try {
-      final response = await _apiService.getStudentReports();
+      final response = await ApiService.getStudentReports();
       _studentReports = List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Error loading student reports: $e');
@@ -52,7 +51,7 @@ class ReportsProvider with ChangeNotifier {
 
   Future<void> _loadMonthlyStats() async {
     try {
-      final response = await _apiService.getMonthlyStats();
+      final response = await ApiService.getMonthlyStats();
       _monthlyStats = List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Error loading monthly stats: $e');

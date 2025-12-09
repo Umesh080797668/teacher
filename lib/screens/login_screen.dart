@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'registration_screen.dart';
 import 'home_screen.dart';
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -73,79 +72,64 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isLoading = true);
 
     try {
-      // Make API call to login
-      final response = await http.post(
-        Uri.parse('https://teacher-eight-chi.vercel.app/api/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': _emailController.text,
-          'password': _passwordController.text,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final teacher = data['teacher'];
-        
-        // Persist remember-me email preference
-        final prefs = await SharedPreferences.getInstance();
-        if (_rememberMe) {
-          await prefs.setString('saved_email', _emailController.text);
-          await prefs.setBool('remember_me', true);
-        } else {
-          await prefs.remove('saved_email');
-          await prefs.setBool('remember_me', false);
-        }
-
-        if (!mounted) return; // avoid using BuildContext across async gap
-
-        // Notify global auth provider of successful login
-        final auth = Provider.of<AuthProvider>(context, listen: false);
-        await auth.login(_emailController.text, teacher['name']);
-
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
-        }
+      // Make API call to login using centralized service
+      final data = await ApiService.login(_emailController.text, _passwordController.text);
+      final teacher = data['teacher'];
+      
+      // Persist remember-me email preference
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setString('saved_email', _emailController.text);
+        await prefs.setBool('remember_me', true);
       } else {
-        String errorMessage = 'Login failed';
-        try {
-          final error = json.decode(response.body);
-          errorMessage = error['error'] ?? 'Login failed';
-        } catch (e) {
-          // If response body is not JSON (e.g., HTML error page), use status code
-          if (response.statusCode == 500) {
-            errorMessage = 'Server error. Please try again later.';
-          } else if (response.statusCode == 401) {
-            errorMessage = 'Invalid email or password. Please try again.';
-          } else if (response.statusCode == 403) {
-            errorMessage = 'Account is not active. Please contact support.';
-          } else if (response.statusCode == 400) {
-            errorMessage = 'Please check your email and password.';
-          } else {
-            errorMessage = 'Login failed. Please try again. (${response.statusCode})';
-          }
-        }
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMessage),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        }
+        await prefs.remove('saved_email');
+        await prefs.setBool('remember_me', false);
       }
-    } catch (e) {
+
+      if (!mounted) return; // avoid using BuildContext across async gap
+
+      // Notify global auth provider of successful login
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      await auth.login(_emailController.text, teacher['name']);
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Network error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+
+      String errorMessage = e.message;
+      
+      // Customize error messages based on error codes
+      if (e.errorCode == 'INVALID_CREDENTIALS') {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      } else if (e.errorCode == 'ACCOUNT_INACTIVE') {
+        errorMessage = 'Your account is not active. Please contact support for assistance.';
+      } else if (e.errorCode == 'MISSING_CREDENTIALS') {
+        errorMessage = 'Please enter both email and password.';
+      } else if (e.statusCode == 429) {
+        errorMessage = 'Too many login attempts. Please wait a few minutes and try again.';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An unexpected error occurred: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

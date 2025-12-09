@@ -3,7 +3,6 @@ import '../models/attendance.dart';
 import '../services/api_service.dart';
 
 class AttendanceProvider with ChangeNotifier {
-  final ApiService _apiService = ApiService();
   List<Attendance> _attendance = [];
   bool _isLoading = false;
 
@@ -14,7 +13,7 @@ class AttendanceProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      _attendance = await _apiService.getAttendance(month: month, year: year);
+      _attendance = await ApiService.getAttendance(month: month, year: year);
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -29,8 +29,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
     });
 
     try {
-      final apiService = ApiService();
-      final attendance = await apiService.getAttendance(studentId: widget.student.id);
+      final attendance = await ApiService.getAttendance(studentId: widget.student.id);
 
       // Sort attendance by date descending (most recent first)
       attendance.sort((a, b) => b.date.compareTo(a.date));

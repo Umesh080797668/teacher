@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'email_confirmation_screen.dart';
 import 'home_screen.dart';
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -73,65 +72,58 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
     setState(() => _isLoading = true);
 
     try {
-      // Send verification code
-      final response = await http.post(
-        Uri.parse('https://teacher-eight-chi.vercel.app/api/auth/send-verification-code'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': _emailController.text}),
+      // Send verification code using centralized service
+      await ApiService.sendVerificationCode(_emailController.text);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Verification code sent to your email!'),
+          backgroundColor: Colors.green,
+        ),
       );
 
-      if (response.statusCode == 200) {
-        if (!mounted) return;
+      // Navigate to email confirmation screen
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => EmailConfirmationScreen(
+            email: _emailController.text,
+            name: _nameController.text,
+            phone: _phoneController.text,
+            password: _passwordController.text,
+          ),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification code sent to your email!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // Navigate to email confirmation screen
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => EmailConfirmationScreen(
-              email: _emailController.text,
-              name: _nameController.text,
-              phone: _phoneController.text,
-              password: _passwordController.text,
-            ),
-          ),
-        );
-      } else {
-        String errorMessage = 'Failed to send verification code';
-        try {
-          final error = json.decode(response.body);
-          errorMessage = error['error'] ?? 'Failed to send verification code';
-        } catch (e) {
-          // If response body is not JSON (e.g., 404 HTML page), use status code
-          if (response.statusCode == 404) {
-            errorMessage = 'Registration service not available. Please try again later.';
-          } else if (response.statusCode == 500) {
-            errorMessage = 'Server error. Please try again later.';
-          } else {
-            errorMessage = 'Registration failed (${response.statusCode})';
-          }
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
+      String errorMessage = e.message;
+      
+      // Customize error messages based on error codes
+      if (e.errorCode == 'EMAIL_ALREADY_EXISTS') {
+        errorMessage = 'An account with this email already exists. Please try logging in instead.';
+      } else if (e.statusCode == 429) {
+        errorMessage = 'Too many requests. Please wait a few minutes and try again.';
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Network error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An unexpected error occurred: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

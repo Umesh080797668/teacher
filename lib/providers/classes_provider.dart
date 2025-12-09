@@ -3,7 +3,6 @@ import '../models/class.dart';
 import '../services/api_service.dart';
 
 class ClassesProvider with ChangeNotifier {
-  final ApiService _apiService = ApiService();
   List<Class> _classes = [];
   bool _isLoading = false;
 
@@ -14,7 +13,7 @@ class ClassesProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      _classes = await _apiService.getClasses();
+      _classes = await ApiService.getClasses();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -22,19 +21,19 @@ class ClassesProvider with ChangeNotifier {
   }
 
   Future<void> addClass(String name, String teacherId) async {
-    final classObj = await _apiService.createClass(name, teacherId);
+    final classObj = await ApiService.createClass(name, teacherId);
     _classes.add(classObj);
     notifyListeners();
   }
 
   Future<void> deleteClass(String classId) async {
-    await _apiService.deleteClass(classId);
+    await ApiService.deleteClass(classId);
     _classes.removeWhere((classObj) => classObj.id == classId);
     notifyListeners();
   }
 
   Future<void> updateClass(String classId, String name) async {
-    final updatedClass = await _apiService.updateClass(classId, name);
+    final updatedClass = await ApiService.updateClass(classId, name);
     final index = _classes.indexWhere((classObj) => classObj.id == classId);
     if (index != -1) {
       _classes[index] = updatedClass;

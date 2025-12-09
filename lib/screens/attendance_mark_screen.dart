@@ -16,7 +16,6 @@ class AttendanceMarkScreen extends StatefulWidget {
 class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   DateTime _selectedDate = DateTime.now();
   String? _selectedClassId;
-  final ApiService _apiService = ApiService();
   final Map<String, String> _attendanceStatus = {};
 
   @override
@@ -41,7 +40,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
 
     try {
       for (var entry in _attendanceStatus.entries) {
-        await _apiService.markAttendance(
+        await ApiService.markAttendance(
           entry.key,
           _selectedDate,
           'daily', // Changed from session to 'daily'

@@ -665,7 +665,10 @@ app.post('/api/auth/login', async (req, res) => {
     // Validate input
     if (!email || !password) {
       console.log('Login validation failed: Missing email or password');
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({ 
+        error: 'Email and password are required',
+        code: 'MISSING_CREDENTIALS'
+      });
     }
     
     console.log('Attempting login for email:', email);
@@ -680,18 +683,27 @@ app.post('/api/auth/login', async (req, res) => {
       console.log('Database query completed, teacher found:', !!teacher);
     } catch (dbError) {
       console.error('Database error during findOne:', dbError);
-      return res.status(500).json({ error: 'Database connection error. Please try again.' });
+      return res.status(500).json({ 
+        error: 'Database connection error. Please try again.',
+        code: 'DATABASE_ERROR'
+      });
     }
     
     if (!teacher) {
       console.log('Login attempt failed: Teacher not found for email:', normalizedEmail);
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ 
+        error: 'Invalid email or password',
+        code: 'INVALID_CREDENTIALS'
+      });
     }
     
     // Check if teacher has a password set
     if (!teacher.password) {
       console.error('Login attempt failed: Teacher has no password set:', normalizedEmail);
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ 
+        error: 'Invalid email or password',
+        code: 'INVALID_CREDENTIALS'
+      });
     }
     
     // Check password using bcrypt with additional error handling
@@ -702,18 +714,27 @@ app.post('/api/auth/login', async (req, res) => {
       console.log('Password comparison completed, valid:', isPasswordValid);
     } catch (bcryptError) {
       console.error('Bcrypt comparison error:', bcryptError);
-      return res.status(500).json({ error: 'Authentication error. Please try again.' });
+      return res.status(500).json({ 
+        error: 'Authentication error. Please try again.',
+        code: 'AUTHENTICATION_ERROR'
+      });
     }
     
     if (!isPasswordValid) {
       console.log('Login attempt failed: Invalid password for email:', normalizedEmail);
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ 
+        error: 'Invalid email or password',
+        code: 'INVALID_CREDENTIALS'
+      });
     }
     
     // Check if teacher is active
     if (teacher.status !== 'active') {
       console.log('Login attempt failed: Inactive account for email:', normalizedEmail);
-      return res.status(403).json({ error: 'Account is not active. Please contact support.' });
+      return res.status(403).json({ 
+        error: 'Account is not active. Please contact support.',
+        code: 'ACCOUNT_INACTIVE'
+      });
     }
     
     // Return teacher data (excluding password)
@@ -732,7 +753,10 @@ app.post('/api/auth/login', async (req, res) => {
     console.error('Unexpected error during login:', error);
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
-    res.status(500).json({ error: 'An error occurred during login. Please try again later.' });
+    res.status(500).json({ 
+      error: 'An error occurred during login. Please try again later.',
+      code: 'INTERNAL_ERROR'
+    });
   }
 });
 

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'home_screen.dart';
 import '../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
+import '../services/api_service.dart';
 
 class EmailConfirmationScreen extends StatefulWidget {
   final String email;
@@ -95,45 +94,40 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
     setState(() => _isLoading = true);
 
     try {
-      final response = await http.post(
-        Uri.parse('https://teacher-eight-chi.vercel.app/api/auth/verify-code'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': widget.email,
-          'code': _code,
-        }),
-      );
+      // Verify code using centralized service
+      await ApiService.verifyCode(widget.email, _code);
 
-      if (response.statusCode == 200) {
-        // Code verified, now register the teacher
-        await _registerTeacher();
-      } else {
-        String errorMessage = 'Invalid verification code';
-        try {
-          final error = json.decode(response.body);
-          errorMessage = error['error'] ?? 'Invalid verification code';
-        } catch (e) {
-          // If response body is not JSON (e.g., 404 HTML page), use status code
-          if (response.statusCode == 404) {
-            errorMessage = 'Verification service not available. Please try again later.';
-          } else if (response.statusCode == 500) {
-            errorMessage = 'Server error. Please try again later.';
-          } else {
-            errorMessage = 'Verification failed (${response.statusCode})';
-          }
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
+      // Code verified, now register the teacher
+      await _registerTeacher();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+
+      String errorMessage = e.message;
+      
+      // Customize error messages based on error codes
+      if (e.errorCode == 'INVALID_CODE') {
+        errorMessage = 'Invalid verification code. Please check and try again.';
+      } else if (e.errorCode == 'CODE_EXPIRED') {
+        errorMessage = 'Verification code has expired. Please request a new one.';
+      } else if (e.statusCode == 429) {
+        errorMessage = 'Too many attempts. Please wait and try again.';
       }
-    } catch (e) {
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Network error: ${e.toString()}'),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An unexpected error occurred: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
         ),
       );
     } finally {
@@ -145,60 +139,56 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
 
   Future<void> _registerTeacher() async {
     try {
-      final response = await http.post(
-        Uri.parse('https://teacher-eight-chi.vercel.app/api/teachers'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'name': widget.name,
-          'email': widget.email,
-          'phone': widget.phone,
-          'password': widget.password,
-        }),
+      // Register teacher using centralized service
+      await ApiService.registerTeacher(
+        name: widget.name,
+        email: widget.email,
+        phone: widget.phone,
+        password: widget.password,
       );
 
-      if (response.statusCode == 201) {
-        if (!mounted) return;
+      if (!mounted) return;
 
-        final auth = Provider.of<AuthProvider>(context, listen: false);
-        await auth.login(widget.email, widget.name);
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      await auth.login(widget.email, widget.name);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration successful!'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      } else {
-        String errorMessage = 'Registration failed';
-        try {
-          final error = json.decode(response.body);
-          errorMessage = error['error'] ?? 'Registration failed';
-        } catch (e) {
-          // If response body is not JSON (e.g., 404 HTML page), use status code
-          if (response.statusCode == 404) {
-            errorMessage = 'Registration service not available. Please try again later.';
-          } else if (response.statusCode == 500) {
-            errorMessage = 'Server error. Please try again later.';
-          } else {
-            errorMessage = 'Registration failed (${response.statusCode})';
-          }
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+
+      String errorMessage = e.message;
+      
+      // Customize error messages based on error codes
+      if (e.errorCode == 'EMAIL_ALREADY_EXISTS') {
+        errorMessage = 'An account with this email already exists.';
+      } else if (e.errorCode == 'VALIDATION_ERROR') {
+        errorMessage = 'Please check your information and try again.';
       }
-    } catch (e) {
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Network error: ${e.toString()}'),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An unexpected error occurred: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
         ),
       );
     }
@@ -208,46 +198,36 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
     setState(() => _isResending = true);
 
     try {
-      final response = await http.post(
-        Uri.parse('https://teacher-eight-chi.vercel.app/api/auth/send-verification-code'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': widget.email}),
-      );
+      // Resend verification code using centralized service
+      await ApiService.sendVerificationCode(widget.email);
 
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification code sent successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        String errorMessage = 'Failed to resend code';
-        try {
-          final error = json.decode(response.body);
-          errorMessage = error['error'] ?? 'Failed to resend code';
-        } catch (e) {
-          // If response body is not JSON (e.g., 404 HTML page), use status code
-          if (response.statusCode == 404) {
-            errorMessage = 'Resend service not available. Please try again later.';
-          } else if (response.statusCode == 500) {
-            errorMessage = 'Server error. Please try again later.';
-          } else {
-            errorMessage = 'Failed to resend code (${response.statusCode})';
-          }
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Verification code sent successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } on ApiException catch (e) {
+      String errorMessage = e.message;
+      
+      // Customize error messages based on error codes
+      if (e.statusCode == 429) {
+        errorMessage = 'Too many requests. Please wait before requesting another code.';
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Network error: ${e.toString()}'),
+          content: Text('An unexpected error occurred: ${e.toString()}'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
         ),
       );
     } finally {

@@ -3,7 +3,6 @@ import '../models/payment.dart';
 import '../services/api_service.dart';
 
 class PaymentProvider with ChangeNotifier {
-  final ApiService _apiService = ApiService();
   List<Payment> _payments = [];
   bool _isLoading = false;
 
@@ -14,7 +13,7 @@ class PaymentProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      _payments = await _apiService.getPayments(classId: classId, studentId: studentId);
+      _payments = await ApiService.getPayments(classId: classId, studentId: studentId);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -22,13 +21,13 @@ class PaymentProvider with ChangeNotifier {
   }
 
   Future<void> addPayment(String studentId, String classId, double amount, String type) async {
-    final payment = await _apiService.createPayment(studentId, classId, amount, type);
+    final payment = await ApiService.createPayment(studentId, classId, amount, type);
     _payments.add(payment);
     notifyListeners();
   }
 
   Future<void> deletePayment(String paymentId) async {
-    await _apiService.deletePayment(paymentId);
+    await ApiService.deletePayment(paymentId);
     _payments.removeWhere((payment) => payment.id == paymentId);
     notifyListeners();
   }
