@@ -96,7 +96,7 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
 
     try {
       final response = await http.post(
-        Uri.parse('https://teacher-psi-drab.vercel.app/api/auth/verify-code'),
+        Uri.parse('https://teacher-ebon.vercel.app/api/auth/verify-code'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': widget.email,
@@ -146,7 +146,7 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
   Future<void> _registerTeacher() async {
     try {
       final response = await http.post(
-        Uri.parse('https://teacher-psi-drab.vercel.app/api/teachers'),
+        Uri.parse('https://teacher-ebon.vercel.app/api/teachers'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'name': widget.name,
@@ -209,7 +209,7 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
 
     try {
       final response = await http.post(
-        Uri.parse('https://teacher-psi-drab.vercel.app/api/auth/send-verification-code'),
+        Uri.parse('https://teacher-ebon.vercel.app/api/auth/send-verification-code'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'email': widget.email}),
       );

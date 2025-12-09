@@ -75,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     try {
       // Make API call to login
       final response = await http.post(
-        Uri.parse('https://teacher-psi-drab.vercel.app/api/auth/login'),
+        Uri.parse('https://teacher-ebon.vercel.app/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': _emailController.text,

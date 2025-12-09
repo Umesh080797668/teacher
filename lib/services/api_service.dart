@@ -7,7 +7,7 @@ import '../models/payment.dart';
 
 class ApiService {
   // For production (hosted backend), use the Vercel URL
-  static const String baseUrl = 'https://teacher-psi-drab.vercel.app';
+  static const String baseUrl = 'https://teacher-ebon.vercel.app';
 
   // Students
   Future<List<Student>> getStudents() async {
