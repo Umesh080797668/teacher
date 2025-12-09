@@ -466,12 +466,21 @@ app.get('/api/teachers', async (req, res) => {
 app.get('/api/teachers/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const teacher = await Teacher.findById(id);
+    
+    // Try to find by teacherId first, then by _id if that fails
+    let teacher = await Teacher.findOne({ teacherId: id });
+    
+    // If not found by teacherId, try by _id
+    if (!teacher) {
+      teacher = await Teacher.findById(id);
+    }
+    
     if (!teacher) {
       return res.status(404).json({ error: 'Teacher not found' });
     }
     res.json(teacher);
   } catch (error) {
+    console.error('Error fetching teacher:', error);
     res.status(500).json({ error: 'Failed to fetch teacher' });
   }
 });
@@ -523,12 +532,24 @@ app.put('/api/teachers/:id', async (req, res) => {
       updateData.password = await bcrypt.hash(password, saltRounds);
     }
     
-    const updatedTeacher = await Teacher.findByIdAndUpdate(id, updateData, { new: true });
+    // Try to find and update by teacherId first, then by _id if that fails
+    let updatedTeacher = await Teacher.findOneAndUpdate(
+      { teacherId: id }, 
+      updateData, 
+      { new: true }
+    );
+    
+    // If not found by teacherId, try by _id
+    if (!updatedTeacher) {
+      updatedTeacher = await Teacher.findByIdAndUpdate(id, updateData, { new: true });
+    }
+    
     if (!updatedTeacher) {
       return res.status(404).json({ error: 'Teacher not found' });
     }
     res.status(200).json(updatedTeacher);
   } catch (error) {
+    console.error('Error updating teacher:', error);
     res.status(500).json({ error: 'Failed to update teacher' });
   }
 });
