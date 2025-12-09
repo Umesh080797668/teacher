@@ -75,7 +75,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
     try {
       // Send verification code
       final response = await http.post(
-        Uri.parse('https://teacher-psi-drab.vercel.app/api/auth/send-verification-code'),
+        Uri.parse('https://teacher-eight-chi.vercel.app/api/auth/send-verification-code'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'email': _emailController.text}),
       );
