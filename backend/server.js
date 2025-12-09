@@ -22,9 +22,28 @@ const transporter = nodemailer.createTransport({
 });
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/teacher_attendance_mobile')
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/teacher_attendance_mobile', {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+})
+.then(() => console.log('MongoDB connected successfully'))
+.catch(err => {
+  console.error('MongoDB connection error:', err);
+  console.error('MongoDB URI:', process.env.MONGODB_URI ? 'Set (hidden)' : 'Not set');
+});
+
+// Handle MongoDB connection errors after initial connection
+mongoose.connection.on('error', err => {
+  console.error('MongoDB connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected');
+});
+
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB connected');
+});
 
 // Models
 const ClassSchema = new mongoose.Schema({
@@ -84,6 +103,16 @@ const Teacher = mongoose.model('Teacher', TeacherSchema);
 const EmailVerification = mongoose.model('EmailVerification', EmailVerificationSchema);
 
 // Routes
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Server is running',
+    timestamp: new Date().toISOString(),
+    mongoStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
 // Students
 app.get('/api/students', async (req, res) => {
   try {
@@ -540,50 +569,60 @@ app.post('/api/auth/verify-code', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   try {
+    console.log('Login request received');
     const { email, password } = req.body;
     
     // Validate input
     if (!email || !password) {
+      console.log('Login validation failed: Missing email or password');
       return res.status(400).json({ error: 'Email and password are required' });
     }
     
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+    console.log('Attempting login for email:', email);
+    
+    // Normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Find teacher by email with error handling
+    let teacher;
+    try {
+      teacher = await Teacher.findOne({ email: normalizedEmail });
+      console.log('Database query completed, teacher found:', !!teacher);
+    } catch (dbError) {
+      console.error('Database error during findOne:', dbError);
+      return res.status(500).json({ error: 'Database connection error. Please try again.' });
     }
     
-    // Find teacher by email
-    const teacher = await Teacher.findOne({ email: email.toLowerCase().trim() });
-    
     if (!teacher) {
-      console.log('Login attempt failed: Teacher not found for email:', email);
+      console.log('Login attempt failed: Teacher not found for email:', normalizedEmail);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
     // Check if teacher has a password set
     if (!teacher.password) {
-      console.error('Login attempt failed: Teacher has no password set:', email);
+      console.error('Login attempt failed: Teacher has no password set:', normalizedEmail);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
     // Check password using bcrypt with additional error handling
     let isPasswordValid = false;
     try {
+      console.log('Comparing password with bcrypt');
       isPasswordValid = await bcrypt.compare(password, teacher.password);
+      console.log('Password comparison completed, valid:', isPasswordValid);
     } catch (bcryptError) {
       console.error('Bcrypt comparison error:', bcryptError);
       return res.status(500).json({ error: 'Authentication error. Please try again.' });
     }
     
     if (!isPasswordValid) {
-      console.log('Login attempt failed: Invalid password for email:', email);
+      console.log('Login attempt failed: Invalid password for email:', normalizedEmail);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
     // Check if teacher is active
     if (teacher.status !== 'active') {
-      console.log('Login attempt failed: Inactive account for email:', email);
+      console.log('Login attempt failed: Inactive account for email:', normalizedEmail);
       return res.status(403).json({ error: 'Account is not active. Please contact support.' });
     }
     
@@ -597,10 +636,11 @@ app.post('/api/auth/login', async (req, res) => {
       status: teacher.status
     };
     
-    console.log('Login successful for email:', email);
+    console.log('Login successful for email:', normalizedEmail);
     res.json({ message: 'Login successful', teacher: teacherData });
   } catch (error) {
-    console.error('Error during login:', error);
+    console.error('Unexpected error during login:', error);
+    console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
     res.status(500).json({ error: 'An error occurred during login. Please try again later.' });
   }
