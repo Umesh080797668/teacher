@@ -339,8 +339,9 @@ app.delete('/api/teachers/:id', async (req, res) => {
 app.get('/api/reports/attendance-summary', async (req, res) => {
   try {
     const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    // Use UTC dates for consistent date filtering across timezones
+    const startOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    const endOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
 
     // Total students
     const totalStudents = await Student.countDocuments();

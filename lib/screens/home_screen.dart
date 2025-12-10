@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'students_screen.dart';
 import 'attendance_mark_screen.dart';
 import 'attendance_view_screen.dart';
@@ -220,7 +221,115 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  String _getTimeAgo(DateTime timestamp) {
+  void _showActivityDetails(BuildContext context, RecentActivity activity) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                _getActivityIcon(activity.type),
+                color: _getActivityColor(activity.type),
+              ),
+              const SizedBox(width: 8),
+              Text(activity.title),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  activity.subtitle,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatTimestamp(activity.timestamp),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.category,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _getActivityTypeLabel(activity.type),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+                if (activity.type == 'attendance') ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'This activity represents attendance records that were marked for students.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+                if (activity.type == 'student') ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'A new student has been registered in the system.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+                if (activity.type == 'payment') ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'A payment has been recorded in the system.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+                if (activity.type == 'class') ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'A new class has been created in the system.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
 
@@ -231,7 +340,24 @@ class _HomeScreenState extends State<HomeScreen> {
     } else if (difference.inDays < 7) {
       return '${difference.inDays} days ago';
     } else {
-      return '${(difference.inDays / 7).floor()} weeks ago';
+      return DateFormat('MMM dd, yyyy').format(timestamp);
+    }
+  }
+
+  String _getActivityTypeLabel(String type) {
+    switch (type) {
+      case 'attendance':
+        return 'Attendance';
+      case 'student':
+        return 'Student Management';
+      case 'payment':
+        return 'Payment';
+      case 'class':
+        return 'Class Management';
+      case 'report':
+        return 'Reports';
+      default:
+        return 'Activity';
     }
   }
 
@@ -243,6 +369,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return Icons.person_add;
       case 'payment':
         return Icons.payment;
+      case 'class':
+        return Icons.class_;
       case 'report':
         return Icons.assessment;
       default:
@@ -253,13 +381,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Color _getActivityColor(String type) {
     switch (type) {
       case 'attendance':
-        return const Color(0xFF00BFA5);
+        return Colors.green;
       case 'student':
-        return const Color(0xFF6750A4);
+        return Colors.blue;
       case 'payment':
-        return const Color(0xFF6200EE);
+        return Colors.purple;
+      case 'class':
+        return Colors.orange;
       case 'report':
-        return const Color(0xFFD32F2F);
+        return Colors.teal;
       default:
         return Colors.grey;
     }
@@ -786,11 +916,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 (activity) => Padding(
                                   padding: const EdgeInsets.only(bottom: 12),
                                   child: _RecentActivityCard(
-                                    title: activity.title,
-                                    subtitle: activity.subtitle,
-                                    time: _getTimeAgo(activity.timestamp),
-                                    icon: _getActivityIcon(activity.type),
-                                    color: _getActivityColor(activity.type),
+                                    activity: activity,
+                                    onTap: () => _showActivityDetails(context, activity),
                                   ),
                                 ),
                               ),
@@ -1158,91 +1285,138 @@ class _StatisticsCard extends StatelessWidget {
 }
 
 class _RecentActivityCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final String time;
-  final IconData icon;
-  final Color color;
+  final RecentActivity activity;
+  final VoidCallback? onTap;
 
   const _RecentActivityCard({
-    required this.title,
-    required this.subtitle,
-    required this.time,
-    required this.icon,
-    required this.color,
+    required this.activity,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 14,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _getActivityColor(activity.type).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(_getActivityIcon(activity.type), color: _getActivityColor(activity.type), size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    activity.title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.7),
-                    fontSize: 12,
+                  const SizedBox(height: 4),
+                  Text(
+                    activity.subtitle,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const Spacer(),
-          Text(
-            time,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.5),
-              fontSize: 11,
+            const Spacer(),
+            Text(
+              _getTimeAgo(activity.timestamp),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                fontSize: 11,
+              ),
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.right,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  IconData _getActivityIcon(String type) {
+    switch (type) {
+      case 'attendance':
+        return Icons.check_circle;
+      case 'student':
+        return Icons.person_add;
+      case 'payment':
+        return Icons.payment;
+      case 'class':
+        return Icons.class_;
+      case 'report':
+        return Icons.assessment;
+      default:
+        return Icons.info;
+    }
+  }
+
+  Color _getActivityColor(String type) {
+    switch (type) {
+      case 'attendance':
+        return Colors.green;
+      case 'student':
+        return Colors.blue;
+      case 'payment':
+        return Colors.purple;
+      case 'class':
+        return Colors.orange;
+      case 'report':
+        return Colors.teal;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getTimeAgo(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} minutes ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hours ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else {
+      return '${(difference.inDays / 7).floor()} weeks ago';
+    }
   }
 }
 
