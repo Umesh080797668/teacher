@@ -12,47 +12,43 @@
   ```
 - [ ] Save the file
 
-### Step 2: Create MEGA Account
-- [ ] Go to https://mega.nz
-- [ ] Sign up for free account (50GB free storage)
-- [ ] Verify your email
-- [ ] Login to MEGA
-
-### Step 3: Build Your APK
+### Step 2: Build Your APK
 - [ ] Open terminal
 - [ ] Run: `flutter build apk --release`
 - [ ] Wait for build to complete
 - [ ] Note the location: `build/app/outputs/flutter-apk/app-release.apk`
 
-### Step 4: Upload APK to MEGA
-- [ ] Go to MEGA web interface
-- [ ] Create a folder called "App Updates" (optional)
-- [ ] Upload `app-release.apk`
-- [ ] Right-click the file → "Get link"
-- [ ] Select "Link with key"
-- [ ] Copy the link (should look like: `https://mega.nz/file/ABC123#KEY456`)
-- [ ] Save this link somewhere safe
+### Step 3: Create GitHub Release
+- [ ] Go to your GitHub repository: https://github.com/Umesh080797668/teacher
+- [ ] Click "Releases" in the right sidebar
+- [ ] Click "Create a new release"
+- [ ] Tag version: `v1.0.0` (with 'v' prefix)
+- [ ] Release title: "Version 1.0.0"
+- [ ] Upload `app-release.apk` from `build/app/outputs/flutter-apk/`
+- [ ] Write release notes
+- [ ] Click "Publish release"
+- [ ] Copy the download URL from the release assets (right-click → Copy link)
 
-### Step 5: Update update.json File
+### Step 4: Update update.json File
 - [ ] Open `update.json` in your project
 - [ ] Update the fields:
   ```json
   {
     "version": "1.0.0",
-    "downloadUrl": "PASTE_YOUR_MEGA_LINK_HERE",
+    "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/v1.0.0/app-release.apk",
     "releaseNotes": "Initial release of the app",
     "isForced": false
   }
   ```
 - [ ] Save the file
 
-### Step 6: Push to GitHub
+### Step 5: Push to GitHub
 - [ ] Run: `git add .`
 - [ ] Run: `git commit -m "Add update system"`
 - [ ] Run: `git push origin main`
 - [ ] Verify `update.json` is visible on GitHub
 
-### Step 7: Test on Device
+### Step 6: Test on Device
 - [ ] Connect Android device via USB
 - [ ] Enable USB debugging on device
 - [ ] Run: `flutter install --release`
@@ -61,7 +57,7 @@
 - [ ] Tap "Check for Updates"
 - [ ] Should show: "You are using the latest version"
 
-### Step 8: Test Update Flow (Optional but Recommended)
+### Step 7: Test Update Flow (Optional but Recommended)
 - [ ] Change version in `update.json` to "1.0.1"
 - [ ] Commit and push to GitHub
 - [ ] Wait 1-2 minutes for GitHub to update
@@ -87,15 +83,17 @@
 - [ ] Run: `flutter build apk --release`
 - [ ] Test APK on device manually first
 
-#### 3. Upload to MEGA
-- [ ] Upload new APK to MEGA
-- [ ] Get public download link
-- [ ] Copy the link
+#### 3. Create GitHub Release
+- [ ] Go to GitHub repository → Releases → Create new release
+- [ ] Tag: `v1.0.1` (match pubspec.yaml version)
+- [ ] Upload new APK file
+- [ ] Publish release
+- [ ] Copy the download URL
 
 #### 4. Update Configuration
 - [ ] Open `update.json`
 - [ ] Update version number
-- [ ] Update downloadUrl with new MEGA link
+- [ ] Update downloadUrl with new GitHub release link
 - [ ] Write release notes
 - [ ] Set `isForced` to `false` (unless critical)
 - [ ] Save file
@@ -112,7 +110,7 @@
 
 #### 7. Monitor
 - [ ] Watch for user feedback
-- [ ] Monitor MEGA bandwidth
+- [ ] Check GitHub release download stats
 - [ ] Check for installation issues
 
 ---
@@ -126,11 +124,10 @@
 - [ ] Check JSON syntax at https://jsonlint.com
 
 ### If "Download failed"
-- [ ] Open MEGA link in incognito browser
-- [ ] Should download without login
-- [ ] Check MEGA account bandwidth (Daily limit: 5GB free)
-- [ ] Verify link format: `https://mega.nz/file/ABC#KEY`
-- [ ] Try generating new MEGA link
+- [ ] Open GitHub release link in browser
+- [ ] Should download APK directly
+- [ ] Check internet connection stability
+- [ ] Verify release URL format: `https://github.com/.../releases/download/.../app-release.apk`
 
 ### If "Installation failed"
 - [ ] Go to Settings → Security
@@ -203,9 +200,9 @@ Your Project/
 ✅ **Dependencies**: Installed
 
 ⚠️ **Action Required**:
-1. Update GitHub URL in `update_service.dart`
-2. Upload APK to MEGA
-3. Update `update.json` with MEGA link
+1. Build APK
+2. Create GitHub release
+3. Update `update.json` with GitHub release link
 4. Test on device
 
 ---

@@ -8,7 +8,7 @@
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌──────────────┐         ┌──────────────┐                 │
-│  │   GitHub     │         │     MEGA     │                 │
+│  │   GitHub     │         │   GitHub    │                 │
 │  │  Repository  │         │    Drive     │                 │
 │  └──────┬───────┘         └──────┬───────┘                 │
 │         │                         │                         │
@@ -28,7 +28,7 @@
 │  │                                                         │ │
 │  │  1. Checks GitHub for update.json                      │ │
 │  │  2. Compares versions                                  │ │
-│  │  3. Downloads APK from MEGA (if update available)      │ │
+│  │  3. Downloads APK from GitHub releases (if update available) │ │
 │  │  4. Installs new version                               │ │
 │  │                                                         │ │
 │  └────────────────────────────────────────────────────────┘ │
@@ -79,7 +79,7 @@
             ▼         ▼
         ┌──────┐  ┌──────────────────┐
         │ Done │  │ Download APK     │
-        └──────┘  │ from MEGA        │
+        └──────┘  │ from GitHub       │
                   └────┬─────────────┘
                        │
                        ▼
@@ -213,7 +213,7 @@ Result:  ✓ Up to date (Newer installed)
 │  └─ Returns true if >= 10 days                          │
 │                                                           │
 │  downloadAndInstallUpdate()                              │
-│  ├─ Downloads APK from MEGA using Dio                   │
+│  ├─ Downloads APK from GitHub releases using Dio          │
 │  ├─ Shows progress via callback                         │
 │  ├─ Saves to external storage                           │
 │  └─ Triggers installation                               │
@@ -265,7 +265,7 @@ Result:  ✓ Up to date (Newer installed)
 │                    GitHub (JSON)                           │
 │  {                                                         │
 │    "version": "1.0.1",                                     │
-│    "downloadUrl": "https://mega.nz/...",                   │
+│    "downloadUrl": "https://github.com/.../releases/download/...", │
 │    "releaseNotes": "Bug fixes...",                         │
 │    "isForced": false                                       │
 │  }                                                         │
@@ -298,7 +298,7 @@ Result:  ✓ Up to date (Newer installed)
                   ▼
 ┌────────────────────────────────────────────────────────────┐
 │      UpdateService.downloadAndInstallUpdate()              │
-│  1. Download from MEGA (Dio)                               │
+│  1. Download from GitHub releases (Dio)                     │
 │  2. Save to /storage/emulated/0/Android/data/...          │
 │  3. Update progress callback                               │
 │  4. InstallPlugin.install(path)                            │
@@ -352,7 +352,7 @@ Day 10: Grace period over
   └─ Response: Version info retrieved
 
 ✓ Download Success
-  ├─ MEGA: Link valid
+  ├─ GitHub: Link valid
   ├─ Storage: Permission granted
   ├─ Space: Sufficient
   └─ Network: Stable connection
@@ -379,9 +379,8 @@ Day 10: Grace period over
 ❌ Installation Failed
    └─ Guide: Show permission instructions
    
-❌ MEGA Bandwidth Limit
-   └─ Wait: 24 hour reset
-   └─ Alternative: Upload to different link
+❌ Network Connection Issues
+   └─ Alternative: Retry download
 ```
 
 ---
@@ -390,7 +389,7 @@ Day 10: Grace period over
 
 **Current Version Location**: `pubspec.yaml`
 **Update Config Location**: `update.json` (GitHub)
-**APK Storage Location**: `MEGA Drive`
+**APK Storage Location**: `GitHub Releases`
 **Check Frequency**: On-demand + App startup
 **Force Threshold**: 10 days
 **Download Method**: Dio (HTTP)

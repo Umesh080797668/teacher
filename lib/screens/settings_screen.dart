@@ -111,10 +111,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showUpdateAvailableDialog(UpdateInfo updateInfo) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surface,
         title: Row(
           children: [
             Icon(
@@ -122,7 +124,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(width: 12),
-            const Text('Update Available'),
+            Text(
+              'Update Available',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
           ],
         ),
         content: Column(
@@ -131,25 +138,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Text(
               'A new version (${updateInfo.version}) is available!',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 12),
             if (updateInfo.releaseNotes.isNotEmpty) ...[
-              const Text(
+              Text(
                 'What\'s New:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 4),
-              Text(updateInfo.releaseNotes),
+              Text(
+                updateInfo.releaseNotes,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
               const SizedBox(height: 12),
             ],
             Text(
               'Current version: $_currentVersion',
               style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(
+                  alpha: isDark ? 0.7 : 0.6,
+                ),
               ),
             ),
           ],
@@ -157,7 +175,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Later'),
+            child: Text(
+              'Later',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
           ),
           FilledButton(
             onPressed: () {
@@ -172,6 +195,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _downloadAndInstallUpdate(UpdateInfo updateInfo) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -181,11 +205,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           String statusMessage = 'Preparing download...';
 
           return AlertDialog(
-            title: const Row(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            title: Row(
               children: [
-                Icon(Icons.download),
-                SizedBox(width: 12),
-                Text('Downloading Update'),
+                Icon(
+                  Icons.download,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Downloading Update',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
               ],
             ),
             content: Column(
@@ -199,9 +232,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 16),
                 Text(
                   '${(downloadProgress * 100).toStringAsFixed(0)}%',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -209,9 +243,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   statusMessage,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(
+                      alpha: isDark ? 0.7 : 0.6,
+                    ),
                   ),
                 ),
               ],

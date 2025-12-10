@@ -9,7 +9,7 @@
 - ✅ **Download Progress** tracking during update
 - ✅ **APK Installation** from downloaded file
 - ✅ **Version Comparison** system
-- ✅ **MEGA Drive Integration** for APK hosting
+- ✅ **GitHub Releases Integration** for APK hosting
 
 ### 2. New Files Created
 
@@ -21,7 +21,7 @@
 
 #### Configuration
 - `android/app/src/main/res/xml/provider_paths.xml` - File provider configuration
-- `update.json` - Version configuration file (to be uploaded to GitHub/MEGA)
+- `update.json` - Version configuration file (hosted on GitHub)
 - `UPDATE_SYSTEM_SETUP.md` - Detailed setup guide
 - `QUICK_START_UPDATES.md` - Quick reference guide
 
@@ -62,7 +62,7 @@ Added packages:
 5a. If up-to-date → Shows "Latest version" message
 5b. If update available → Shows update dialog
 6. User chooses "Later" or "Install Now"
-7. If "Install Now" → Downloads APK from MEGA
+7. If "Install Now" → Downloads APK from GitHub releases
 8. Shows progress bar during download
 9. Automatically installs when complete
 ```
@@ -120,7 +120,7 @@ File: `update.json`
 ```json
 {
   "version": "1.0.1",
-  "downloadUrl": "https://mega.nz/file/YOUR_FILE_ID#YOUR_KEY",
+  "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/v1.0.0/app-release.apk",
   "releaseNotes": "Bug fixes and improvements",
   "isForced": false
 }
@@ -147,7 +147,7 @@ File: `update.json`
 - Expected: Error message "Failed to check for updates"
 
 #### Test Case 5: Invalid Download Link
-- MEGA link is broken
+- GitHub release link is broken
 - Expected: Error message "Failed to download update"
 
 ### 9. Error Handling
@@ -188,8 +188,8 @@ open_file: ^3.3.2           # For opening downloaded files
 
 #### Required Actions:
 1. ✅ Update `lib/services/update_service.dart` line 28 with your GitHub URL
-2. ✅ Create MEGA account and upload your APK
-3. ✅ Update `update.json` with MEGA download link
+2. ✅ Create GitHub release and upload your APK
+3. ✅ Update `update.json` with GitHub release download link
 4. ✅ Push `update.json` to your GitHub repository
 5. ✅ Test the update flow on a real device
 
@@ -202,7 +202,7 @@ open_file: ^3.3.2           # For opening downloaded files
 ### 13. Limitations & Considerations
 
 - **Internet Required**: Cannot check/download without internet
-- **MEGA Bandwidth**: Free accounts have daily limits
+- **GitHub Limits**: Generous bandwidth for releases
 - **Android Only**: iOS requires App Store updates
 - **Manual Installation**: Users must enable "unknown sources"
 - **Storage Space**: Requires ~50MB free space for APK
@@ -225,15 +225,15 @@ Possible improvements:
 #### When Releasing Updates:
 1. Update version in `pubspec.yaml`
 2. Build release APK
-3. Upload to MEGA
+3. Upload to GitHub releases
 4. Update `update.json`
 5. Push to GitHub
 6. Test on device
 7. Monitor user feedback
 
 #### Regular Checks:
-- MEGA storage usage
-- MEGA bandwidth limits
+- GitHub release downloads
+- GitHub repository access
 - GitHub repository access
 - APK file integrity
 - User adoption rates
@@ -261,7 +261,7 @@ flutter run --release
 
 ## Support Links
 
-- **MEGA**: https://mega.nz
+- **GitHub**: https://github.com
 - **GitHub**: https://github.com
 - **Flutter Docs**: https://docs.flutter.dev
 

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.3",
-  "downloadUrl": "https://mega.nz/file/c6UATDLD#Nvxf0yplFoPMOVGyVK83uKMRv9mu327v_JN2tWG3pHU",
-  "releaseNotes": "• Bug fixes and performance improvements\n• New features added\n• UI enhancements",
+  "version": "1.0.4",
+  "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/v1.0.4/app-release.apk",
+  "releaseNotes": "• Fixed dark mode visibility in update dialogs\n• Bug fixes and performance improvements\n• UI enhancements",
   "isForced": false
 }

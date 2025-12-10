@@ -2,9 +2,8 @@
 
 ## What You Need
 
-1. **MEGA Account** - Free account at https://mega.nz
-2. **GitHub Repository** - To host the update.json file
-3. **Your APK files** - Release builds of your app
+1. **GitHub Repository** - To host the update.json file and releases
+2. **Your APK files** - Release builds of your app
 
 ## Step-by-Step Setup (5 Minutes)
 
@@ -27,7 +26,7 @@
    git push origin main
    ```
 
-### Step 3: Build and Upload Your First APK
+### Step 3: Build and Create GitHub Release
 
 1. Build release APK:
    ```bash
@@ -36,20 +35,22 @@
 
 2. Find APK at: `build/app/outputs/flutter-apk/app-release.apk`
 
-3. Upload to MEGA:
-   - Go to https://mega.nz
-   - Upload the APK
-   - Right-click → "Get link" → Copy the link
-   - Make sure it's a **public download link**
+3. Create GitHub release:
+   - Go to your GitHub repo → Releases → Create new release
+   - Tag: `v1.0.0`
+   - Title: "Version 1.0.0"
+   - Upload the APK file
+   - Publish release
+   - Copy the download URL from the release assets
 
 ### Step 4: Update the JSON File
 
-Edit `update.json` with your MEGA link:
+Edit `update.json` with your GitHub release link:
 
 ```json
 {
   "version": "1.0.0",
-  "downloadUrl": "https://mega.nz/file/PASTE_YOUR_LINK_HERE",
+  "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/v1.0.0/app-release.apk",
   "releaseNotes": "Initial release",
   "isForced": false
 }
@@ -83,10 +84,13 @@ version: 1.0.1+2  # Change from 1.0.0+1
 flutter build apk --release
 ```
 
-### 3. Upload to MEGA
+### 3. Create GitHub Release
 
-- Upload the new APK to MEGA
-- Get the public download link
+- Go to your GitHub repo → Releases → Create new release
+- Tag: `v1.0.1`
+- Upload the new APK file
+- Publish release
+- Copy the new download URL
 
 ### 4. Update JSON
 
@@ -94,7 +98,7 @@ Edit `update.json`:
 ```json
 {
   "version": "1.0.1",
-  "downloadUrl": "https://mega.nz/file/NEW_LINK_HERE",
+  "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/v1.0.1/app-release.apk",
   "releaseNotes": "• Bug fixes\n• New features\n• Performance improvements",
   "isForced": false
 }
@@ -114,25 +118,27 @@ git push origin main
 - They see the new version and can install
 - After 10 days, update becomes mandatory
 
-## Important MEGA Link Notes
+## Important GitHub Release Notes
 
-### Good Link Format:
+### Release URL Format:
 ```
-https://mega.nz/file/ABCD1234#KEY_HERE
-```
-
-### Bad Link Formats (Don't use):
-```
-https://mega.nz/#!ABCD1234!KEY_HERE  ❌ (old format)
-https://mega.nz/folder/...            ❌ (folder link)
+https://github.com/Umesh080797668/teacher/releases/download/v1.0.0/app-release.apk
 ```
 
-### How to Get Correct Link:
-1. Upload file to MEGA
-2. Right-click the file (not folder)
-3. Click "Get link"
-4. Choose "Link with key"
-5. Copy the link that looks like: `https://mega.nz/file/...#...`
+### How to Create a Release:
+1. Go to your GitHub repository
+2. Click "Releases" in the right sidebar
+3. Click "Create a new release"
+4. Tag version: `v1.0.0` (with 'v' prefix)
+5. Upload your APK file
+6. Publish release
+7. Copy the download URL from the release assets
+
+### Benefits of GitHub Releases:
+- ✅ Permanent download links
+- ✅ No bandwidth limits
+- ✅ Version history tracking
+- ✅ Free and reliable
 
 ## Testing the Update Flow
 
@@ -179,13 +185,13 @@ https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/update.json
 
 ### Problem: "Download failed"
 
-**Solution 1:** Verify MEGA link is public
-- Open link in incognito browser
-- Should download without login
+**Solution 1:** Verify GitHub release link is valid
+- Open link in browser
+- Should download APK file directly
 
-**Solution 2:** Check MEGA bandwidth
-- Free accounts have daily limits
-- Wait 24 hours or upgrade account
+**Solution 2:** Check internet connection
+- Ensure stable internet connection
+- Try on different network
 
 **Solution 3:** Check storage permissions
 - Settings → Apps → Your App → Permissions
@@ -200,8 +206,7 @@ https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/update.json
 ## File Checklist
 
 ✅ Files you need to modify:
-- `lib/services/update_service.dart` (Line 28: Update GitHub URL)
-- `update.json` (Your version and MEGA link)
+- `update.json` (Your version and GitHub release link)
 - `pubspec.yaml` (Version number when releasing)
 
 ✅ Files already configured:
@@ -234,32 +239,30 @@ Examples:
 3. **Write clear release notes**
 4. **Increment version properly**
 5. **Test download link before updating JSON**
-6. **Monitor MEGA storage/bandwidth**
+6. **GitHub releases provide permanent hosting**
 
 ## Emergency Rollback
 
 If you need to roll back an update:
 
-1. Upload previous version APK to MEGA
-2. Update `update.json` with previous version number
+1. Create a new GitHub release with previous version APK
+2. Update `update.json` with previous version number and new release URL
 3. Users can download and install older version
 
 ## Support
 
 If users report issues:
-1. Check MEGA link is still active
+1. Check GitHub release link is accessible
 2. Verify JSON is accessible
 3. Test APK installation manually
 4. Check app permissions
 
 ## Next Steps
 
-1. ✅ Set up GitHub URL in `update_service.dart`
-2. ✅ Upload first APK to MEGA
-3. ✅ Update `update.json` with link
-4. ✅ Push to GitHub
-5. ✅ Test on device
-6. 🚀 Release to users!
+1. ✅ Update `update.json` with GitHub release link
+2. ✅ Push to GitHub
+3. ✅ Test on device
+4. 🚀 Release to users!
 
 ---
 
