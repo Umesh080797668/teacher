@@ -1,6 +1,6 @@
 {
-  "version": "1.0.4",
+  "version": "1.0.5",
   "downloadUrl": "https://mega.nz/file/c6UATDLD#Nvxf0yplFoPMOVGyVK83uKMRv9mu327v_JN2tWG3pHU",
-  "releaseNotes": "• Bug fixes and performance improvements\n• New features added\n• UI enhancements",
+  "releaseNotes": "• Bug fixes and performance improvements\n• New features added\n• UI enhancements\n• Test version for update notifications",
   "isForced": false
 }
