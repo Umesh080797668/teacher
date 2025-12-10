@@ -36,7 +36,9 @@ class UpdateInfo {
 
 class UpdateService {
   // Use raw.githubusercontent.com instead of cdn.jsdelivr.net to avoid CDN caching issues
-  static String get _updateCheckUrl => dotenv.env['UPDATE_CHECK_URL'] ?? 'https://raw.githubusercontent.com/Umesh080797668/teacher/main/update.json';
+  static String get _updateCheckUrl =>
+      dotenv.env['UPDATE_CHECK_URL'] ??
+      'https://raw.githubusercontent.com/Umesh080797668/teacher/main/update.json';
   static const String _lastUpdateCheckKey = 'last_update_check';
   static const String _skippedVersionKey = 'skipped_version';
   static const String _updateAvailableKey = 'update_available';
@@ -55,11 +57,12 @@ class UpdateService {
         InitializationSettings(android: initializationSettingsAndroid);
 
     await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
-    
+
     // Request notification permissions for Android 13+ (API level 33+)
     await _flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.requestNotificationsPermission();
   }
 
@@ -73,7 +76,17 @@ class UpdateService {
 
       // Update the URL below with your actual JSON file URL from MEGA or GitHub
       // For MEGA, you'll need to create a public link
-      final response = await _dio.get(_updateCheckUrl);
+      // Add cache-busting headers to prevent stale data
+      final response = await _dio.get(
+        _updateCheckUrl,
+        options: Options(
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+        ),
+      );
 
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
@@ -96,12 +109,12 @@ class UpdateService {
         if (isNewer) {
           final updateInfo = UpdateInfo.fromJson(data);
           await prefs.setBool(_updateAvailableKey, true);
-          
+
           // Show notification for new update only if requested
           if (showNotification) {
             await _showUpdateNotification(updateInfo);
           }
-          
+
           return updateInfo;
         } else {
           await prefs.setBool(_updateAvailableKey, false);
@@ -221,16 +234,17 @@ class UpdateService {
   Future<void> _showUpdateNotification(UpdateInfo updateInfo) async {
     const AndroidNotificationDetails androidNotificationDetails =
         AndroidNotificationDetails(
-      'update_channel',
-      'App Updates',
-      channelDescription: 'Notifications for app updates',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
-    );
+          'update_channel',
+          'App Updates',
+          channelDescription: 'Notifications for app updates',
+          importance: Importance.max,
+          priority: Priority.high,
+          showWhen: false,
+        );
 
-    const NotificationDetails notificationDetails =
-        NotificationDetails(android: androidNotificationDetails);
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidNotificationDetails,
+    );
 
     await _flutterLocalNotificationsPlugin.show(
       0,
@@ -297,10 +311,10 @@ class UpdateService {
       }
 
       debugPrint('Performing background update check...');
-      
+
       // Check for updates and show notification if available
       final updateInfo = await checkForUpdates(showNotification: true);
-      
+
       if (updateInfo != null) {
         debugPrint('Update available: ${updateInfo.version}');
       } else {
@@ -310,5 +324,18 @@ class UpdateService {
       debugPrint('Error in background update check: $e');
     }
   }
-}
 
+  /// Clear cached update data (useful for testing or troubleshooting)
+  Future<void> clearUpdateCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_lastUpdateCheckKey);
+      await prefs.remove(_skippedVersionKey);
+      await prefs.remove(_updateAvailableKey);
+      await prefs.remove(_latestVersionKey);
+      debugPrint('Update cache cleared successfully');
+    } catch (e) {
+      debugPrint('Error clearing update cache: $e');
+    }
+  }
+}
