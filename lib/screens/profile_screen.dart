@@ -79,19 +79,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return;
         }
       } else if (source == ImageSource.gallery) {
-        // Try photos permission first (for Android 13+ and iOS)
+        // Handle gallery permissions for different Android versions
         permissionStatus = await Permission.photos.request();
 
-        // If photos permission is denied, try storage permission (for older Android)
+        // If photos permission fails, try other gallery permissions
         if (!permissionStatus.isGranted) {
+          // Try storage permission for older Android versions
           permissionStatus = await Permission.storage.request();
+        }
+
+        // For Android 13+, also try media permissions if available
+        if (!permissionStatus.isGranted) {
+          try {
+            // This handles Android 13+ media permissions
+            if (await Permission.photos.isLimited || await Permission.photos.isDenied) {
+              permissionStatus = await Permission.photos.request();
+            }
+          } catch (e) {
+            // Fallback to storage permission
+            permissionStatus = await Permission.storage.request();
+          }
         }
 
         if (permissionStatus.isPermanentlyDenied) {
           if (mounted) {
             _showPermissionDialog(
               'Gallery Permission Required',
-              'Gallery permission is permanently denied. Please enable it in app settings.',
+              'Gallery permission is permanently denied. Please enable it in app settings to select photos.',
               'Open Settings',
               () => openAppSettings(),
             );
@@ -100,7 +114,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         } else if (!permissionStatus.isGranted) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Gallery permission is required to select photos')),
+              const SnackBar(
+                content: Text('Gallery permission is required to select photos. Please grant permission in app settings.'),
+                duration: Duration(seconds: 5),
+              ),
             );
           }
           return;
@@ -176,6 +193,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _pickImage(ImageSource.gallery);
                 },
               ),
+              if (_profilePicturePath != null && _profilePicturePath!.isNotEmpty) ...[
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text('Remove Photo'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      _profilePicturePath = null;
+                    });
+                  },
+                ),
+              ],
               ListTile(
                 leading: const Icon(Icons.cancel),
                 title: const Text('Cancel'),
@@ -386,7 +416,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),
                   ),
-                  if (_isEditing)
+                  if (_isEditing) ...[
+                    if (_profilePicturePath != null && _profilePicturePath!.isNotEmpty)
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _profilePicturePath = null;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.surface,
+                                width: 2,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.close,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
                     Positioned(
                       bottom: 0,
                       right: 0,
@@ -407,6 +465,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
