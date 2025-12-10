@@ -2,6 +2,58 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
+class UserAccount {
+  final String email;
+  final String name;
+  final String? teacherId;
+  final Map<String, dynamic>? teacherData;
+  final DateTime lastLogin;
+
+  UserAccount({
+    required this.email,
+    required this.name,
+    this.teacherId,
+    this.teacherData,
+    DateTime? lastLogin,
+  }) : lastLogin = lastLogin ?? DateTime.now();
+
+  factory UserAccount.fromJson(Map<String, dynamic> json) {
+    return UserAccount(
+      email: json['email'],
+      name: json['name'],
+      teacherId: json['teacherId'],
+      teacherData: json['teacherData'],
+      lastLogin: DateTime.parse(json['lastLogin']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'email': email,
+      'name': name,
+      'teacherId': teacherId,
+      'teacherData': teacherData,
+      'lastLogin': lastLogin.toIso8601String(),
+    };
+  }
+
+  UserAccount copyWith({
+    String? email,
+    String? name,
+    String? teacherId,
+    Map<String, dynamic>? teacherData,
+    DateTime? lastLogin,
+  }) {
+    return UserAccount(
+      email: email ?? this.email,
+      name: name ?? this.name,
+      teacherId: teacherId ?? this.teacherId,
+      teacherData: teacherData ?? this.teacherData,
+      lastLogin: lastLogin ?? this.lastLogin,
+    );
+  }
+}
+
 class AuthProvider extends ChangeNotifier {
   bool _isLoggedIn = false;
   bool _isGuest = false;
@@ -10,6 +62,7 @@ class AuthProvider extends ChangeNotifier {
   String? _teacherId;
   Map<String, dynamic>? _teacherData;
   bool _isLoading = true;
+  List<UserAccount> _accountHistory = [];
 
   bool get isLoggedIn => _isLoggedIn;
   bool get isGuest => _isGuest;
@@ -19,6 +72,7 @@ class AuthProvider extends ChangeNotifier {
   String? get teacherId => _teacherId;
   Map<String, dynamic>? get teacherData => _teacherData;
   bool get isLoading => _isLoading;
+  List<UserAccount> get accountHistory => _accountHistory;
 
   AuthProvider() {
     _loadAuthState();
@@ -35,6 +89,13 @@ class AuthProvider extends ChangeNotifier {
       final teacherDataJson = prefs.getString('teacher_data');
       if (teacherDataJson != null) {
         _teacherData = Map<String, dynamic>.from(json.decode(teacherDataJson));
+      }
+
+      // Load account history
+      final accountHistoryJson = prefs.getString('account_history');
+      if (accountHistoryJson != null) {
+        final List<dynamic> historyList = json.decode(accountHistoryJson);
+        _accountHistory = historyList.map((item) => UserAccount.fromJson(item)).toList();
       }
     } catch (e) {
       debugPrint('Error loading auth state: $e');
@@ -56,13 +117,34 @@ class AuthProvider extends ChangeNotifier {
     if (teacherData != null) {
       await prefs.setString('teacher_data', json.encode(teacherData));
     }
-    
+
     _isLoggedIn = true;
     _isGuest = false;
     _userEmail = email;
     _userName = name;
     _teacherId = teacherId;
     _teacherData = teacherData;
+
+    // Add to account history
+    final newAccount = UserAccount(
+      email: email,
+      name: name,
+      teacherId: teacherId,
+      teacherData: teacherData,
+    );
+
+    // Remove existing account with same email if exists
+    _accountHistory.removeWhere((account) => account.email == email);
+    // Add to beginning of list
+    _accountHistory.insert(0, newAccount);
+    // Keep only last 5 accounts
+    if (_accountHistory.length > 5) {
+      _accountHistory = _accountHistory.sublist(0, 5);
+    }
+
+    // Save account history
+    await prefs.setString('account_history', json.encode(_accountHistory.map((a) => a.toJson()).toList()));
+
     notifyListeners();
   }
 
@@ -95,6 +177,22 @@ class AuthProvider extends ChangeNotifier {
     _userName = null;
     _teacherId = null;
     _teacherData = null;
+    notifyListeners();
+  }
+
+  Future<void> switchToAccount(UserAccount account) async {
+    await login(
+      account.email,
+      account.name,
+      teacherId: account.teacherId,
+      teacherData: account.teacherData,
+    );
+  }
+
+  Future<void> removeAccount(String email) async {
+    _accountHistory.removeWhere((account) => account.email == email);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('account_history', json.encode(_accountHistory.map((a) => a.toJson()).toList()));
     notifyListeners();
   }
 }

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 import '../models/teacher.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../utils/image_storage_service.dart';
+import 'account_selection_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,6 +24,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
   bool _isLoading = false;
   Teacher? _teacher;
+  final ImagePicker _imagePicker = ImagePicker();
+  String? _profilePicturePath;
 
   @override
   void initState() {
@@ -30,10 +36,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _nameController = TextEditingController(text: _teacher!.name.isNotEmpty ? _teacher!.name : '');
       _emailController = TextEditingController(text: _teacher!.email.isNotEmpty ? _teacher!.email : '');
       _phoneController = TextEditingController(text: _teacher!.phone ?? '');
+      _profilePicturePath = _teacher!.profilePicture;
     } else {
       _nameController = TextEditingController(text: auth.userName?.isNotEmpty == true ? auth.userName! : '');
       _emailController = TextEditingController(text: auth.userEmail?.isNotEmpty == true ? auth.userEmail! : '');
       _phoneController = TextEditingController();
+      _profilePicturePath = null;
     }
   }
 
@@ -43,6 +51,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      // Request permissions if needed
+      if (source == ImageSource.camera) {
+        final cameraStatus = await Permission.camera.request();
+        if (!cameraStatus.isGranted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Camera permission is required')),
+            );
+          }
+          return;
+        }
+      } else if (source == ImageSource.gallery) {
+        final galleryStatus = await Permission.photos.request();
+        if (!galleryStatus.isGranted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Gallery permission is required')),
+            );
+          }
+          return;
+        }
+      }
+
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _profilePicturePath = pickedFile.path;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking image: $e')),
+        );
+      }
+    }
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take Photo'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.cancel),
+                title: const Text('Cancel'),
+                onTap: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _updateProfile() async {
@@ -56,10 +145,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
         throw Exception('Teacher ID not found');
       }
 
+      String? savedImagePath;
+
+      // Handle profile picture
+      if (_profilePicturePath != null && !_profilePicturePath!.startsWith('/')) {
+        // This is a newly picked image that needs to be saved
+        final imageFile = File(_profilePicturePath!);
+        if (await imageFile.exists()) {
+          // Delete old profile picture if it exists
+          await ImageStorageService.deleteOldProfilePicture(_teacher?.profilePicture);
+
+          // Save new profile picture
+          savedImagePath = await ImageStorageService.saveProfilePicture(imageFile, auth.teacherId!);
+        }
+      } else {
+        // Keep existing profile picture path
+        savedImagePath = _profilePicturePath;
+      }
+
       final updatedData = {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+        'profilePicture': savedImagePath,
       };
 
       // Call API to update teacher
@@ -84,6 +192,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       setState(() {
         _teacher = updatedTeacher;
+        _profilePicturePath = updatedTeacher.profilePicture;
         _isEditing = false;
       });
 
@@ -145,6 +254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _nameController.text = _teacher!.name;
                       _emailController.text = _teacher!.email;
                       _phoneController.text = _teacher!.phone ?? '';
+                      _profilePicturePath = _teacher!.profilePicture;
                     }
                     setState(() => _isEditing = false);
                   },
@@ -165,31 +275,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Profile Avatar
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.secondary,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
+            GestureDetector(
+              onTap: _isEditing ? _showImagePickerOptions : null,
+              child: Stack(
+                children: [
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(context).colorScheme.secondary,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: _profilePicturePath != null && _profilePicturePath!.isNotEmpty
+                        ? ClipOval(
+                            child: _profilePicturePath!.startsWith('/')
+                                ? Image.file(
+                                    File(_profilePicturePath!),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Icon(
+                                        Icons.person,
+                                        size: 60,
+                                        color: Theme.of(context).colorScheme.onPrimary,
+                                      );
+                                    },
+                                  )
+                                : Image.network(
+                                    _profilePicturePath!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Icon(
+                                        Icons.person,
+                                        size: 60,
+                                        color: Theme.of(context).colorScheme.onPrimary,
+                                      );
+                                    },
+                                  ),
+                          )
+                        : Icon(
+                            Icons.person,
+                            size: 60,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
                   ),
+                  if (_isEditing)
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.surface,
+                            width: 3,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.camera_alt,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    ),
                 ],
-              ),
-              child: Icon(
-                Icons.person,
-                size: 60,
-                color: Theme.of(context).colorScheme.onPrimary,
               ),
             ),
             const SizedBox(height: 24),
@@ -374,6 +538,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                     ],
                   ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Account Actions
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Account',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final auth = Provider.of<AuthProvider>(context, listen: false);
+                          await auth.logout();
+                          if (context.mounted) {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (context) => const AccountSelectionScreen(),
+                              ),
+                              (route) => false,
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.logout),
+                        label: const Text('Logout'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          foregroundColor: Theme.of(context).colorScheme.onError,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
