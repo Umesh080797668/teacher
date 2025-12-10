@@ -73,6 +73,7 @@ class UpdateService {
       final currentVersion = packageInfo.version;
 
       debugPrint('Current app version: $currentVersion');
+      debugPrint('PackageInfo details: appName=${packageInfo.appName}, packageName=${packageInfo.packageName}, version=${packageInfo.version}, buildNumber=${packageInfo.buildNumber}');
 
       // Update the URL below with your actual JSON file URL from MEGA or GitHub
       // For MEGA, you'll need to create a public link

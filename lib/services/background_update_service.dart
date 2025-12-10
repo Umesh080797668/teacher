@@ -44,6 +44,7 @@ Future<void> _performBackgroundUpdateCheck() async {
     final currentVersion = packageInfo.version;
 
     debugPrint('Background check - Current version: $currentVersion');
+    debugPrint('Background check - PackageInfo details: appName=${packageInfo.appName}, packageName=${packageInfo.packageName}, version=${packageInfo.version}, buildNumber=${packageInfo.buildNumber}');
 
     // Fetch update info from GitHub
     final dio = Dio();

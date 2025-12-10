@@ -52,10 +52,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadVersionInfo() async {
     try {
+      debugPrint('Loading version info...');
       final packageInfo = await PackageInfo.fromPlatform();
+      debugPrint('PackageInfo: appName=${packageInfo.appName}, packageName=${packageInfo.packageName}, version=${packageInfo.version}, buildNumber=${packageInfo.buildNumber}');
       setState(() {
         _currentVersion = packageInfo.version;
       });
+      debugPrint('Setting current version to: $_currentVersion');
     } catch (e) {
       debugPrint('Error loading version info: $e');
     }
