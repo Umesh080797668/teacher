@@ -35,7 +35,7 @@ class UpdateInfo {
 }
 
 class UpdateService {
-  static String get _updateCheckUrl => dotenv.env['UPDATE_CHECK_URL'] ?? 'https://raw.githubusercontent.com/Umesh080797668/teacherssssss/main/updates.json';
+  static String get _updateCheckUrl => dotenv.env['UPDATE_CHECK_URL'] ?? 'https://cdn.jsdelivr.net/gh/Umesh080797668/teacher@main/update.json';
   static const String _lastUpdateCheckKey = 'last_update_check';
   static const String _skippedVersionKey = 'skipped_version';
   static const String _updateAvailableKey = 'update_available';
@@ -62,6 +62,8 @@ class UpdateService {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
 
+      debugPrint('Current app version: $currentVersion');
+
       // Update the URL below with your actual JSON file URL from MEGA or GitHub
       // For MEGA, you'll need to create a public link
       final response = await _dio.get(_updateCheckUrl);
@@ -69,6 +71,8 @@ class UpdateService {
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
         final latestVersion = data['version'] as String;
+
+        debugPrint('Latest version from server: $latestVersion');
 
         // Save last check time
         final prefs = await SharedPreferences.getInstance();
@@ -79,7 +83,10 @@ class UpdateService {
         await prefs.setString(_latestVersionKey, latestVersion);
 
         // Compare versions
-        if (_isNewerVersion(currentVersion, latestVersion)) {
+        final isNewer = _isNewerVersion(currentVersion, latestVersion);
+        debugPrint('Is newer version available: $isNewer');
+
+        if (isNewer) {
           final updateInfo = UpdateInfo.fromJson(data);
           await prefs.setBool(_updateAvailableKey, true);
           
