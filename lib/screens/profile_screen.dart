@@ -79,25 +79,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return;
         }
       } else if (source == ImageSource.gallery) {
-        // Handle gallery permissions for different Android versions
-        permissionStatus = await Permission.photos.request();
+        // Simple gallery permission request
+        PermissionStatus permissionStatus;
 
-        // If photos permission fails, try other gallery permissions
-        if (!permissionStatus.isGranted) {
-          // Try storage permission for older Android versions
-          permissionStatus = await Permission.storage.request();
-        }
-
-        // For Android 13+, also try media permissions if available
-        if (!permissionStatus.isGranted) {
+        try {
+          // Request photos permission (works on most platforms)
+          permissionStatus = await Permission.photos.request();
+          debugPrint('Photos permission status: $permissionStatus');
+        } catch (e) {
+          debugPrint('Photos permission error: $e');
+          // Fallback to storage permission
           try {
-            // This handles Android 13+ media permissions
-            if (await Permission.photos.isLimited || await Permission.photos.isDenied) {
-              permissionStatus = await Permission.photos.request();
-            }
-          } catch (e) {
-            // Fallback to storage permission
             permissionStatus = await Permission.storage.request();
+            debugPrint('Storage permission status: $permissionStatus');
+          } catch (e2) {
+            debugPrint('Storage permission error: $e2');
+            permissionStatus = PermissionStatus.denied;
           }
         }
 
@@ -115,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Gallery permission is required to select photos. Please grant permission in app settings.'),
+                content: Text('Gallery permission is required to select photos. Please try again and grant permission.'),
                 duration: Duration(seconds: 5),
               ),
             );
