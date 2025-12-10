@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/update_service.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
+import 'forced_update_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,7 +14,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -42,15 +45,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       ),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.8),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.3, 0.9, curve: Curves.easeOutCubic),
-      ),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.8), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.3, 0.9, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _rotationAnimation = Tween<double>(begin: -0.2, end: 0.0).animate(
       CurvedAnimation(
@@ -67,10 +68,29 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   Future<void> _waitForAuthAndNavigate() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    
+    final updateService = UpdateService();
+
     // Wait for auth provider to finish loading
     while (auth.isLoading) {
       await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    // Check for forced updates (after 10 days)
+    final isUpdateRequired = await updateService.isUpdateRequired();
+
+    if (isUpdateRequired && mounted) {
+      // Check for update info
+      final updateInfo = await updateService.checkForUpdates();
+
+      if (updateInfo != null && mounted) {
+        // Navigate to forced update screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => ForcedUpdateScreen(updateInfo: updateInfo),
+          ),
+        );
+        return;
+      }
     }
 
     // Minimum splash duration of 2 seconds
@@ -79,7 +99,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (!mounted) return;
 
     // Check auth state and navigate accordingly
-    final target = auth.isAuthenticated ? const HomeScreen() : const LoginScreen();
+    final target = auth.isAuthenticated
+        ? const HomeScreen()
+        : const LoginScreen();
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
@@ -152,7 +174,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                                 offset: const Offset(0, 8),
                               ),
                               BoxShadow(
-                                color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                                color: const Color(
+                                  0xFF6366F1,
+                                ).withValues(alpha: 0.2),
                                 blurRadius: 20,
                                 spreadRadius: 4,
                               ),
@@ -222,7 +246,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                           const SizedBox(height: 16),
                           // Tagline
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(25),
@@ -272,7 +299,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 Colors.white.withValues(alpha: 0.9),
                               ),
-                              backgroundColor: Colors.white.withValues(alpha: 0.2),
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.2,
+                              ),
                             ),
                           ),
                         ),

@@ -9,7 +9,9 @@ import '../services/api_service.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? initialEmail;
+
+  const LoginScreen({super.key, this.initialEmail});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -51,6 +53,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
 
     _animationController.forward();
+    
+    // Pre-fill email if provided
+    if (widget.initialEmail != null && widget.initialEmail!.isNotEmpty) {
+      _emailController.text = widget.initialEmail!;
+    }
+    
     _loadSavedCredentials();
   }
 
@@ -59,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final savedEmail = prefs.getString('saved_email');
     final rememberMe = prefs.getBool('remember_me') ?? false;
     
-    if (rememberMe && savedEmail != null) {
+    if (rememberMe && savedEmail != null && _emailController.text.isEmpty) {
       setState(() {
         _emailController.text = savedEmail;
         _rememberMe = true;

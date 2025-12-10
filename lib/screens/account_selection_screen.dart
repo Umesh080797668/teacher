@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'registration_screen.dart';
+import 'login_screen.dart';
 
 class AccountSelectionScreen extends StatelessWidget {
   const AccountSelectionScreen({super.key});
@@ -49,9 +50,9 @@ class AccountSelectionScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 _buildCreateAccountTile(context),
 
-                // Guest Option
+                // Login Option
                 const SizedBox(height: 16),
-                _buildGuestTile(context),
+                _buildLoginTile(context),
               ],
             ),
           );
@@ -86,12 +87,7 @@ class AccountSelectionScreen extends StatelessWidget {
         trailing: PopupMenuButton<String>(
           onSelected: (value) async {
             final auth = Provider.of<AuthProvider>(context, listen: false);
-            if (value == 'select') {
-              await auth.switchToAccount(account);
-              if (context.mounted) {
-                Navigator.of(context).pushReplacementNamed('/home');
-              }
-            } else if (value == 'remove') {
+            if (value == 'remove') {
               await auth.removeAccount(account.email);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -109,16 +105,6 @@ class AccountSelectionScreen extends StatelessWidget {
           },
           itemBuilder: (BuildContext context) => [
             const PopupMenuItem<String>(
-              value: 'select',
-              child: Row(
-                children: [
-                  Icon(Icons.login, size: 18),
-                  SizedBox(width: 8),
-                  Text('Select Account'),
-                ],
-              ),
-            ),
-            const PopupMenuItem<String>(
               value: 'remove',
               child: Row(
                 children: [
@@ -134,13 +120,12 @@ class AccountSelectionScreen extends StatelessWidget {
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),
-        onTap: () async {
-          final auth = Provider.of<AuthProvider>(context, listen: false);
-          await auth.switchToAccount(account);
-
-          if (context.mounted) {
-            Navigator.of(context).pushReplacementNamed('/home');
-          }
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => LoginScreen(initialEmail: account.email),
+            ),
+          );
         },
       ),
     );
@@ -179,7 +164,7 @@ class AccountSelectionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGuestTile(BuildContext context) {
+  Widget _buildLoginTile(BuildContext context) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -187,29 +172,26 @@ class AccountSelectionScreen extends StatelessWidget {
       ),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.tertiaryContainer,
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
           child: Icon(
-            Icons.person_outline,
-            color: Theme.of(context).colorScheme.onTertiaryContainer,
+            Icons.login,
+            color: Theme.of(context).colorScheme.onPrimaryContainer,
           ),
         ),
         title: const Text(
-          'Continue as Guest',
+          'Login to Account',
           style: TextStyle(fontWeight: FontWeight.w500),
         ),
-        subtitle: const Text('Browse without signing in'),
+        subtitle: const Text('Sign in to your existing account'),
         trailing: Icon(
           Icons.arrow_forward_ios,
           size: 16,
           color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
         ),
-        onTap: () async {
-          final auth = Provider.of<AuthProvider>(context, listen: false);
-          await auth.loginAsGuest();
-
-          if (context.mounted) {
-            Navigator.of(context).pushReplacementNamed('/home');
-          }
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
         },
       ),
     );
