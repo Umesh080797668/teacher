@@ -63,70 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      // Request permissions if needed
-      PermissionStatus permissionStatus;
-
-      if (source == ImageSource.camera) {
-        permissionStatus = await Permission.camera.request();
-        if (permissionStatus.isPermanentlyDenied) {
-          if (mounted) {
-            _showPermissionDialog(
-              'Camera Permission Required',
-              'Camera permission is permanently denied. Please enable it in app settings.',
-              'Open Settings',
-              () => openAppSettings(),
-            );
-          }
-          return;
-        } else if (!permissionStatus.isGranted) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Camera permission is required to take photos'),
-              ),
-            );
-          }
-          return;
-        }
-      } else if (source == ImageSource.gallery) {
-        // Gallery permission handling for different Android versions
-        PermissionStatus permissionStatus;
-
-        // For Android 13+ (API 33), use photos permission
-        // For older Android versions, use storage permission
-        if (await Permission.photos.isRestricted == false) {
-          // Try photos permission first (Android 13+)
-          permissionStatus = await Permission.photos.status;
-          if (!permissionStatus.isGranted) {
-            permissionStatus = await Permission.photos.request();
-            debugPrint('Photos permission status: $permissionStatus');
-          }
-        } else {
-          // Fallback to storage for older Android versions
-          permissionStatus = await Permission.storage.status;
-          if (!permissionStatus.isGranted) {
-            permissionStatus = await Permission.storage.request();
-            debugPrint('Storage permission status: $permissionStatus');
-          }
-        }
-
-        if (permissionStatus.isPermanentlyDenied) {
-          if (mounted) {
-            _showPermissionDialog(
-              'Gallery Permission Required',
-              'Gallery permission is permanently denied. Please enable it in app settings to select photos.',
-              'Open Settings',
-              () => openAppSettings(),
-            );
-          }
-          return;
-        } else if (!permissionStatus.isGranted) {
-          // Permission denied, just return without showing message
-          // User will see the system permission dialog next time they try
-          return;
-        }
-      }
-
+      // Let image_picker handle permissions automatically
       final pickedFile = await _imagePicker.pickImage(
         source: source,
         maxWidth: 800,
@@ -138,12 +75,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _profilePicturePath = pickedFile.path;
         });
+      } else {
+        // User cancelled or permission was denied
+        debugPrint('Image picking was cancelled or permission denied');
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+      debugPrint('Error picking image: $e');
+      
+      // Check if it's a permission issue
+      if (e.toString().contains('photo') || 
+          e.toString().contains('Permission') ||
+          e.toString().contains('permission')) {
+        
+        // Check for permanently denied permissions
+        bool cameraPermissionDenied = false;
+        bool galleryPermissionDenied = false;
+        
+        if (source == ImageSource.camera) {
+          final status = await Permission.camera.status;
+          cameraPermissionDenied = status.isPermanentlyDenied;
+        } else {
+          // Check both photos and storage permissions
+          final photosStatus = await Permission.photos.status;
+          final storageStatus = await Permission.storage.status;
+          galleryPermissionDenied = photosStatus.isPermanentlyDenied || 
+                                     storageStatus.isPermanentlyDenied;
+        }
+        
+        if (cameraPermissionDenied || galleryPermissionDenied) {
+          if (mounted) {
+            _showPermissionDialog(
+              source == ImageSource.camera 
+                  ? 'Camera Permission Required'
+                  : 'Gallery Permission Required',
+              'Permission is required to ${source == ImageSource.camera ? "take photos" : "select photos from gallery"}. Please enable it in app settings.',
+              'Open Settings',
+              () => openAppSettings(),
+            );
+          }
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking image: $e')),
+        );
       }
     }
   }
