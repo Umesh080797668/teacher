@@ -70,7 +70,10 @@ class _SplashScreenState extends State<SplashScreen>
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final updateService = UpdateService();
 
-    // Wait for auth provider to finish loading
+    // Initialize notifications
+    await updateService.initializeNotifications();
+
+    // Wait for auth provider to load, then navigate
     while (auth.isLoading) {
       await Future.delayed(const Duration(milliseconds: 100));
     }

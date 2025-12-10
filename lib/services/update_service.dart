@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,9 +22,12 @@ class UpdateInfo {
   });
 
   factory UpdateInfo.fromJson(Map<String, dynamic> json) {
+    // Allow overriding the download URL via environment variable
+    final envDownload = dotenv.env['UPDATE_DOWNLOAD_URL'];
+
     return UpdateInfo(
       version: json['version'] as String,
-      downloadUrl: json['downloadUrl'] as String,
+      downloadUrl: envDownload ?? (json['downloadUrl'] as String),
       releaseNotes: json['releaseNotes'] as String? ?? '',
       isForced: json['isForced'] as bool? ?? false,
     );
@@ -30,14 +35,26 @@ class UpdateInfo {
 }
 
 class UpdateService {
-  static const String _updateCheckUrl =
-      'https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/update.json';
+  static String get _updateCheckUrl => dotenv.env['UPDATE_CHECK_URL'] ?? 'https://raw.githubusercontent.com/Umesh080797668/teacherssssss/main/updates.json';
   static const String _lastUpdateCheckKey = 'last_update_check';
   static const String _skippedVersionKey = 'skipped_version';
   static const String _updateAvailableKey = 'update_available';
   static const String _latestVersionKey = 'latest_version';
 
   final Dio _dio = Dio();
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  /// Initialize notifications
+  Future<void> initializeNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
+
+    await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
 
   /// Check if there's a new version available
   Future<UpdateInfo?> checkForUpdates() async {
@@ -65,6 +82,10 @@ class UpdateService {
         if (_isNewerVersion(currentVersion, latestVersion)) {
           final updateInfo = UpdateInfo.fromJson(data);
           await prefs.setBool(_updateAvailableKey, true);
+          
+          // Show notification for new update
+          await _showUpdateNotification(updateInfo);
+          
           return updateInfo;
         } else {
           await prefs.setBool(_updateAvailableKey, false);
@@ -177,6 +198,29 @@ class UpdateService {
     await prefs.setInt(
       _lastUpdateCheckKey,
       DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  /// Show notification for available update
+  Future<void> _showUpdateNotification(UpdateInfo updateInfo) async {
+    const AndroidNotificationDetails androidNotificationDetails =
+        AndroidNotificationDetails(
+      'update_channel',
+      'App Updates',
+      channelDescription: 'Notifications for app updates',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: false,
+    );
+
+    const NotificationDetails notificationDetails =
+        NotificationDetails(android: androidNotificationDetails);
+
+    await _flutterLocalNotificationsPlugin.show(
+      0,
+      'Update Available',
+      'Version ${updateInfo.version} is now available. ${updateInfo.isForced ? 'This update is required.' : 'Tap to update.'}',
+      notificationDetails,
     );
   }
 
