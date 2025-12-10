@@ -626,9 +626,9 @@ app.get('/api/reports/attendance-summary', async (req, res) => {
   try {
     const { teacherId } = req.query;
     const today = new Date();
-    // Use UTC dates for consistent date filtering across timezones
-    const startOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-    const endOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
+    // Use local dates for consistent date filtering to match how attendance is stored
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
     let studentQuery = {};
     let attendanceQuery = { date: { $gte: startOfDay, $lt: endOfDay } };
@@ -839,9 +839,9 @@ app.get('/api/home/stats', async (req, res) => {
     // Get total classes
     const totalClasses = classIds ? classIds.length : await Class.countDocuments();
 
-    // Calculate today's attendance - Use UTC dates for consistent filtering
-    const startOfToday = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-    const endOfToday = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
+    // Calculate today's attendance - Use local dates to match how attendance is stored
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
     let todayAttendanceQuery = {
       date: {
         $gte: startOfToday,
@@ -855,9 +855,9 @@ app.get('/api/home/stats', async (req, res) => {
     const presentCount = todayAttendance.filter(a => a.status.toLowerCase() === 'present').length;
     const todayAttendancePercentage = todayAttendance.length > 0 ? (presentCount / todayAttendance.length * 100) : 0.0;
 
-    // Calculate yesterday's attendance for trend - Use UTC dates
-    const startOfYesterday = new Date(Date.UTC(yesterday.getUTCFullYear(), yesterday.getUTCMonth(), yesterday.getUTCDate()));
-    const endOfYesterday = new Date(Date.UTC(yesterday.getUTCFullYear(), yesterday.getUTCMonth(), yesterday.getUTCDate() + 1));
+    // Calculate yesterday's attendance for trend - Use local dates
+    const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+    const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() + 1);
     let yesterdayAttendanceQuery = {
       date: {
         $gte: startOfYesterday,
