@@ -33,13 +33,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.teacherData != null) {
       _teacher = Teacher.fromJson(auth.teacherData!);
-      _nameController = TextEditingController(text: _teacher!.name.isNotEmpty ? _teacher!.name : '');
-      _emailController = TextEditingController(text: _teacher!.email.isNotEmpty ? _teacher!.email : '');
+      _nameController = TextEditingController(
+        text: _teacher!.name.isNotEmpty ? _teacher!.name : '',
+      );
+      _emailController = TextEditingController(
+        text: _teacher!.email.isNotEmpty ? _teacher!.email : '',
+      );
       _phoneController = TextEditingController(text: _teacher!.phone ?? '');
       _profilePicturePath = _teacher!.profilePicture;
     } else {
-      _nameController = TextEditingController(text: auth.userName?.isNotEmpty == true ? auth.userName! : '');
-      _emailController = TextEditingController(text: auth.userEmail?.isNotEmpty == true ? auth.userEmail! : '');
+      _nameController = TextEditingController(
+        text: auth.userName?.isNotEmpty == true ? auth.userName! : '',
+      );
+      _emailController = TextEditingController(
+        text: auth.userEmail?.isNotEmpty == true ? auth.userEmail! : '',
+      );
       _phoneController = TextEditingController();
       _profilePicturePath = null;
     }
@@ -73,28 +81,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
         } else if (!permissionStatus.isGranted) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Camera permission is required to take photos')),
+              const SnackBar(
+                content: Text('Camera permission is required to take photos'),
+              ),
             );
           }
           return;
         }
       } else if (source == ImageSource.gallery) {
-        // Simple gallery permission request
+        // Gallery permission handling for different Android versions
         PermissionStatus permissionStatus;
 
-        try {
-          // Request photos permission (works on most platforms)
-          permissionStatus = await Permission.photos.request();
-          debugPrint('Photos permission status: $permissionStatus');
-        } catch (e) {
-          debugPrint('Photos permission error: $e');
-          // Fallback to storage permission
-          try {
+        // For Android 13+ (API 33), use photos permission
+        // For older Android versions, use storage permission
+        if (await Permission.photos.isRestricted == false) {
+          // Try photos permission first (Android 13+)
+          permissionStatus = await Permission.photos.status;
+          if (!permissionStatus.isGranted) {
+            permissionStatus = await Permission.photos.request();
+            debugPrint('Photos permission status: $permissionStatus');
+          }
+        } else {
+          // Fallback to storage for older Android versions
+          permissionStatus = await Permission.storage.status;
+          if (!permissionStatus.isGranted) {
             permissionStatus = await Permission.storage.request();
             debugPrint('Storage permission status: $permissionStatus');
-          } catch (e2) {
-            debugPrint('Storage permission error: $e2');
-            permissionStatus = PermissionStatus.denied;
           }
         }
 
@@ -108,12 +120,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
             );
           }
           return;
+        } else if (permissionStatus.isDenied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Gallery permission is required to select photos. Please grant permission when prompted.',
+                ),
+                duration: Duration(seconds: 5),
+              ),
+            );
+          }
+          return;
         } else if (!permissionStatus.isGranted) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Gallery permission is required to select photos. Please try again and grant permission.'),
-                duration: Duration(seconds: 5),
+                content: Text(
+                  'Gallery permission is required to select photos.',
+                ),
+                duration: Duration(seconds: 3),
               ),
             );
           }
@@ -135,14 +161,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
       }
     }
   }
 
-  void _showPermissionDialog(String title, String message, String buttonText, VoidCallback onPressed) {
+  void _showPermissionDialog(
+    String title,
+    String message,
+    String buttonText,
+    VoidCallback onPressed,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -190,7 +221,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _pickImage(ImageSource.gallery);
                 },
               ),
-              if (_profilePicturePath != null && _profilePicturePath!.isNotEmpty) ...[
+              if (_profilePicturePath != null &&
+                  _profilePicturePath!.isNotEmpty) ...[
                 const Divider(),
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),
@@ -229,15 +261,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       String? savedImagePath;
 
       // Handle profile picture
-      if (_profilePicturePath != null && !_profilePicturePath!.startsWith('/')) {
+      if (_profilePicturePath != null &&
+          !_profilePicturePath!.startsWith('/')) {
         // This is a newly picked image that needs to be saved
         final imageFile = File(_profilePicturePath!);
         if (await imageFile.exists()) {
           // Delete old profile picture if it exists
-          await ImageStorageService.deleteOldProfilePicture(_teacher?.profilePicture);
+          await ImageStorageService.deleteOldProfilePicture(
+            _teacher?.profilePicture,
+          );
 
           // Save new profile picture
-          savedImagePath = await ImageStorageService.saveProfilePicture(imageFile, auth.teacherId!);
+          savedImagePath = await ImageStorageService.saveProfilePicture(
+            imageFile,
+            auth.teacherId!,
+          );
         }
       } else {
         // Keep existing profile picture path
@@ -247,12 +285,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final updatedData = {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
-        'phone': _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+        'phone': _phoneController.text.trim().isEmpty
+            ? null
+            : _phoneController.text.trim(),
         'profilePicture': savedImagePath,
       };
 
       // Call API to update teacher
-      final updatedTeacherData = await ApiService.updateTeacher(auth.teacherId!, updatedData);
+      final updatedTeacherData = await ApiService.updateTeacher(
+        auth.teacherId!,
+        updatedData,
+      );
 
       // Debug: Print the API response
       debugPrint('API Response: $updatedTeacherData');
@@ -261,12 +304,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final updatedTeacher = Teacher.fromJson(updatedTeacherData);
 
       // Debug: Print the teacher object
-      debugPrint('Updated Teacher: ${updatedTeacher.name}, ${updatedTeacher.email}');
+      debugPrint(
+        'Updated Teacher: ${updatedTeacher.name}, ${updatedTeacher.email}',
+      );
 
       // Update local auth provider
       await auth.login(
-        updatedTeacher.email.isNotEmpty ? updatedTeacher.email : auth.userEmail ?? '',
-        updatedTeacher.name.isNotEmpty ? updatedTeacher.name : auth.userName ?? '',
+        updatedTeacher.email.isNotEmpty
+            ? updatedTeacher.email
+            : auth.userEmail ?? '',
+        updatedTeacher.name.isNotEmpty
+            ? updatedTeacher.name
+            : auth.userName ?? '',
         teacherId: updatedTeacher.teacherId ?? updatedTeacher.id,
         teacherData: updatedTeacher.toJson(),
       );
@@ -289,7 +338,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -300,7 +351,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             content: Text('Failed to update profile: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -375,13 +428,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.3),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.shadow.withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 6),
                         ),
                       ],
                     ),
-                    child: _profilePicturePath != null && _profilePicturePath!.isNotEmpty
+                    child:
+                        _profilePicturePath != null &&
+                            _profilePicturePath!.isNotEmpty
                         ? ClipOval(
                             child: _profilePicturePath!.startsWith('/')
                                 ? Image.file(
@@ -391,7 +448,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       return Icon(
                                         Icons.person,
                                         size: 60,
-                                        color: Theme.of(context).colorScheme.onPrimary,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimary,
                                       );
                                     },
                                   )
@@ -402,7 +461,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       return Icon(
                                         Icons.person,
                                         size: 60,
-                                        color: Theme.of(context).colorScheme.onPrimary,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimary,
                                       );
                                     },
                                   ),
@@ -414,7 +475,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                   ),
                   if (_isEditing) ...[
-                    if (_profilePicturePath != null && _profilePicturePath!.isNotEmpty)
+                    if (_profilePicturePath != null &&
+                        _profilePicturePath!.isNotEmpty)
                       Positioned(
                         top: 0,
                         right: 0,
@@ -491,11 +553,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: InputDecoration(
                           labelText: 'Full Name',
                           labelStyle: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                           prefixIcon: Icon(
                             Icons.person_outline,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -503,7 +569,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           filled: !_isEditing,
                           fillColor: _isEditing
                               ? null
-                              : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              : Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest
+                                    .withValues(alpha: 0.3),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
@@ -525,11 +594,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: InputDecoration(
                           labelText: 'Email Address',
                           labelStyle: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                           prefixIcon: Icon(
                             Icons.email_outlined,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -537,13 +610,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           filled: !_isEditing,
                           fillColor: _isEditing
                               ? null
-                              : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              : Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest
+                                    .withValues(alpha: 0.3),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Email is required';
                           }
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                          if (!RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(value)) {
                             return 'Enter a valid email address';
                           }
                           return null;
@@ -562,11 +640,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: InputDecoration(
                           labelText: 'Phone Number',
                           labelStyle: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                           prefixIcon: Icon(
                             Icons.phone_outlined,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -574,7 +656,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           filled: !_isEditing,
                           fillColor: _isEditing
                               ? null
-                              : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              : Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest
+                                    .withValues(alpha: 0.3),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -590,17 +675,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: InputDecoration(
                             labelText: 'Teacher ID',
                             labelStyle: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                             prefixIcon: Icon(
                               Icons.badge_outlined,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
-                            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            fillColor: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.3),
                           ),
                         ),
 
@@ -608,7 +700,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (_teacher?.status != null)
                         Container(
                           margin: const EdgeInsets.only(top: 16),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: _teacher!.status == 'active'
                                 ? Colors.green.withValues(alpha: 0.1)
@@ -677,12 +772,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: () async {
-                          final auth = Provider.of<AuthProvider>(context, listen: false);
+                          final auth = Provider.of<AuthProvider>(
+                            context,
+                            listen: false,
+                          );
                           await auth.logout();
                           if (context.mounted) {
                             Navigator.of(context).pushAndRemoveUntil(
                               MaterialPageRoute(
-                                builder: (context) => const AccountSelectionScreen(),
+                                builder: (context) =>
+                                    const AccountSelectionScreen(),
                               ),
                               (route) => false,
                             );
@@ -692,7 +791,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         label: const Text('Logout'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(context).colorScheme.error,
-                          foregroundColor: Theme.of(context).colorScheme.onError,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onError,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
