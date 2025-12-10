@@ -70,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen>
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final updateService = UpdateService();
 
-    // Initialize notifications
+    // Initialize notifications and request permissions
     await updateService.initializeNotifications();
 
     // Wait for auth provider to load, then navigate
@@ -78,12 +78,16 @@ class _SplashScreenState extends State<SplashScreen>
       await Future.delayed(const Duration(milliseconds: 100));
     }
 
+    // Perform background update check (will show notification if update available)
+    // This respects the 6-hour check interval
+    updateService.performBackgroundUpdateCheck();
+
     // Check for forced updates (after 10 days)
     final isUpdateRequired = await updateService.isUpdateRequired();
 
     if (isUpdateRequired && mounted) {
-      // Check for update info
-      final updateInfo = await updateService.checkForUpdates();
+      // Check for update info without showing notification (we'll show forced update screen instead)
+      final updateInfo = await updateService.checkForUpdates(showNotification: false);
 
       if (updateInfo != null && mounted) {
         // Navigate to forced update screen

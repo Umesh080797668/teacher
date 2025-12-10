@@ -35,7 +35,8 @@ class UpdateInfo {
 }
 
 class UpdateService {
-  static String get _updateCheckUrl => dotenv.env['UPDATE_CHECK_URL'] ?? 'https://cdn.jsdelivr.net/gh/Umesh080797668/teacher@main/update.json';
+  // Use raw.githubusercontent.com instead of cdn.jsdelivr.net to avoid CDN caching issues
+  static String get _updateCheckUrl => dotenv.env['UPDATE_CHECK_URL'] ?? 'https://raw.githubusercontent.com/Umesh080797668/teacher/main/update.json';
   static const String _lastUpdateCheckKey = 'last_update_check';
   static const String _skippedVersionKey = 'skipped_version';
   static const String _updateAvailableKey = 'update_available';
@@ -54,10 +55,16 @@ class UpdateService {
         InitializationSettings(android: initializationSettingsAndroid);
 
     await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    
+    // Request notification permissions for Android 13+ (API level 33+)
+    await _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
   }
 
   /// Check if there's a new version available
-  Future<UpdateInfo?> checkForUpdates() async {
+  Future<UpdateInfo?> checkForUpdates({bool showNotification = true}) async {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
@@ -90,8 +97,10 @@ class UpdateService {
           final updateInfo = UpdateInfo.fromJson(data);
           await prefs.setBool(_updateAvailableKey, true);
           
-          // Show notification for new update
-          await _showUpdateNotification(updateInfo);
+          // Show notification for new update only if requested
+          if (showNotification) {
+            await _showUpdateNotification(updateInfo);
+          }
           
           return updateInfo;
         } else {
@@ -262,4 +271,44 @@ class UpdateService {
     final lastCheck = DateTime.fromMillisecondsSinceEpoch(lastCheckTime);
     return DateTime.now().difference(lastCheck).inDays;
   }
+
+  /// Check if enough time has passed since last background check (checks every 6 hours)
+  Future<bool> shouldCheckForUpdates() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastCheckTime = prefs.getInt(_lastUpdateCheckKey);
+
+    if (lastCheckTime == null) return true; // Never checked before
+
+    final lastCheck = DateTime.fromMillisecondsSinceEpoch(lastCheckTime);
+    final hoursSinceLastCheck = DateTime.now().difference(lastCheck).inHours;
+
+    // Check every 6 hours
+    return hoursSinceLastCheck >= 6;
+  }
+
+  /// Perform background update check (called periodically)
+  Future<void> performBackgroundUpdateCheck() async {
+    try {
+      // Only check if enough time has passed
+      final shouldCheck = await shouldCheckForUpdates();
+      if (!shouldCheck) {
+        debugPrint('Skipping update check - too soon since last check');
+        return;
+      }
+
+      debugPrint('Performing background update check...');
+      
+      // Check for updates and show notification if available
+      final updateInfo = await checkForUpdates(showNotification: true);
+      
+      if (updateInfo != null) {
+        debugPrint('Update available: ${updateInfo.version}');
+      } else {
+        debugPrint('No updates available');
+      }
+    } catch (e) {
+      debugPrint('Error in background update check: $e');
+    }
+  }
 }
+

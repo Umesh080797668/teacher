@@ -12,6 +12,7 @@ import 'settings_screen.dart';
 import 'account_selection_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../services/update_service.dart';
 import '../models/home_stats.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -31,6 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _searchResults = [];
   Timer? _refreshTimer;
   Timer? _timeUpdateTimer;
+  Timer? _updateCheckTimer;
+  final UpdateService _updateService = UpdateService();
 
   @override
   void initState() {
@@ -44,6 +47,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _timeUpdateTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       setState(() {}); // Force rebuild to update time displays
     });
+    // Check for updates every 30 minutes in the background
+    _updateCheckTimer = Timer.periodic(const Duration(minutes: 30), (timer) {
+      _updateService.performBackgroundUpdateCheck();
+    });
+    // Perform initial background update check
+    _updateService.performBackgroundUpdateCheck();
   }
 
   @override
@@ -51,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchController.dispose();
     _refreshTimer?.cancel();
     _timeUpdateTimer?.cancel();
+    _updateCheckTimer?.cancel();
     super.dispose();
   }
 

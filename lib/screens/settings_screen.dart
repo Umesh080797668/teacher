@@ -64,7 +64,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _checkForUpdates() async {
     setState(() => _checkingUpdate = true);
     try {
-      final updateInfo = await _updateService.checkForUpdates();
+      // Don't show notification when manually checking from settings
+      final updateInfo = await _updateService.checkForUpdates(showNotification: false);
 
       if (!mounted) return;
 
