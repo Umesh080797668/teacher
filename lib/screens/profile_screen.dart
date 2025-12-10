@@ -56,22 +56,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _pickImage(ImageSource source) async {
     try {
       // Request permissions if needed
+      PermissionStatus permissionStatus;
+
       if (source == ImageSource.camera) {
-        final cameraStatus = await Permission.camera.request();
-        if (!cameraStatus.isGranted) {
+        permissionStatus = await Permission.camera.request();
+        if (permissionStatus.isPermanentlyDenied) {
+          if (mounted) {
+            _showPermissionDialog(
+              'Camera Permission Required',
+              'Camera permission is permanently denied. Please enable it in app settings.',
+              'Open Settings',
+              () => openAppSettings(),
+            );
+          }
+          return;
+        } else if (!permissionStatus.isGranted) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Camera permission is required')),
+              const SnackBar(content: Text('Camera permission is required to take photos')),
             );
           }
           return;
         }
       } else if (source == ImageSource.gallery) {
-        final galleryStatus = await Permission.photos.request();
-        if (!galleryStatus.isGranted) {
+        // Try photos permission first (for Android 13+ and iOS)
+        permissionStatus = await Permission.photos.request();
+
+        // If photos permission is denied, try storage permission (for older Android)
+        if (!permissionStatus.isGranted) {
+          permissionStatus = await Permission.storage.request();
+        }
+
+        if (permissionStatus.isPermanentlyDenied) {
+          if (mounted) {
+            _showPermissionDialog(
+              'Gallery Permission Required',
+              'Gallery permission is permanently denied. Please enable it in app settings.',
+              'Open Settings',
+              () => openAppSettings(),
+            );
+          }
+          return;
+        } else if (!permissionStatus.isGranted) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Gallery permission is required')),
+              const SnackBar(content: Text('Gallery permission is required to select photos')),
             );
           }
           return;
@@ -97,6 +126,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     }
+  }
+
+  void _showPermissionDialog(String title, String message, String buttonText, VoidCallback onPressed) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                onPressed();
+              },
+              child: Text(buttonText),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showImagePickerOptions() {
