@@ -187,8 +187,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      final stats = await ApiService.getHomeStats();
-      final activities = await ApiService.getRecentActivities();
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final teacherId = auth.teacherId;
+
+      final stats = await ApiService.getHomeStats(teacherId: teacherId);
+      final activities = await ApiService.getRecentActivities(teacherId: teacherId);
 
       setState(() {
         _stats = stats;

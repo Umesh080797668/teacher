@@ -13,15 +13,15 @@ class ReportsProvider with ChangeNotifier {
   List<Map<String, dynamic>> get studentReports => _studentReports;
   List<Map<String, dynamic>> get monthlyStats => _monthlyStats;
 
-  Future<void> loadReports() async {
+  Future<void> loadReports({String? teacherId}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
       await Future.wait([
-        _loadAttendanceSummary(),
-        _loadStudentReports(),
-        _loadMonthlyStats(),
+        _loadAttendanceSummary(teacherId: teacherId),
+        _loadStudentReports(teacherId: teacherId),
+        _loadMonthlyStats(teacherId: teacherId),
       ]);
     } finally {
       _isLoading = false;
@@ -29,9 +29,9 @@ class ReportsProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _loadAttendanceSummary() async {
+  Future<void> _loadAttendanceSummary({String? teacherId}) async {
     try {
-      final response = await ApiService.getAttendanceSummary();
+      final response = await ApiService.getAttendanceSummary(teacherId: teacherId);
       _attendanceSummary = response;
     } catch (e) {
       debugPrint('Error loading attendance summary: $e');
@@ -39,9 +39,9 @@ class ReportsProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _loadStudentReports() async {
+  Future<void> _loadStudentReports({String? teacherId}) async {
     try {
-      final response = await ApiService.getStudentReports();
+      final response = await ApiService.getStudentReports(teacherId: teacherId);
       _studentReports = List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Error loading student reports: $e');
@@ -49,9 +49,9 @@ class ReportsProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _loadMonthlyStats() async {
+  Future<void> _loadMonthlyStats({String? teacherId}) async {
     try {
-      final response = await ApiService.getMonthlyStats();
+      final response = await ApiService.getMonthlyStats(teacherId: teacherId);
       _monthlyStats = List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('Error loading monthly stats: $e');
@@ -59,7 +59,7 @@ class ReportsProvider with ChangeNotifier {
     }
   }
 
-  Future<void> refreshReports() async {
-    await loadReports();
+  Future<void> refreshReports({String? teacherId}) async {
+    await loadReports(teacherId: teacherId);
   }
 }

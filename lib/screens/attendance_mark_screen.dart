@@ -24,7 +24,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      Provider.of<StudentsProvider>(context, listen: false).loadStudents();
+      Provider.of<StudentsProvider>(context, listen: false).loadStudents(teacherId: auth.teacherId);
       Provider.of<ClassesProvider>(context, listen: false).loadClasses(teacherId: auth.teacherId);
     });
   }

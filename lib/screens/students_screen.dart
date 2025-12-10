@@ -41,7 +41,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
     final classesProvider = Provider.of<ClassesProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
     try {
-      await studentsProvider.loadStudents();
+      await studentsProvider.loadStudents(teacherId: auth.teacherId);
       await classesProvider.loadClasses(teacherId: auth.teacherId);
     } catch (e) {
       if (mounted) {

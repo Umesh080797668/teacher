@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/reports_provider.dart';
+import '../providers/auth_provider.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -17,7 +18,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ReportsProvider>().loadReports();
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      context.read<ReportsProvider>().loadReports(teacherId: auth.teacherId);
     });
   }
 

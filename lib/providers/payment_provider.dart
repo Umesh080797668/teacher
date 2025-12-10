@@ -9,11 +9,11 @@ class PaymentProvider with ChangeNotifier {
   List<Payment> get payments => _payments;
   bool get isLoading => _isLoading;
 
-  Future<void> loadPayments({String? classId, String? studentId}) async {
+  Future<void> loadPayments({String? classId, String? studentId, String? teacherId}) async {
     _isLoading = true;
     notifyListeners();
     try {
-      _payments = await ApiService.getPayments(classId: classId, studentId: studentId);
+      _payments = await ApiService.getPayments(classId: classId, studentId: studentId, teacherId: teacherId);
     } finally {
       _isLoading = false;
       notifyListeners();

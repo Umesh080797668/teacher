@@ -36,8 +36,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
     try {
-      await paymentProvider.loadPayments();
-      await studentsProvider.loadStudents();
+      await paymentProvider.loadPayments(teacherId: auth.teacherId);
+      await studentsProvider.loadStudents(teacherId: auth.teacherId);
       await classesProvider.loadClasses(teacherId: auth.teacherId);
     } catch (e) {
       if (mounted) {

@@ -283,8 +283,15 @@ class ApiService {
   }
 
   // Students
-  static Future<List<Student>> getStudents() async {
-    final response = await _makeRequest('GET', '/api/students');
+  static Future<List<Student>> getStudents({String? teacherId}) async {
+    final queryParams = <String, String>{};
+    if (teacherId != null) queryParams['teacherId'] = teacherId;
+
+    final endpoint = Uri(
+      path: '/api/students',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    ).toString();
+    final response = await _makeRequest('GET', endpoint);
     List<dynamic> data = json.decode(response.body);
     return data.map((json) => Student.fromJson(json)).toList();
   }
@@ -314,15 +321,17 @@ class ApiService {
     String? studentId,
     int? month,
     int? year,
+    String? teacherId,
   }) async {
     final queryParams = <String, String>{};
     if (studentId != null) queryParams['studentId'] = studentId;
     if (month != null) queryParams['month'] = month.toString();
     if (year != null) queryParams['year'] = year.toString();
+    if (teacherId != null) queryParams['teacherId'] = teacherId;
 
     final endpoint = Uri(
       path: '/api/attendance',
-      queryParameters: queryParams,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
     final response = await _makeRequest('GET', endpoint);
     List<dynamic> data = json.decode(response.body);
@@ -385,14 +394,16 @@ class ApiService {
   static Future<List<Payment>> getPayments({
     String? classId,
     String? studentId,
+    String? teacherId,
   }) async {
     final queryParams = <String, String>{};
     if (classId != null) queryParams['classId'] = classId;
     if (studentId != null) queryParams['studentId'] = studentId;
+    if (teacherId != null) queryParams['teacherId'] = teacherId;
 
     final endpoint = Uri(
       path: '/api/payments',
-      queryParameters: queryParams,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
     final response = await _makeRequest('GET', endpoint);
     List<dynamic> data = json.decode(response.body);
@@ -424,277 +435,66 @@ class ApiService {
   }
 
   // Reports
-  static Future<Map<String, dynamic>> getAttendanceSummary() async {
-    final response = await _makeRequest(
-      'GET',
-      '/api/reports/attendance-summary',
-    );
+  static Future<Map<String, dynamic>> getAttendanceSummary({String? teacherId}) async {
+    final queryParams = <String, String>{};
+    if (teacherId != null) queryParams['teacherId'] = teacherId;
+
+    final endpoint = Uri(
+      path: '/api/reports/attendance-summary',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    ).toString();
+    final response = await _makeRequest('GET', endpoint);
     return json.decode(response.body);
   }
 
-  static Future<List<Map<String, dynamic>>> getStudentReports() async {
-    final response = await _makeRequest('GET', '/api/reports/student-reports');
+  static Future<List<Map<String, dynamic>>> getStudentReports({String? teacherId}) async {
+    final queryParams = <String, String>{};
+    if (teacherId != null) queryParams['teacherId'] = teacherId;
+
+    final endpoint = Uri(
+      path: '/api/reports/student-reports',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    ).toString();
+    final response = await _makeRequest('GET', endpoint);
     return List<Map<String, dynamic>>.from(json.decode(response.body));
   }
 
-  static Future<List<Map<String, dynamic>>> getMonthlyStats() async {
-    final response = await _makeRequest('GET', '/api/reports/monthly-stats');
+  static Future<List<Map<String, dynamic>>> getMonthlyStats({String? teacherId}) async {
+    final queryParams = <String, String>{};
+    if (teacherId != null) queryParams['teacherId'] = teacherId;
+
+    final endpoint = Uri(
+      path: '/api/reports/monthly-stats',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    ).toString();
+    final response = await _makeRequest('GET', endpoint);
     return List<Map<String, dynamic>>.from(json.decode(response.body));
   }
 
   // Home Dashboard
-  static Future<HomeStats> getHomeStats() async {
-    try {
-      // Fetch all required data in parallel
-      final results = await Future.wait([
-        ApiService.getStudents(),
-        ApiService.getAttendance(),
-        ApiService.getClasses(),
-        ApiService.getPayments(),
-      ]);
+  static Future<HomeStats> getHomeStats({String? teacherId}) async {
+    final queryParams = <String, String>{};
+    if (teacherId != null) queryParams['teacherId'] = teacherId;
 
-      final students = results[0] as List<Student>;
-      final allAttendance = results[1] as List<Attendance>;
-      final classes = results[2] as List<Class>;
-      final payments = results[3] as List<Payment>;
-
-      final today = DateTime.now();
-
-      // Calculate today's attendance
-      final todayAttendance = allAttendance
-          .where(
-            (a) =>
-                a.date.year == today.year &&
-                a.date.month == today.month &&
-                a.date.day == today.day,
-          )
-          .toList();
-
-      final presentCount = todayAttendance
-          .where((a) => a.status.toLowerCase() == 'present')
-          .length;
-      final todayAttendancePercentage = todayAttendance.isEmpty
-          ? 0.0
-          : (presentCount / todayAttendance.length * 100);
-
-      // Calculate yesterday's attendance for trend
-      final yesterday = today.subtract(const Duration(days: 1));
-      final yesterdayAttendance = allAttendance
-          .where(
-            (a) =>
-                a.date.year == yesterday.year &&
-                a.date.month == yesterday.month &&
-                a.date.day == yesterday.day,
-          )
-          .toList();
-
-      final yesterdayPresentCount = yesterdayAttendance
-          .where((a) => a.status.toLowerCase() == 'present')
-          .length;
-      final yesterdayAttendancePercentage = yesterdayAttendance.isEmpty
-          ? 0.0
-          : (yesterdayPresentCount / yesterdayAttendance.length * 100);
-
-      final attendanceDiff =
-          todayAttendancePercentage - yesterdayAttendancePercentage;
-      final attendanceTrend =
-          '${attendanceDiff >= 0 ? '+' : ''}${attendanceDiff.toStringAsFixed(1)}%';
-      final attendancePositive = attendanceDiff >= 0;
-
-      // Calculate payment status (students who have paid this month)
-      final currentMonth = today.month;
-      final currentYear = today.year;
-      final monthPayments = payments
-          .where(
-            (p) => p.date.month == currentMonth && p.date.year == currentYear,
-          )
-          .toList();
-
-      final uniquePayingStudents = monthPayments
-          .map((p) => p.studentId)
-          .toSet()
-          .length;
-      final paymentStatusPercentage = students.isEmpty
-          ? 0.0
-          : (uniquePayingStudents / students.length * 100);
-
-      // Calculate last month's payment for trend
-      final lastMonth = currentMonth == 1 ? 12 : currentMonth - 1;
-      final lastMonthYear = currentMonth == 1 ? currentYear - 1 : currentYear;
-      final lastMonthPayments = payments
-          .where(
-            (p) => p.date.month == lastMonth && p.date.year == lastMonthYear,
-          )
-          .toList();
-
-      final lastMonthPayingStudents = lastMonthPayments
-          .map((p) => p.studentId)
-          .toSet()
-          .length;
-      final lastMonthPaymentPercentage = students.isEmpty
-          ? 0.0
-          : (lastMonthPayingStudents / students.length * 100);
-
-      final paymentDiff = paymentStatusPercentage - lastMonthPaymentPercentage;
-      final paymentTrend =
-          '${paymentDiff >= 0 ? '+' : ''}${paymentDiff.toStringAsFixed(1)}%';
-      final paymentPositive = paymentDiff >= 0;
-
-      // Calculate student trend (total count - simple indicator)
-      final studentsTrend = students.length > 10
-          ? '+${(students.length * 0.05).round()}'
-          : students.length > 5
-          ? '+${(students.length * 0.1).round()}'
-          : '+${students.length}';
-      final studentsPositive = true;
-
-      // Calculate classes trend (simple indicator based on total)
-      final classesTrend = classes.length > 5
-          ? '+1'
-          : classes.length > 0
-          ? '+${classes.length}'
-          : '0';
-      final classesPositive = classes.isNotEmpty;
-
-      return HomeStats(
-        totalStudents: students.length,
-        todayAttendancePercentage: todayAttendancePercentage,
-        totalClasses: classes.length,
-        paymentStatusPercentage: paymentStatusPercentage,
-        studentsTrend: studentsTrend,
-        attendanceTrend: attendanceTrend,
-        classesTrend: classesTrend,
-        paymentTrend: paymentTrend,
-        studentsPositive: studentsPositive,
-        attendancePositive: attendancePositive,
-        classesPositive: classesPositive,
-        paymentPositive: paymentPositive,
-      );
-    } catch (e) {
-      // Return default stats if error occurs
-      return HomeStats(
-        totalStudents: 0,
-        todayAttendancePercentage: 0.0,
-        totalClasses: 0,
-        paymentStatusPercentage: 0.0,
-        studentsTrend: '0',
-        attendanceTrend: '0%',
-        classesTrend: '0',
-        paymentTrend: '0%',
-        studentsPositive: true,
-        attendancePositive: true,
-        classesPositive: true,
-        paymentPositive: true,
-      );
-    }
+    final endpoint = Uri(
+      path: '/api/home/stats',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    ).toString();
+    final response = await _makeRequest('GET', endpoint);
+    final data = json.decode(response.body);
+    return HomeStats.fromJson(data);
   }
 
-  static Future<List<RecentActivity>> getRecentActivities() async {
-    try {
-      // Fetch recent data
-      final results = await Future.wait([
-        ApiService.getAttendance(),
-        ApiService.getStudents(),
-        ApiService.getPayments(),
-        ApiService.getClasses(),
-      ]);
+  static Future<List<RecentActivity>> getRecentActivities({String? teacherId}) async {
+    final queryParams = <String, String>{};
+    if (teacherId != null) queryParams['teacherId'] = teacherId;
 
-      final allAttendance = results[0] as List<Attendance>;
-      final students = results[1] as List<Student>;
-      final payments = results[2] as List<Payment>;
-      final classes = results[3] as List<Class>;
-
-      final activities = <RecentActivity>[];
-
-      // Get recent attendance records (last 3 unique dates)
-      final attendanceByDate = <String, List<Attendance>>{};
-      for (var attendance in allAttendance) {
-        final dateKey =
-            '${attendance.date.year}-${attendance.date.month}-${attendance.date.day}';
-        attendanceByDate.putIfAbsent(dateKey, () => []).add(attendance);
-      }
-
-      final sortedDates = attendanceByDate.keys.toList()
-        ..sort((a, b) => b.compareTo(a));
-
-      for (var i = 0; i < sortedDates.length && i < 2; i++) {
-        final dateKey = sortedDates[i];
-        final dateAttendance = attendanceByDate[dateKey]!;
-        final date = dateAttendance.first.date;
-        final createdAt = dateAttendance.first.createdAt ?? date;
-
-        activities.add(
-          RecentActivity(
-            id: 'attendance_$dateKey',
-            type: 'attendance',
-            title: 'Attendance Marked',
-            subtitle:
-                'Attendance recorded for ${dateAttendance.length} students',
-            timestamp: createdAt,
-          ),
-        );
-      }
-
-      // Get recently added students (last 2)
-      if (students.isNotEmpty) {
-        final recentStudents = students.where((s) => s.createdAt != null)
-            .toList()
-          ..sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
-        
-        for (var i = 0; i < recentStudents.length && i < 2; i++) {
-          final student = recentStudents[i];
-          activities.add(
-            RecentActivity(
-              id: 'student_${student.id}',
-              type: 'student',
-              title: 'New Student Added',
-              subtitle: '${student.name} has been registered',
-              timestamp: student.createdAt ?? DateTime.now(),
-            ),
-          );
-        }
-      }
-
-      // Get recent payments (last 1)
-      if (payments.isNotEmpty) {
-        final recentPayment = payments.last;
-        activities.add(
-          RecentActivity(
-            id: 'payment_${recentPayment.id}',
-            type: 'payment',
-            title: 'Payment Received',
-            subtitle:
-                'Payment of Rs.${recentPayment.amount.toStringAsFixed(2)} received',
-            timestamp: recentPayment.date,
-          ),
-        );
-      }
-
-      // Get recently added classes (last 2)
-      if (classes.isNotEmpty) {
-        final recentClasses = classes.where((c) => c.createdAt != null)
-            .toList()
-          ..sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
-        
-        for (var i = 0; i < recentClasses.length && i < 2; i++) {
-          final classItem = recentClasses[i];
-          activities.add(
-            RecentActivity(
-              id: 'class_${classItem.id}',
-              type: 'class',
-              title: 'New Class Added',
-              subtitle: '${classItem.name} has been created',
-              timestamp: classItem.createdAt ?? DateTime.now(),
-            ),
-          );
-        }
-      }
-
-      // Sort by timestamp descending and return top 3
-      activities.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      return activities.take(3).toList();
-    } catch (e) {
-      return [];
-    }
+    final endpoint = Uri(
+      path: '/api/home/activities',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    ).toString();
+    final response = await _makeRequest('GET', endpoint);
+    final data = json.decode(response.body);
+    return (data as List).map((item) => RecentActivity.fromJson(item)).toList();
   }
 }

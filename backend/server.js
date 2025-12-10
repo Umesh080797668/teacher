@@ -219,9 +219,27 @@ app.get('/api/students', async (req, res) => {
   try {
     console.log('GET /api/students called');
     console.log('MongoDB connection state:', mongoose.connection.readyState);
-    const students = await Student.find({});
+    const { teacherId } = req.query;
+
+    let query = {};
+    if (teacherId) {
+      // Find teacher by teacherId string and get their classes
+      console.log('Filtering students for teacherId:', teacherId);
+      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      if (teacher) {
+        const classes = await Class.find({ teacherId: teacher._id });
+        const classIds = classes.map(c => c._id);
+        query.classId = { $in: classIds };
+        console.log('Found', classIds.length, 'classes for teacher');
+      } else {
+        console.log('Teacher not found for teacherId:', teacherId, '- returning empty array');
+        return res.json([]);
+      }
+    }
+
+    const students = await Student.find(query);
     console.log('Found students count:', students.length);
-    
+
     // Convert to plain objects and ensure classId is a string
     const result = students.map(student => {
       const obj = student.toObject();
@@ -232,7 +250,7 @@ app.get('/api/students', async (req, res) => {
       }
       return obj;
     });
-    
+
     console.log('Returning students:', result.length);
     res.json(result);
   } catch (error) {
@@ -279,11 +297,28 @@ app.post('/api/students', async (req, res) => {
 // Attendance
 app.get('/api/attendance', async (req, res) => {
   try {
-    const { studentId, month, year } = req.query;
+    const { studentId, month, year, teacherId } = req.query;
     let query = {};
     if (studentId) query.studentId = studentId;
     if (month) query.month = parseInt(month);
     if (year) query.year = parseInt(year);
+
+    if (teacherId) {
+      // Find teacher by teacherId string and get their students
+      console.log('Filtering attendance for teacherId:', teacherId);
+      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      if (teacher) {
+        const classes = await Class.find({ teacherId: teacher._id });
+        const classIds = classes.map(c => c._id);
+        const students = await Student.find({ classId: { $in: classIds } });
+        const studentIds = students.map(s => s._id);
+        query.studentId = { $in: studentIds };
+        console.log('Found', studentIds.length, 'students for teacher');
+      } else {
+        console.log('Teacher not found for teacherId:', teacherId, '- returning empty array');
+        return res.json([]);
+      }
+    }
 
     const attendance = await Attendance.find(query).sort({ date: -1 });
     res.json(attendance);
@@ -404,10 +439,25 @@ app.delete('/api/classes/:id', async (req, res) => {
 // Payments
 app.get('/api/payments', async (req, res) => {
   try {
-    const { classId, studentId } = req.query;
+    const { classId, studentId, teacherId } = req.query;
     let query = {};
     if (classId) query.classId = classId;
     if (studentId) query.studentId = studentId;
+
+    if (teacherId) {
+      // Find teacher by teacherId string and get their classes
+      console.log('Filtering payments for teacherId:', teacherId);
+      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      if (teacher) {
+        const classes = await Class.find({ teacherId: teacher._id });
+        const classIds = classes.map(c => c._id);
+        query.classId = { $in: classIds };
+        console.log('Found', classIds.length, 'classes for teacher');
+      } else {
+        console.log('Teacher not found for teacherId:', teacherId, '- returning empty array');
+        return res.json([]);
+      }
+    }
 
     const payments = await Payment.find(query).sort({ date: -1 });
     res.json(payments);
@@ -574,17 +624,42 @@ app.put('/api/teachers/:id/status', async (req, res) => {
 });
 app.get('/api/reports/attendance-summary', async (req, res) => {
   try {
+    const { teacherId } = req.query;
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
+    let studentQuery = {};
+    let attendanceQuery = { date: { $gte: startOfDay, $lt: endOfDay } };
+
+    if (teacherId) {
+      // Find teacher by teacherId string and get their students
+      console.log('Filtering attendance summary for teacherId:', teacherId);
+      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      if (teacher) {
+        const classes = await Class.find({ teacherId: teacher._id });
+        const classIds = classes.map(c => c._id);
+        const students = await Student.find({ classId: { $in: classIds } });
+        const studentIds = students.map(s => s._id);
+        studentQuery._id = { $in: studentIds };
+        attendanceQuery.studentId = { $in: studentIds };
+        console.log('Found', studentIds.length, 'students for teacher');
+      } else {
+        console.log('Teacher not found for teacherId:', teacherId, '- returning zeros');
+        return res.json({
+          totalStudents: 0,
+          presentToday: 0,
+          absentToday: 0,
+          lateToday: 0
+        });
+      }
+    }
+
     // Total students
-    const totalStudents = await Student.countDocuments();
+    const totalStudents = await Student.countDocuments(studentQuery);
 
     // Today's attendance
-    const todayAttendance = await Attendance.find({
-      date: { $gte: startOfDay, $lt: endOfDay }
-    });
+    const todayAttendance = await Attendance.find(attendanceQuery);
 
     const presentToday = todayAttendance.filter(a => a.status === 'present').length;
     const absentToday = todayAttendance.filter(a => a.status === 'absent').length;
@@ -603,7 +678,25 @@ app.get('/api/reports/attendance-summary', async (req, res) => {
 
 app.get('/api/reports/student-reports', async (req, res) => {
   try {
-    const students = await Student.find({});
+    const { teacherId } = req.query;
+
+    let studentQuery = {};
+    if (teacherId) {
+      // Find teacher by teacherId string and get their students
+      console.log('Filtering student reports for teacherId:', teacherId);
+      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      if (teacher) {
+        const classes = await Class.find({ teacherId: teacher._id });
+        const classIds = classes.map(c => c._id);
+        studentQuery.classId = { $in: classIds };
+        console.log('Found', classIds.length, 'classes for teacher');
+      } else {
+        console.log('Teacher not found for teacherId:', teacherId, '- returning empty array');
+        return res.json([]);
+      }
+    }
+
+    const students = await Student.find(studentQuery);
     const reports = [];
 
     for (const student of students) {
@@ -634,7 +727,26 @@ app.get('/api/reports/student-reports', async (req, res) => {
 
 app.get('/api/reports/monthly-stats', async (req, res) => {
   try {
-    const monthlyStats = await Attendance.aggregate([
+    const { teacherId } = req.query;
+
+    let studentIds = null;
+    if (teacherId) {
+      // Find teacher by teacherId string and get their students
+      console.log('Filtering monthly stats for teacherId:', teacherId);
+      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      if (teacher) {
+        const classes = await Class.find({ teacherId: teacher._id });
+        const classIds = classes.map(c => c._id);
+        const students = await Student.find({ classId: { $in: classIds } });
+        studentIds = students.map(s => s._id);
+        console.log('Found', studentIds.length, 'students for teacher');
+      } else {
+        console.log('Teacher not found for teacherId:', teacherId, '- returning empty array');
+        return res.json([]);
+      }
+    }
+
+    let pipeline = [
       {
         $group: {
           _id: { year: '$year', month: '$month' },
@@ -663,11 +775,300 @@ app.get('/api/reports/monthly-stats', async (req, res) => {
       },
       { $sort: { year: -1, month: -1 } },
       { $limit: 12 }
-    ]);
+    ];
+
+    // Add match stage if filtering by teacher
+    if (studentIds) {
+      pipeline.unshift({
+        $match: { studentId: { $in: studentIds } }
+      });
+    }
+
+    const monthlyStats = await Attendance.aggregate(pipeline);
 
     res.json(monthlyStats);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch monthly stats' });
+  }
+});
+
+// Home Dashboard Endpoints
+app.get('/api/home/stats', async (req, res) => {
+  try {
+    const { teacherId } = req.query;
+
+    let classIds = null;
+    let studentIds = null;
+    if (teacherId) {
+      // Find teacher by teacherId string and get their classes and students
+      console.log('Filtering home stats for teacherId:', teacherId);
+      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      if (teacher) {
+        const classes = await Class.find({ teacherId: teacher._id });
+        classIds = classes.map(c => c._id);
+        const students = await Student.find({ classId: { $in: classIds } });
+        studentIds = students.map(s => s._id);
+        console.log('Found', classIds.length, 'classes and', studentIds.length, 'students for teacher');
+      } else {
+        console.log('Teacher not found for teacherId:', teacherId, '- returning default stats');
+        return res.json({
+          totalStudents: 0,
+          todayAttendancePercentage: 0.0,
+          totalClasses: 0,
+          paymentStatusPercentage: 0.0,
+          studentsTrend: '0',
+          attendanceTrend: '0%',
+          classesTrend: '0',
+          paymentTrend: '0%',
+          studentsPositive: true,
+          attendancePositive: true,
+          classesPositive: true,
+          paymentPositive: true,
+        });
+      }
+    }
+
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Get total students
+    const totalStudents = studentIds ? studentIds.length : await Student.countDocuments();
+
+    // Get total classes
+    const totalClasses = classIds ? classIds.length : await Class.countDocuments();
+
+    // Calculate today's attendance
+    let todayAttendanceQuery = {
+      date: {
+        $gte: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+        $lt: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+      }
+    };
+    if (studentIds) {
+      todayAttendanceQuery.studentId = { $in: studentIds };
+    }
+    const todayAttendance = await Attendance.find(todayAttendanceQuery);
+    const presentCount = todayAttendance.filter(a => a.status.toLowerCase() === 'present').length;
+    const todayAttendancePercentage = todayAttendance.length > 0 ? (presentCount / todayAttendance.length * 100) : 0.0;
+
+    // Calculate yesterday's attendance for trend
+    let yesterdayAttendanceQuery = {
+      date: {
+        $gte: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()),
+        $lt: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() + 1)
+      }
+    };
+    if (studentIds) {
+      yesterdayAttendanceQuery.studentId = { $in: studentIds };
+    }
+    const yesterdayAttendance = await Attendance.find(yesterdayAttendanceQuery);
+    const yesterdayPresentCount = yesterdayAttendance.filter(a => a.status.toLowerCase() === 'present').length;
+    const yesterdayAttendancePercentage = yesterdayAttendance.length > 0 ? (yesterdayPresentCount / yesterdayAttendance.length * 100) : 0.0;
+
+    const attendanceDiff = todayAttendancePercentage - yesterdayAttendancePercentage;
+    const attendanceTrend = `${attendanceDiff >= 0 ? '+' : ''}${attendanceDiff.toFixed(1)}%`;
+    const attendancePositive = attendanceDiff >= 0;
+
+    // Calculate payment status (students who have paid this month)
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    let monthPaymentsQuery = {
+      date: {
+        $gte: new Date(currentYear, currentMonth, 1),
+        $lt: new Date(currentYear, currentMonth + 1, 1)
+      }
+    };
+    if (classIds) {
+      monthPaymentsQuery.classId = { $in: classIds };
+    }
+    const monthPayments = await Payment.find(monthPaymentsQuery);
+    const uniquePayingStudents = new Set(monthPayments.map(p => p.studentId.toString())).size;
+    const paymentStatusPercentage = totalStudents > 0 ? (uniquePayingStudents / totalStudents * 100) : 0.0;
+
+    // Calculate last month's payment for trend
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    let lastMonthPaymentsQuery = {
+      date: {
+        $gte: new Date(lastMonthYear, lastMonth, 1),
+        $lt: new Date(lastMonthYear, lastMonth + 1, 1)
+      }
+    };
+    if (classIds) {
+      lastMonthPaymentsQuery.classId = { $in: classIds };
+    }
+    const lastMonthPayments = await Payment.find(lastMonthPaymentsQuery);
+    const lastMonthPayingStudents = new Set(lastMonthPayments.map(p => p.studentId.toString())).size;
+    const lastMonthPaymentPercentage = totalStudents > 0 ? (lastMonthPayingStudents / totalStudents * 100) : 0.0;
+
+    const paymentDiff = paymentStatusPercentage - lastMonthPaymentPercentage;
+    const paymentTrend = `${paymentDiff >= 0 ? '+' : ''}${paymentDiff.toFixed(1)}%`;
+    const paymentPositive = paymentDiff >= 0;
+
+    // Calculate student trend (simple indicator)
+    const studentsTrend = totalStudents > 10
+      ? `+${Math.round(totalStudents * 0.05)}`
+      : totalStudents > 5
+      ? `+${Math.round(totalStudents * 0.1)}`
+      : `+${totalStudents}`;
+    const studentsPositive = true;
+
+    // Calculate classes trend (simple indicator based on total)
+    const classesTrend = totalClasses > 5
+      ? '+1'
+      : totalClasses > 0
+      ? `+${totalClasses}`
+      : '0';
+    const classesPositive = totalClasses > 0;
+
+    res.json({
+      totalStudents,
+      todayAttendancePercentage,
+      totalClasses,
+      paymentStatusPercentage,
+      studentsTrend,
+      attendanceTrend,
+      classesTrend,
+      paymentTrend,
+      studentsPositive,
+      attendancePositive,
+      classesPositive,
+      paymentPositive,
+    });
+  } catch (error) {
+    console.error('Error fetching home stats:', error);
+    res.status(500).json({ error: 'Failed to fetch home stats' });
+  }
+});
+
+app.get('/api/home/activities', async (req, res) => {
+  try {
+    const { teacherId } = req.query;
+
+    let classIds = null;
+    let studentIds = null;
+    if (teacherId) {
+      // Find teacher by teacherId string and get their classes and students
+      console.log('Filtering home activities for teacherId:', teacherId);
+      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      if (teacher) {
+        const classes = await Class.find({ teacherId: teacher._id });
+        classIds = classes.map(c => c._id);
+        const students = await Student.find({ classId: { $in: classIds } });
+        studentIds = students.map(s => s._id);
+        console.log('Found', classIds.length, 'classes and', studentIds.length, 'students for teacher');
+      } else {
+        console.log('Teacher not found for teacherId:', teacherId, '- returning empty activities');
+        return res.json([]);
+      }
+    }
+
+    const activities = [];
+
+    // Get recent attendance records (last 2 unique dates)
+    let attendanceQuery = {};
+    if (studentIds) {
+      attendanceQuery.studentId = { $in: studentIds };
+    }
+
+    const recentAttendance = await Attendance.find(attendanceQuery)
+      .sort({ date: -1 })
+      .limit(50); // Get more to group by date
+
+    const attendanceByDate = {};
+    for (const record of recentAttendance) {
+      const dateKey = record.date.toISOString().split('T')[0];
+      if (!attendanceByDate[dateKey]) {
+        attendanceByDate[dateKey] = [];
+      }
+      attendanceByDate[dateKey].push(record);
+    }
+
+    const sortedDates = Object.keys(attendanceByDate).sort().reverse().slice(0, 2);
+
+    for (const dateKey of sortedDates) {
+      const dateAttendance = attendanceByDate[dateKey];
+      const date = new Date(dateKey);
+      const createdAt = dateAttendance[0].createdAt || date;
+
+      activities.push({
+        id: `attendance_${dateKey}`,
+        type: 'attendance',
+        title: 'Attendance Marked',
+        subtitle: `Attendance recorded for ${dateAttendance.length} students`,
+        timestamp: createdAt,
+      });
+    }
+
+    // Get recently added students (last 2)
+    let studentsQuery = {};
+    if (classIds) {
+      studentsQuery.classId = { $in: classIds };
+    }
+
+    const recentStudents = await Student.find(studentsQuery)
+      .sort({ createdAt: -1 })
+      .limit(2);
+
+    for (const student of recentStudents) {
+      activities.push({
+        id: `student_${student._id}`,
+        type: 'student',
+        title: 'New Student Added',
+        subtitle: `${student.name} has been registered`,
+        timestamp: student.createdAt || new Date(),
+      });
+    }
+
+    // Get recent payments (last 1)
+    let paymentsQuery = {};
+    if (classIds) {
+      paymentsQuery.classId = { $in: classIds };
+    }
+
+    const recentPayment = await Payment.findOne(paymentsQuery)
+      .sort({ date: -1 });
+
+    if (recentPayment) {
+      activities.push({
+        id: `payment_${recentPayment._id}`,
+        type: 'payment',
+        title: 'Payment Received',
+        subtitle: `Payment of Rs.${recentPayment.amount.toFixed(2)} received`,
+        timestamp: recentPayment.date,
+      });
+    }
+
+    // Get recently added classes (last 2)
+    let classesQuery = {};
+    if (teacherId) {
+      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      if (teacher) {
+        classesQuery.teacherId = teacher._id;
+      }
+    }
+
+    const recentClasses = await Class.find(classesQuery)
+      .sort({ createdAt: -1 })
+      .limit(2);
+
+    for (const classItem of recentClasses) {
+      activities.push({
+        id: `class_${classItem._id}`,
+        type: 'class',
+        title: 'New Class Added',
+        subtitle: `${classItem.name} has been created`,
+        timestamp: classItem.createdAt || new Date(),
+      });
+    }
+
+    // Sort by timestamp descending and return top 3
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    res.json(activities.slice(0, 3));
+  } catch (error) {
+    console.error('Error fetching home activities:', error);
+    res.status(500).json({ error: 'Failed to fetch home activities' });
   }
 });
 

@@ -9,11 +9,11 @@ class AttendanceProvider with ChangeNotifier {
   List<Attendance> get attendance => _attendance;
   bool get isLoading => _isLoading;
 
-  Future<void> loadAttendance({int? month, int? year}) async {
+  Future<void> loadAttendance({int? month, int? year, String? teacherId}) async {
     _isLoading = true;
     notifyListeners();
     try {
-      _attendance = await ApiService.getAttendance(month: month, year: year);
+      _attendance = await ApiService.getAttendance(month: month, year: year, teacherId: teacherId);
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../providers/attendance_provider.dart';
+import '../providers/auth_provider.dart';
 
 class AttendanceViewScreen extends StatefulWidget {
   const AttendanceViewScreen({super.key});
@@ -24,8 +25,9 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
 
   Future<void> _loadAttendance() async {
     final provider = Provider.of<AttendanceProvider>(context, listen: false);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
     try {
-      await provider.loadAttendance(month: _selectedMonth, year: _selectedYear);
+      await provider.loadAttendance(month: _selectedMonth, year: _selectedYear, teacherId: auth.teacherId);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

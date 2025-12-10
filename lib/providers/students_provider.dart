@@ -9,11 +9,11 @@ class StudentsProvider with ChangeNotifier {
   List<Student> get students => _students;
   bool get isLoading => _isLoading;
 
-  Future<void> loadStudents() async {
+  Future<void> loadStudents({String? teacherId}) async {
     _isLoading = true;
     notifyListeners();
     try {
-      _students = await ApiService.getStudents();
+      _students = await ApiService.getStudents(teacherId: teacherId);
     } finally {
       _isLoading = false;
       notifyListeners();
