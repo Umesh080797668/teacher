@@ -121,16 +121,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
           return;
         } else if (!permissionStatus.isGranted) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Gallery permission was denied. Please try again and grant permission.',
-                ),
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
+          // Permission denied, just return without showing message
+          // User will see the system permission dialog next time they try
           return;
         }
       }
