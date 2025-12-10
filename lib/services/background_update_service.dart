@@ -48,9 +48,14 @@ Future<void> _performBackgroundUpdateCheck() async {
 
     // Fetch update info from GitHub
     final dio = Dio();
-    // Add cache-busting headers to prevent stale data
+    // Add cache-busting headers and timestamp to prevent stale data
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final updateUrl = 'https://raw.githubusercontent.com/Umesh080797668/teacher/main/update.json?t=$timestamp';
+    
+    debugPrint('Background check - Fetching from: $updateUrl');
+    
     final response = await dio.get(
-      'https://raw.githubusercontent.com/Umesh080797668/teacher/main/update.json',
+      updateUrl,
       options: Options(
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -67,6 +72,7 @@ Future<void> _performBackgroundUpdateCheck() async {
       final isForced = data['isForced'] as bool? ?? false;
 
       debugPrint('Background check - Latest version: $latestVersion');
+      debugPrint('Background check - Full response: $data');
 
       // Save last check time
       final prefs = await SharedPreferences.getInstance();

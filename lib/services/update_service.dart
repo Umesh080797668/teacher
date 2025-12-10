@@ -77,9 +77,14 @@ class UpdateService {
 
       // Update the URL below with your actual JSON file URL from MEGA or GitHub
       // For MEGA, you'll need to create a public link
-      // Add cache-busting headers to prevent stale data
+      // Add cache-busting headers and timestamp to prevent stale data
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final urlWithTimestamp = '$_updateCheckUrl?t=$timestamp';
+      
+      debugPrint('Fetching update info from: $urlWithTimestamp');
+      
       final response = await _dio.get(
-        _updateCheckUrl,
+        urlWithTimestamp,
         options: Options(
           headers: {
             'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -94,6 +99,7 @@ class UpdateService {
         final latestVersion = data['version'] as String;
 
         debugPrint('Latest version from server: $latestVersion');
+        debugPrint('Full server response: $data');
 
         // Save last check time
         final prefs = await SharedPreferences.getInstance();
@@ -105,7 +111,7 @@ class UpdateService {
 
         // Compare versions
         final isNewer = _isNewerVersion(currentVersion, latestVersion);
-        debugPrint('Is newer version available: $isNewer');
+        debugPrint('Is newer version available: $isNewer (Current: $currentVersion, Latest: $latestVersion)');
 
         if (isNewer) {
           final updateInfo = UpdateInfo.fromJson(data);
