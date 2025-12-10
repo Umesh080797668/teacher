@@ -120,24 +120,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             );
           }
           return;
-        } else if (permissionStatus.isDenied) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Gallery permission is required to select photos. Please grant permission when prompted.',
-                ),
-                duration: Duration(seconds: 5),
-              ),
-            );
-          }
-          return;
         } else if (!permissionStatus.isGranted) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text(
-                  'Gallery permission is required to select photos.',
+                  'Gallery permission was denied. Please try again and grant permission.',
                 ),
                 duration: Duration(seconds: 3),
               ),
