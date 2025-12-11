@@ -37,8 +37,9 @@ subprojects {
     if (project.name == "install_plugin") {
         afterEvaluate {
             val android = project.extensions.findByName("android") as? BaseExtension
-            if (android != null && android.namespace == null) {
-                android.namespace = "com.zaihui.installplugin"
+            if (android != null) {
+                // Set namespace to match the package in the manifest
+                android.namespace = "com.example.installplugin"
             }
         }
     }
