@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'registration_screen.dart';
@@ -9,54 +10,65 @@ class AccountSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Choose Account'),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-      ),
-      body: Consumer<AuthProvider>(
-        builder: (context, auth, child) {
-          final accountHistory = auth.accountHistory;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          // Exit the app when back button is pressed
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Choose Account'),
+          centerTitle: true,
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+          automaticallyImplyLeading: false, // Remove back button from app bar
+        ),
+        body: Consumer<AuthProvider>(
+          builder: (context, auth, child) {
+            final accountHistory = auth.accountHistory;
 
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Previous Accounts Section
-                if (accountHistory.isNotEmpty) ...[
-                  Text(
-                    'Continue as',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface,
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Previous Accounts Section
+                  if (accountHistory.isNotEmpty) ...[
+                    Text(
+                      'Continue as',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                     ),
+                    const SizedBox(height: 16),
+                    ...accountHistory
+                        .map((account) => _buildAccountTile(context, account)),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Create Account Section
+                  Text(
+                    'Get started',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                   ),
                   const SizedBox(height: 16),
-                  ...accountHistory.map((account) => _buildAccountTile(context, account)),
-                  const SizedBox(height: 24),
+                  _buildCreateAccountTile(context),
+
+                  // Login Option
+                  const SizedBox(height: 16),
+                  _buildLoginTile(context),
                 ],
-
-                // Create Account Section
-                Text(
-                  'Get started',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildCreateAccountTile(context),
-
-                // Login Option
-                const SizedBox(height: 16),
-                _buildLoginTile(context),
-              ],
-            ),
-          );
-        },
+              ),
+            );
+          },
+        ),
       ),
     );
   }

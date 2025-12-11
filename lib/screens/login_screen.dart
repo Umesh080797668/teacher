@@ -85,6 +85,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       final data = await ApiService.login(_emailController.text, _passwordController.text);
       final teacher = data['teacher'];
       
+      // Commit autofill data for password manager to save credentials
+      _emailController.text.isNotEmpty && _passwordController.text.isNotEmpty
+          ? null
+          : null; // Autofill will be saved automatically when login succeeds
+      
       // Persist remember-me email preference
       final prefs = await SharedPreferences.getInstance();
       if (_rememberMe) {
@@ -260,99 +265,100 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                      // Logo
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 20,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.school_rounded,
-                          size: 50,
-                          color: Color(0xFF6366F1),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 30),
-                      
-                      Text(
-                        'Welcome Back!',
-                        style: GoogleFonts.poppins(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 8),
-                      
-                      Text(
-                        'Sign in to continue',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          color: Colors.white.withOpacity(0.8),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 40),
-                      
-                      // Login Form Card
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 20,
-                              spreadRadius: 5,
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(24),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            children: [
-                              // Email Field
-                              TextFormField(
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                decoration: InputDecoration(
-                                  labelText: 'Email',
-                                  prefixIcon: const Icon(Icons.email_outlined),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
+                          // Logo
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 20,
+                                  spreadRadius: 2,
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter your email';
-                                  }
-                                  if (!value.contains('@')) {
-                                    return 'Please enter a valid email';
-                                  }
-                                  return null;
-                                },
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.school_rounded,
+                              size: 50,
+                              color: Color(0xFF6366F1),
+                            ),
                               ),
-                              
-                              const SizedBox(height: 20),
+                          
+                          const SizedBox(height: 30),
+                          
+                          Text(
+                            'Welcome Back!',
+                            style: GoogleFonts.poppins(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 8),
+                          
+                          Text(
+                            'Sign in to continue',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              color: Colors.white.withOpacity(0.8),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 40),
+                          
+                          // Login Form Card
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 20,
+                                  spreadRadius: 5,
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.all(24),
+                            child: AutofillGroup(
+                              child: Form(
+                                key: _formKey,
+                                child: Column(
+                                  children: [
+                                    // Email Field
+                                    TextFormField(
+                                      controller: _emailController,
+                                      keyboardType: TextInputType.emailAddress,
+                                      autofillHints: const [AutofillHints.email, AutofillHints.username],
+                                      decoration: InputDecoration(
+                                        labelText: 'Email',
+                                        prefixIcon: const Icon(Icons.email_outlined),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        filled: true,
+                                        fillColor: Colors.grey[50],
+                                      ),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Please enter your email';
+                                        }
+                                        if (!value.contains('@')) {
+                                          return 'Please enter a valid email';
+                                        }
+                                        return null;
+                                      },
+                                    ),                              const SizedBox(height: 20),
                               
                               // Password Field
                               TextFormField(
                                 controller: _passwordController,
                                 obscureText: !_isPasswordVisible,
+                                autofillHints: const [AutofillHints.password],
                                 decoration: InputDecoration(
                                   labelText: 'Password',
                                   prefixIcon: const Icon(Icons.lock_outlined),
@@ -472,6 +478,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           ),
                         ),
                       ),
+                    ),
+                          
                       
                       const SizedBox(height: 24),
                       
@@ -533,11 +541,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           ),
                         ],
                       ),
-                    ],
+                    ]
+                      
                   ),
                 ),
               ),
-                ),
+            ),
               ),
             ),
           ],
