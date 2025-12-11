@@ -7,12 +7,13 @@ allprojects {
     }
 }
 
-// Configure all subprojects to use Java 1.8 for compatibility
+// Configure all subprojects to use Java 1.8 and compileSdk 36 for compatibility
 subprojects {
     afterEvaluate {
         if (project.hasProperty("android")) {
             val androidExtension = project.extensions.getByName("android") as BaseExtension
             androidExtension.apply {
+                compileSdkVersion(36)
                 compileOptions {
                     sourceCompatibility = JavaVersion.VERSION_1_8
                     targetCompatibility = JavaVersion.VERSION_1_8
