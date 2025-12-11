@@ -456,10 +456,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                 children: [
                                   Consumer<AuthProvider>(
                                     builder: (context, auth, child) {
+                                      // Extract first name from full name
+                                      String getFirstName(String? fullName) {
+                                        if (fullName == null || fullName.isEmpty) {
+                                          return '';
+                                        }
+                                        return fullName.split(' ').first;
+                                      }
+                                      
+                                      String welcomeMessage;
+                                      if (auth.isGuest) {
+                                        welcomeMessage = 'Welcome, Guest!';
+                                      } else {
+                                        final firstName = getFirstName(auth.userName);
+                                        welcomeMessage = firstName.isNotEmpty 
+                                          ? 'Welcome back, $firstName!'
+                                          : 'Welcome Back!';
+                                      }
+                                      
                                       return Text(
-                                        auth.isGuest
-                                            ? 'Welcome, Guest!'
-                                            : 'Welcome Back!',
+                                        welcomeMessage,
                                         style: Theme.of(context)
                                             .textTheme
                                             .headlineSmall
