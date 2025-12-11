@@ -1,6 +1,8 @@
 {
   "version": "1.0.15",
   "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.15/app-release.apk",
-  "releaseNotes": "• Fixed web platform compatibility issues • Fixed dark mode text visibility in recent activity section • Improved text contrast for better readability in dark mode",
+  "releaseNotes": "• Fixed web platform compatibility issues
+• Fixed dark mode text visibility in recent activity section
+• Improved text contrast for better readability in dark mode",
   "isForced": false
 }
