@@ -40,10 +40,10 @@ class ThemeProvider extends ChangeNotifier {
           seedColor: const Color(0xFF6750A4),
           brightness: Brightness.light,
         ),
-        cardTheme: const CardThemeData(
+        cardTheme: CardThemeData(
           elevation: 2,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
@@ -77,10 +77,10 @@ class ThemeProvider extends ChangeNotifier {
           seedColor: const Color(0xFF6750A4),
           brightness: Brightness.dark,
         ),
-        cardTheme: const CardThemeData(
+        cardTheme: CardThemeData(
           elevation: 2,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
