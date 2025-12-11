@@ -251,13 +251,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icon(
                       Icons.access_time,
                       size: 16,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _formatTimestamp(activity.timestamp),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                       ),
                     ),
                   ],
@@ -268,13 +268,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icon(
                       Icons.category,
                       size: 16,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _getActivityTypeLabel(activity.type),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                       ),
                     ),
                   ],
@@ -284,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'This activity represents attendance records that were marked for students.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.75),
                     ),
                   ),
                 ],
@@ -293,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'A new student has been registered in the system.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.75),
                     ),
                   ),
                 ],
@@ -302,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'A payment has been recorded in the system.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.75),
                     ),
                   ),
                 ],
@@ -311,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'A new class has been created in the system.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.75),
                     ),
                   ),
                 ],
@@ -1358,7 +1358,7 @@ class _RecentActivityCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.7),
+                      ).colorScheme.onSurface.withOpacity(0.85),
                       fontSize: 12,
                     ),
                     maxLines: 1,
@@ -1373,7 +1373,7 @@ class _RecentActivityCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurface.withOpacity(0.5),
+                ).colorScheme.onSurface.withOpacity(0.7),
                 fontSize: 11,
               ),
               textAlign: TextAlign.right,
