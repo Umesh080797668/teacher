@@ -7,6 +7,21 @@ allprojects {
     }
 }
 
+// Configure all subprojects to use Java 1.8 for compatibility
+subprojects {
+    afterEvaluate {
+        if (project.hasProperty("android")) {
+            val androidExtension = project.extensions.getByName("android") as BaseExtension
+            androidExtension.apply {
+                compileOptions {
+                    sourceCompatibility = JavaVersion.VERSION_1_8
+                    targetCompatibility = JavaVersion.VERSION_1_8
+                }
+            }
+        }
+    }
+}
+
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")
