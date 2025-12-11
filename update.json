@@ -1,7 +1,7 @@
 {
-  "version": "1.0.13",
-  "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.13/app-release.apk",
-  "releaseNotes": "• Fixed dark mode text visibility in recent activity section\n• Improved text contrast for better readability\n• Enhanced user experience in dark mode",
+  "version": "1.0.14",
+  "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.14/app-release.apk",
+  "releaseNotes": "• Fixed update system JSON parsing issue\n• Fixed dark mode text visibility in recent activity section\n• Improved text contrast for better readability",
   "isForced": false
 }
 

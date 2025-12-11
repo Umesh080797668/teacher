@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -84,10 +85,16 @@ class UpdateService {
       debugPrint('Fetching update info from: $urlWithTimestamp');
       
       // Don't add custom headers to avoid CORS issues with GitHub raw content
-      final response = await _dio.get(urlWithTimestamp);
+      // Set response type to plain for raw GitHub content
+      final response = await _dio.get(
+        urlWithTimestamp,
+        options: Options(responseType: ResponseType.plain),
+      );
 
       if (response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
+        // Parse the JSON string response
+        final jsonString = response.data as String;
+        final data = json.decode(jsonString) as Map<String, dynamic>;
         final latestVersion = data['version'] as String;
 
         debugPrint('Latest version from server: $latestVersion');
