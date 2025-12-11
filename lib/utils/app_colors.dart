@@ -25,13 +25,13 @@ class AppColors {
 
   // Gradient Colors
   static List<Color> get primaryGradient => [
-    primary.withValues(alpha: 0.3),
-    info.withValues(alpha: 0.3),
+    primary.withOpacity(0.3),
+    info.withOpacity(0.3),
   ];
 
   static List<Color> get cardGradient => [
-    primary.withValues(alpha: 0.1),
-    primary.withValues(alpha: 0.05),
+    primary.withOpacity(0.1),
+    primary.withOpacity(0.05),
   ];
 }
 

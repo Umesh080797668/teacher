@@ -117,7 +117,7 @@ class AccountSelectionScreen extends StatelessWidget {
           ],
           icon: Icon(
             Icons.more_vert,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
           ),
         ),
         onTap: () {
@@ -153,7 +153,7 @@ class AccountSelectionScreen extends StatelessWidget {
         trailing: Icon(
           Icons.arrow_forward_ios,
           size: 16,
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
         ),
         onTap: () {
           Navigator.of(context).push(
@@ -186,7 +186,7 @@ class AccountSelectionScreen extends StatelessWidget {
         trailing: Icon(
           Icons.arrow_forward_ios,
           size: 16,
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
         ),
         onTap: () {
           Navigator.of(context).push(

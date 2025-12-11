@@ -251,13 +251,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icon(
                       Icons.access_time,
                       size: 16,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _formatTimestamp(activity.timestamp),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -268,13 +268,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icon(
                       Icons.category,
                       size: 16,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _getActivityTypeLabel(activity.type),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -284,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'This activity represents attendance records that were marked for students.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     ),
                   ),
                 ],
@@ -293,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'A new student has been registered in the system.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     ),
                   ),
                 ],
@@ -302,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'A payment has been recorded in the system.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     ),
                   ),
                 ],
@@ -311,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'A new class has been created in the system.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     ),
                   ),
                 ],
@@ -427,13 +427,13 @@ class _HomeScreenState extends State<HomeScreen> {
               colors: [
                 Theme.of(
                   context,
-                ).colorScheme.primaryContainer.withValues(alpha: 0.1),
+                ).colorScheme.primaryContainer.withOpacity(0.1),
                 Theme.of(
                   context,
-                ).colorScheme.secondaryContainer.withValues(alpha: 0.1),
+                ).colorScheme.secondaryContainer.withOpacity(0.1),
                 Theme.of(
                   context,
-                ).colorScheme.tertiaryContainer.withValues(alpha: 0.05),
+                ).colorScheme.tertiaryContainer.withOpacity(0.05),
               ],
             ),
           ),
@@ -486,7 +486,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               color: Theme.of(context)
                                                   .colorScheme
                                                   .onSurface
-                                                  .withValues(alpha: 0.7),
+                                                  .withOpacity(0.7),
                                             ),
                                       );
                                     },
@@ -641,7 +641,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               BoxShadow(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.shadow.withValues(alpha: 0.1),
+                                ).colorScheme.shadow.withOpacity(0.1),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -658,7 +658,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Icons.search,
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                                ).colorScheme.onSurface.withOpacity(0.6),
                               ),
                               suffixIcon: _searchController.text.isNotEmpty
                                   ? IconButton(
@@ -667,7 +667,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withValues(alpha: 0.6),
+                                            .withOpacity(0.6),
                                       ),
                                       onPressed: () {
                                         _searchController.clear();
@@ -768,7 +768,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               size: 64,
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.3),
+                              ).colorScheme.onSurface.withOpacity(0.3),
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -778,7 +778,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onSurface
-                                        .withValues(alpha: 0.5),
+                                        .withOpacity(0.5),
                                   ),
                             ),
                           ],
@@ -934,7 +934,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onSurface
-                                                .withValues(alpha: 0.5),
+                                                .withOpacity(0.5),
                                           ),
                                     ),
                                   ),
@@ -1210,7 +1210,7 @@ class _StatisticsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1226,7 +1226,7 @@ class _StatisticsCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: color, size: 22),
@@ -1238,7 +1238,7 @@ class _StatisticsCard extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: trendColor.withValues(alpha: 0.1),
+                  color: trendColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -1271,7 +1271,7 @@ class _StatisticsCard extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(
                 context,
-              ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ).colorScheme.onSurface.withOpacity(0.7),
               fontSize: 13,
             ),
             maxLines: 2,
@@ -1305,7 +1305,7 @@ class _RecentActivityCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
+              color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -1316,7 +1316,7 @@ class _RecentActivityCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _getActivityColor(activity.type).withValues(alpha: 0.1),
+                color: _getActivityColor(activity.type).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(_getActivityIcon(activity.type), color: _getActivityColor(activity.type), size: 24),
@@ -1342,7 +1342,7 @@ class _RecentActivityCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ).colorScheme.onSurface.withOpacity(0.7),
                       fontSize: 12,
                     ),
                     maxLines: 1,
@@ -1357,7 +1357,7 @@ class _RecentActivityCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                ).colorScheme.onSurface.withOpacity(0.5),
                 fontSize: 11,
               ),
               textAlign: TextAlign.right,
@@ -1449,7 +1449,7 @@ class _SearchResultCard extends StatelessWidget {
             BoxShadow(
               color: Theme.of(
                 context,
-              ).colorScheme.shadow.withValues(alpha: 0.05),
+              ).colorScheme.shadow.withOpacity(0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -1460,7 +1460,7 @@ class _SearchResultCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -1485,7 +1485,7 @@ class _SearchResultCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ).colorScheme.onSurface.withOpacity(0.7),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1498,7 +1498,7 @@ class _SearchResultCard extends StatelessWidget {
               size: 16,
               color: Theme.of(
                 context,
-              ).colorScheme.onSurface.withValues(alpha: 0.3),
+              ).colorScheme.onSurface.withOpacity(0.3),
             ),
           ],
         ),
@@ -1560,8 +1560,8 @@ class _FeatureCardState extends State<_FeatureCard>
           scale: _scaleAnimation.value,
           child: Card(
             elevation: widget.isDisabled ? 2 : 6,
-            shadowColor: widget.color.withValues(
-              alpha: widget.isDisabled ? 0.2 : 0.3,
+            shadowColor: widget.color.withOpacity(
+              widget.isDisabled ? 0.2 : 0.3,
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
@@ -1593,11 +1593,11 @@ class _FeatureCardState extends State<_FeatureCard>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      widget.color.withValues(
-                        alpha: widget.isDisabled ? 0.03 : 0.08,
+                      widget.color.withOpacity(
+                        widget.isDisabled ? 0.03 : 0.08,
                       ),
-                      widget.color.withValues(
-                        alpha: widget.isDisabled ? 0.01 : 0.04,
+                      widget.color.withOpacity(
+                        widget.isDisabled ? 0.01 : 0.04,
                       ),
                     ],
                   ),
@@ -1609,13 +1609,13 @@ class _FeatureCardState extends State<_FeatureCard>
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: widget.color.withValues(
-                          alpha: widget.isDisabled ? 0.08 : 0.15,
+                        color: widget.color.withOpacity(
+                          widget.isDisabled ? 0.08 : 0.15,
                         ),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: widget.color.withValues(alpha: 0.2),
+                            color: widget.color.withOpacity(0.2),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -1625,7 +1625,7 @@ class _FeatureCardState extends State<_FeatureCard>
                         widget.icon,
                         size: 32,
                         color: widget.isDisabled
-                            ? widget.color.withValues(alpha: 0.4)
+                            ? widget.color.withOpacity(0.4)
                             : widget.color,
                       ),
                     ),
@@ -1637,7 +1637,7 @@ class _FeatureCardState extends State<_FeatureCard>
                         color: widget.isDisabled
                             ? Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.4)
+                              ).colorScheme.onSurface.withOpacity(0.4)
                             : Theme.of(context).colorScheme.onSurface,
                       ),
                       maxLines: 1,
@@ -1651,10 +1651,10 @@ class _FeatureCardState extends State<_FeatureCard>
                         color: widget.isDisabled
                             ? Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.3)
+                              ).colorScheme.onSurface.withOpacity(0.3)
                             : Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                              ).colorScheme.onSurface.withOpacity(0.6),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -1668,7 +1668,7 @@ class _FeatureCardState extends State<_FeatureCard>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.1),
+                          color: Colors.orange.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(

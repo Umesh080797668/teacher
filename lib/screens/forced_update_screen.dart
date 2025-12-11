@@ -49,7 +49,7 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                           BoxShadow(
                             color: Theme.of(
                               context,
-                            ).colorScheme.primary.withValues(alpha: 0.3),
+                            ).colorScheme.primary.withOpacity(0.3),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
@@ -83,7 +83,7 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                        ).colorScheme.onPrimaryContainer.withOpacity(0.8),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -158,7 +158,7 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                                   fontSize: 14,
                                   height: 1.5,
                                   color: Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.8),
+                                      .withOpacity(0.8),
                                 ),
                               ),
                             ],
@@ -177,7 +177,7 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
+                              color: Colors.black.withOpacity(0.1),
                               blurRadius: 10,
                               spreadRadius: 2,
                             ),
@@ -219,7 +219,7 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.6),
+                                      .withOpacity(0.6),
                                 ),
                                 textAlign: TextAlign.center,
                               ),

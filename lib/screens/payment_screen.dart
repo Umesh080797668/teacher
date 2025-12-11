@@ -306,7 +306,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 Consumer<ClassesProvider>(
                                   builder: (context, classesProvider, child) {
                                     return DropdownButtonFormField<String>(
-                                      initialValue: _selectedClassId,
+                                      value: _selectedClassId,
                                       style: TextStyle(
                                         color: Theme.of(context).colorScheme.onSurface,
                                       ),
@@ -314,11 +314,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                       decoration: InputDecoration(
                                         labelText: 'Select Class',
                                         labelStyle: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                         ),
                                         prefixIcon: Icon(
                                           Icons.class_,
-                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                         ),
                                       ),
                                       items: classesProvider.classes.map((classObj) {
@@ -357,7 +357,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                         .toList();
 
                                     return DropdownButtonFormField<String>(
-                                      initialValue: _selectedStudentId,
+                                      value: _selectedStudentId,
                                       style: TextStyle(
                                         color: Theme.of(context).colorScheme.onSurface,
                                       ),
@@ -365,11 +365,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                       decoration: InputDecoration(
                                         labelText: 'Select Student',
                                         labelStyle: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                         ),
                                         prefixIcon: Icon(
                                           Icons.person,
-                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                         ),
                                       ),
                                       items: classStudents.map((student) {
@@ -401,7 +401,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
                                 // Payment Type Selection
                                 DropdownButtonFormField<String>(
-                                  initialValue: _selectedPaymentType,
+                                  value: _selectedPaymentType,
                                   style: TextStyle(
                                     color: Theme.of(context).colorScheme.onSurface,
                                   ),
@@ -409,11 +409,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   decoration: InputDecoration(
                                     labelText: 'Payment Type',
                                     labelStyle: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                     ),
                                     prefixIcon: Icon(
                                       Icons.payment,
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                     ),
                                   ),
                                   items: [
@@ -466,15 +466,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   decoration: InputDecoration(
                                     labelText: 'Amount (LKR)',
                                     labelStyle: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                     ),
                                     prefixIcon: Icon(
                                       Icons.attach_money,
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                     ),
                                     hintText: 'Enter payment amount',
                                     hintStyle: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                                     ),
                                   ),
                                   keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -732,7 +732,7 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -761,7 +761,7 @@ class _StatCard extends StatelessWidget {
             child: Text(
               title,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
               maxLines: 1,
             ),
@@ -789,7 +789,7 @@ class _PaymentTypeCard extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 70, maxWidth: 100),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // Reduced padding
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

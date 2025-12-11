@@ -219,10 +219,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                   labelText: 'Name',
                                   prefixIcon: Icon(
                                     Icons.person,
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                   ),
                                   labelStyle: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                   ),
                                 ),
                                 validator: (value) {
@@ -242,10 +242,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                   labelText: 'Email (optional)',
                                   prefixIcon: Icon(
                                     Icons.email,
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                   ),
                                   labelStyle: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                   ),
                                 ),
                                 keyboardType: TextInputType.emailAddress,
@@ -260,14 +260,14 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                   labelText: 'Student ID (optional - auto-generated)',
                                   prefixIcon: Icon(
                                     Icons.badge,
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                   ),
                                   labelStyle: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                   ),
                                   helperText: 'Leave empty to auto-generate',
                                   helperStyle: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                                   ),
                                 ),
                               ),
@@ -275,7 +275,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               Consumer<ClassesProvider>(
                                 builder: (context, classesProvider, child) {
                                   return DropdownButtonFormField<String>(
-                                    initialValue: _selectedClassId,
+                                    value: _selectedClassId,
                                     style: TextStyle(
                                       color: Theme.of(context).colorScheme.onSurface,
                                     ),
@@ -284,10 +284,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                       labelText: 'Class (optional)',
                                       prefixIcon: Icon(
                                         Icons.class_,
-                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                       ),
                                       labelStyle: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                       ),
                                     ),
                                     items: [
@@ -522,7 +522,7 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -544,7 +544,7 @@ class _StatCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
         ],

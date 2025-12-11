@@ -173,8 +173,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'Current version: $_currentVersion',
               style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurface.withValues(
-                  alpha: isDark ? 0.7 : 0.6,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(
+                  isDark ? 0.7 : 0.6,
                 ),
               ),
             ),
@@ -251,8 +251,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   statusMessage,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(
-                      alpha: isDark ? 0.7 : 0.6,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(
+                      isDark ? 0.7 : 0.6,
                     ),
                   ),
                 ),
@@ -677,7 +677,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     fontStyle: FontStyle.italic,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ).colorScheme.onSurface.withOpacity(0.7),
                   ),
                 ),
               ],

@@ -384,7 +384,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         BoxShadow(
                           color: Theme.of(
                             context,
-                          ).colorScheme.shadow.withValues(alpha: 0.3),
+                          ).colorScheme.shadow.withOpacity(0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 6),
                         ),
@@ -509,13 +509,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           labelStyle: TextStyle(
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                            ).colorScheme.onSurface.withOpacity(0.7),
                           ),
                           prefixIcon: Icon(
                             Icons.person_outline,
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                            ).colorScheme.onSurface.withOpacity(0.7),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -526,7 +526,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : Theme.of(context)
                                     .colorScheme
                                     .surfaceContainerHighest
-                                    .withValues(alpha: 0.3),
+                                    .withOpacity(0.3),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
@@ -550,13 +550,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           labelStyle: TextStyle(
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                            ).colorScheme.onSurface.withOpacity(0.7),
                           ),
                           prefixIcon: Icon(
                             Icons.email_outlined,
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                            ).colorScheme.onSurface.withOpacity(0.7),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -567,7 +567,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : Theme.of(context)
                                     .colorScheme
                                     .surfaceContainerHighest
-                                    .withValues(alpha: 0.3),
+                                    .withOpacity(0.3),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
@@ -596,13 +596,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           labelStyle: TextStyle(
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                            ).colorScheme.onSurface.withOpacity(0.7),
                           ),
                           prefixIcon: Icon(
                             Icons.phone_outlined,
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                            ).colorScheme.onSurface.withOpacity(0.7),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -613,7 +613,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : Theme.of(context)
                                     .colorScheme
                                     .surfaceContainerHighest
-                                    .withValues(alpha: 0.3),
+                                    .withOpacity(0.3),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -631,13 +631,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             labelStyle: TextStyle(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.7),
+                              ).colorScheme.onSurface.withOpacity(0.7),
                             ),
                             prefixIcon: Icon(
                               Icons.badge_outlined,
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.7),
+                              ).colorScheme.onSurface.withOpacity(0.7),
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -646,7 +646,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             fillColor: Theme.of(context)
                                 .colorScheme
                                 .surfaceContainerHighest
-                                .withValues(alpha: 0.3),
+                                .withOpacity(0.3),
                           ),
                         ),
 
@@ -660,8 +660,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: _teacher!.status == 'active'
-                                ? Colors.green.withValues(alpha: 0.1)
-                                : Colors.orange.withValues(alpha: 0.1),
+                                ? Colors.green.withOpacity(0.1)
+                                : Colors.orange.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: _teacher!.status == 'active'
