@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+  
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -47,21 +50,20 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
       - name: Upload APK to Release
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./build/app/outputs/flutter-apk/app-release.apk
-          asset_name: teacher-attendance-v${{ steps.version.outputs.version }}.apk
-          asset_content_type: application/vnd.android.package-archive
+        run: |
+          gh release upload ${{ github.event.release.tag_name }} \
+            ./build/app/outputs/flutter-apk/app-release.apk \
+            --clobber \
+            --repo ${{ github.repository }}
       
       - name: Update update.json
         run: |
           cat > update.json << EOF
           {
             "version": "${{ steps.version.outputs.version }}",
-            "downloadUrl": "${{ github.event.release.html_url }}",
+            "downloadUrl": "https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/app-release.apk",
             "releaseNotes": "${{ github.event.release.body }}",
             "isForced": false
           }
