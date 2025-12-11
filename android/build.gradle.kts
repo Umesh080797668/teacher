@@ -17,22 +17,13 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
-subprojects {
-    project.evaluationDependsOn(":app")
 
+subprojects {
     if (project.name == "install_plugin") {
-        fun configureNamespace() {
+        afterEvaluate {
             val android = project.extensions.findByName("android") as? BaseExtension
             if (android != null && android.namespace == null) {
                 android.namespace = "com.zaihui.installplugin"
-            }
-        }
-
-        if (project.state.executed) {
-            configureNamespace()
-        } else {
-            project.afterEvaluate {
-                configureNamespace()
             }
         }
     }
