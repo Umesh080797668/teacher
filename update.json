@@ -1,6 +1,8 @@
 {
   "version": "1.0.18",
   "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.18/app-release.apk",
-  "releaseNotes": "• Added autofilling passwords feature • Updated login screen • Improved update system",
+  "releaseNotes": "• Added autofilling passwords feature
+• Updated login screen
+• Improved update system",
   "isForced": false
 }
