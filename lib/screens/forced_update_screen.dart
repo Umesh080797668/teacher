@@ -66,13 +66,13 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                     // Title
                     Text(
                       'Update Required',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onPrimaryContainer,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
+                              ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
@@ -81,10 +81,10 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                     Text(
                       'A new version is available and must be installed to continue',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onPrimaryContainer.withOpacity(0.8),
-                      ),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                          ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
@@ -157,7 +157,9 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   height: 1.5,
-                                  color: Theme.of(context).colorScheme.onSurface
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
                                       .withOpacity(0.8),
                                 ),
                               ),
@@ -218,7 +220,9 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                                 _statusMessage,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurface
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
                                       .withOpacity(0.6),
                                 ),
                                 textAlign: TextAlign.center,
@@ -307,8 +311,11 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
         onProgress: (progress) {
           setState(() {
             _downloadProgress = progress;
-            if (progress < 1.0) {
-              _statusMessage = 'Downloading...';
+            if (progress < 0.01) {
+              _statusMessage = 'Starting download...';
+            } else if (progress < 1.0) {
+              final percentage = (progress * 100).toStringAsFixed(1);
+              _statusMessage = 'Downloading... $percentage%';
             } else {
               _statusMessage = 'Download complete. Installing...';
             }
@@ -316,7 +323,17 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
         },
       );
 
-      if (!success) {
+      if (success) {
+        // Show installation message
+        setState(() {
+          _downloadProgress = 1.0;
+          _statusMessage =
+              'Installation package ready. Please complete installation.';
+        });
+
+        // Keep showing the message for a bit
+        await Future.delayed(const Duration(seconds: 2));
+      } else {
         setState(() {
           _isDownloading = false;
           _statusMessage = '';
@@ -339,6 +356,7 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
+              duration: const Duration(seconds: 4),
             ),
           );
         }
@@ -356,7 +374,7 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
               children: [
                 const Icon(Icons.error, color: Colors.white),
                 const SizedBox(width: 12),
-                Expanded(child: Text('Error: $e')),
+                Expanded(child: Text('Error: ${e.toString()}')),
               ],
             ),
             backgroundColor: Colors.red,
@@ -364,6 +382,7 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
+            duration: const Duration(seconds: 5),
           ),
         );
       }

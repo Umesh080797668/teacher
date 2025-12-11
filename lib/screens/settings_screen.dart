@@ -54,7 +54,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       debugPrint('Loading version info...');
       final packageInfo = await PackageInfo.fromPlatform();
-      debugPrint('PackageInfo: appName=${packageInfo.appName}, packageName=${packageInfo.packageName}, version=${packageInfo.version}, buildNumber=${packageInfo.buildNumber}');
+      debugPrint(
+          'PackageInfo: appName=${packageInfo.appName}, packageName=${packageInfo.packageName}, version=${packageInfo.version}, buildNumber=${packageInfo.buildNumber}');
       setState(() {
         _currentVersion = packageInfo.version;
       });
@@ -70,9 +71,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Clear cache to ensure fresh data
       await _updateService.clearUpdateCache();
       debugPrint('Update cache cleared before checking for updates');
-      
+
       // Don't show notification when manually checking from settings
-      final updateInfo = await _updateService.checkForUpdates(showNotification: false);
+      final updateInfo =
+          await _updateService.checkForUpdates(showNotification: false);
 
       if (!mounted) return;
 
@@ -174,8 +176,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(
-                  isDark ? 0.7 : 0.6,
-                ),
+                      isDark ? 0.7 : 0.6,
+                    ),
               ),
             ),
           ],
@@ -204,14 +206,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _downloadAndInstallUpdate(UpdateInfo updateInfo) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    double downloadProgress = 0.0;
+    String statusMessage = 'Preparing download...';
+    late StateSetter setDialogState;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          double downloadProgress = 0.0;
-          String statusMessage = 'Preparing download...';
-
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) {
+          setDialogState = setState;
           return AlertDialog(
             backgroundColor: Theme.of(context).colorScheme.surface,
             title: Row(
@@ -252,8 +256,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(context).colorScheme.onSurface.withOpacity(
-                      isDark ? 0.7 : 0.6,
-                    ),
+                          isDark ? 0.7 : 0.6,
+                        ),
                   ),
                 ),
               ],
@@ -267,20 +271,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _updateService.downloadAndInstallUpdate(
         updateInfo.downloadUrl,
         onProgress: (progress) {
-          // Note: This won't update the dialog as written above
-          // You'd need to use a more complex state management solution
-          // or use a custom dialog widget
-          debugPrint(
-            'Download progress: ${(progress * 100).toStringAsFixed(0)}%',
-          );
+          setDialogState(() {
+            downloadProgress = progress;
+            if (progress < 1.0) {
+              statusMessage =
+                  'Downloading... ${(progress * 100).toStringAsFixed(1)}%';
+            } else {
+              statusMessage = 'Download complete. Installing...';
+            }
+          });
         },
       );
+
+      // Update UI to show installation
+      setDialogState(() {
+        downloadProgress = 1.0;
+        statusMessage = 'Installing update...';
+      });
+
+      // Wait a bit to show the installation message
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                      'Update downloaded successfully. Please install the APK.'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to install update: $e'),
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Failed to install update: $e')),
+              ],
+            ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -442,7 +488,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onChanged: _isLoading
                         ? null
                         : (value) =>
-                              _updateSetting('notifications_enabled', value),
+                            _updateSetting('notifications_enabled', value),
                   ),
                   const Divider(height: 1),
 

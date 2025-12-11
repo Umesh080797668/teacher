@@ -62,8 +62,7 @@ class UpdateService {
     // Request notification permissions for Android 13+ (API level 33+)
     await _flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
   }
 
@@ -74,16 +73,17 @@ class UpdateService {
       final currentVersion = packageInfo.version;
 
       debugPrint('Current app version: $currentVersion');
-      debugPrint('PackageInfo details: appName=${packageInfo.appName}, packageName=${packageInfo.packageName}, version=${packageInfo.version}, buildNumber=${packageInfo.buildNumber}');
+      debugPrint(
+          'PackageInfo details: appName=${packageInfo.appName}, packageName=${packageInfo.packageName}, version=${packageInfo.version}, buildNumber=${packageInfo.buildNumber}');
 
       // Update the URL below with your actual JSON file URL from MEGA or GitHub
       // For MEGA, you'll need to create a public link
       // Add cache-busting headers and timestamp to prevent stale data
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final urlWithTimestamp = '$_updateCheckUrl?t=$timestamp';
-      
+
       debugPrint('Fetching update info from: $urlWithTimestamp');
-      
+
       // Don't add custom headers to avoid CORS issues with GitHub raw content
       // Set response type to plain for raw GitHub content
       final response = await _dio.get(
@@ -110,7 +110,8 @@ class UpdateService {
 
         // Compare versions
         final isNewer = _isNewerVersion(currentVersion, latestVersion);
-        debugPrint('Is newer version available: $isNewer (Current: $currentVersion, Latest: $latestVersion)');
+        debugPrint(
+            'Is newer version available: $isNewer (Current: $currentVersion, Latest: $latestVersion)');
 
         if (isNewer) {
           final updateInfo = UpdateInfo.fromJson(data);
@@ -160,6 +161,8 @@ class UpdateService {
     Function(double)? onProgress,
   }) async {
     try {
+      debugPrint('Starting download from: $downloadUrl');
+
       // Get download directory
       final dir = await getExternalStorageDirectory();
       if (dir == null) {
@@ -167,35 +170,83 @@ class UpdateService {
       }
 
       final savePath = '${dir.path}/teacher_attendance_update.apk';
+      debugPrint('Save path: $savePath');
 
       // Delete old APK if exists
       final file = File(savePath);
       if (await file.exists()) {
+        debugPrint('Deleting old APK');
         await file.delete();
       }
 
-      // Download the APK
+      // Report initial progress
+      if (onProgress != null) {
+        onProgress(0.0);
+      }
+
+      // Download the APK with better error handling
       await _dio.download(
         downloadUrl,
         savePath,
+        options: Options(
+          followRedirects: true,
+          validateStatus: (status) => status != null && status < 500,
+          receiveTimeout: const Duration(minutes: 10),
+        ),
         onReceiveProgress: (received, total) {
-          if (total != -1 && onProgress != null) {
+          if (total != -1) {
             final progress = received / total;
-            onProgress(progress);
+            debugPrint(
+                'Download progress: ${(progress * 100).toStringAsFixed(1)}% ($received / $total bytes)');
+            if (onProgress != null) {
+              onProgress(progress);
+            }
+          } else {
+            debugPrint('Download progress: $received bytes (total unknown)');
+            // For unknown total size, just report that we're downloading
+            if (onProgress != null && received > 0) {
+              // Use a fake progress that never reaches 100%
+              final fakeProgress = 0.5;
+              onProgress(fakeProgress);
+            }
           }
         },
       );
 
+      debugPrint('Download complete. File size: ${await file.length()} bytes');
+
+      // Ensure progress shows 100% before installation
+      if (onProgress != null) {
+        onProgress(1.0);
+      }
+
+      // Brief delay to show 100% completion
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Verify file exists and has content
+      if (!await file.exists()) {
+        throw Exception('Downloaded file does not exist');
+      }
+
+      final fileSize = await file.length();
+      if (fileSize < 1000000) {
+        // Less than 1MB is suspicious for an APK
+        debugPrint('Warning: APK file size is only $fileSize bytes');
+      }
+
       // Install the APK
       if (Platform.isAndroid) {
+        debugPrint('Starting installation...');
         await InstallPlugin.install(savePath);
+        debugPrint('Installation initiated successfully');
         return true;
       }
 
       return false;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Error downloading/installing update: $e');
-      return false;
+      debugPrint('Stack trace: $stackTrace');
+      rethrow; // Rethrow to let caller handle the error
     }
   }
 
@@ -240,13 +291,13 @@ class UpdateService {
   Future<void> _showUpdateNotification(UpdateInfo updateInfo) async {
     const AndroidNotificationDetails androidNotificationDetails =
         AndroidNotificationDetails(
-          'update_channel',
-          'App Updates',
-          channelDescription: 'Notifications for app updates',
-          importance: Importance.max,
-          priority: Priority.high,
-          showWhen: false,
-        );
+      'update_channel',
+      'App Updates',
+      channelDescription: 'Notifications for app updates',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: false,
+    );
 
     const NotificationDetails notificationDetails = NotificationDetails(
       android: androidNotificationDetails,
