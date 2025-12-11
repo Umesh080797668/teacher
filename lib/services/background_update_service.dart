@@ -68,7 +68,6 @@ Future<void> _performBackgroundUpdateCheck() async {
     if (response.statusCode == 200) {
       final data = response.data as Map<String, dynamic>;
       final latestVersion = data['version'] as String;
-      final releaseNotes = data['releaseNotes'] as String? ?? '';
       final isForced = data['isForced'] as bool? ?? false;
 
       debugPrint('Background check - Latest version: $latestVersion');
@@ -150,6 +149,12 @@ class BackgroundUpdateService {
   /// Initialize and schedule background update checks
   static Future<void> initialize() async {
     try {
+      // Skip initialization on web platform as workmanager is not supported
+      if (kIsWeb) {
+        debugPrint('Background update service skipped on web platform');
+        return;
+      }
+
       // Initialize Workmanager
       await Workmanager().initialize(
         callbackDispatcher,
@@ -181,12 +186,20 @@ class BackgroundUpdateService {
 
   /// Cancel all background tasks
   static Future<void> cancelAll() async {
+    if (kIsWeb) {
+      debugPrint('Background tasks not supported on web');
+      return;
+    }
     await Workmanager().cancelAll();
     debugPrint('All background tasks cancelled');
   }
 
   /// Cancel specific update check task
   static Future<void> cancelUpdateCheck() async {
+    if (kIsWeb) {
+      debugPrint('Background tasks not supported on web');
+      return;
+    }
     await Workmanager().cancelByUniqueName(_updateCheckTaskName);
     debugPrint('Update check task cancelled');
   }

@@ -222,6 +222,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showActivityDetails(BuildContext context, RecentActivity activity) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -233,7 +235,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: _getActivityColor(activity.type),
               ),
               const SizedBox(width: 8),
-              Text(activity.title),
+              Text(
+                activity.title,
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : null,
+                ),
+              ),
             ],
           ),
           content: SingleChildScrollView(
@@ -243,7 +250,9 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   activity.subtitle,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: isDarkMode ? Colors.white.withOpacity(0.9) : null,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -251,13 +260,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icon(
                       Icons.access_time,
                       size: 16,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                      color: isDarkMode
+                        ? Colors.white.withOpacity(0.8)
+                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _formatTimestamp(activity.timestamp),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                        color: isDarkMode
+                          ? Colors.white.withOpacity(0.8)
+                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                       ),
                     ),
                   ],
@@ -268,13 +281,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     Icon(
                       Icons.category,
                       size: 16,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                      color: isDarkMode
+                        ? Colors.white.withOpacity(0.8)
+                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _getActivityTypeLabel(activity.type),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                        color: isDarkMode
+                          ? Colors.white.withOpacity(0.8)
+                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                       ),
                     ),
                   ],
@@ -1311,6 +1328,8 @@ class _RecentActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -1332,7 +1351,7 @@ class _RecentActivityCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _getActivityColor(activity.type).withOpacity(0.1),
+                color: _getActivityColor(activity.type).withOpacity(isDarkMode ? 0.2 : 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(_getActivityIcon(activity.type), color: _getActivityColor(activity.type), size: 24),
@@ -1346,7 +1365,9 @@ class _RecentActivityCard extends StatelessWidget {
                     activity.title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface,
+                      color: isDarkMode 
+                        ? Colors.white 
+                        : Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                     maxLines: 1,
@@ -1356,9 +1377,9 @@ class _RecentActivityCard extends StatelessWidget {
                   Text(
                     activity.subtitle,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withOpacity(0.85),
+                      color: isDarkMode
+                        ? Colors.white.withOpacity(0.9)
+                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.85),
                       fontSize: 12,
                     ),
                     maxLines: 1,
@@ -1367,13 +1388,13 @@ class _RecentActivityCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             Text(
               _getTimeAgo(activity.timestamp),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withOpacity(0.7),
+                color: isDarkMode
+                  ? Colors.white.withOpacity(0.7)
+                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 fontSize: 11,
               ),
               textAlign: TextAlign.right,
