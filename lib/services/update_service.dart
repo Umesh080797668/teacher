@@ -83,16 +83,8 @@ class UpdateService {
       
       debugPrint('Fetching update info from: $urlWithTimestamp');
       
-      final response = await _dio.get(
-        urlWithTimestamp,
-        options: Options(
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-          },
-        ),
-      );
+      // Don't add custom headers to avoid CORS issues with GitHub raw content
+      final response = await _dio.get(urlWithTimestamp);
 
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
