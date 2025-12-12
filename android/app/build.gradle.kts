@@ -39,6 +39,13 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Improve graphics performance and reduce buffer allocation errors
+        vectorDrawables.useSupportLibrary = true
+        
+        ndk {
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
+        }
     }
 
     signingConfigs {
@@ -53,7 +60,23 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+    }
+    
+    packagingOptions {
+        resources.excludes.add("META-INF/NOTICE")
+        resources.excludes.add("META-INF/LICENSE")
+        resources.excludes.add("META-INF/DEPENDENCIES")
     }
 }
 

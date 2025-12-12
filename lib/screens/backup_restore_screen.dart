@@ -70,9 +70,14 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Restore Backup'),
-        content: const Text(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(
+          'Restore Backup',
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+        ),
+        content: Text(
           'This will replace all current data with the backup data. This action cannot be undone. Continue?',
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
         ),
         actions: [
           TextButton(
@@ -169,8 +174,15 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Backup'),
-        content: const Text('Are you sure you want to delete this backup?'),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(
+          'Delete Backup',
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+        ),
+        content: Text(
+          'Are you sure you want to delete this backup?',
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -355,9 +367,10 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                     children: [
                       Text(
                         'Backup Files (${_backupFiles.length})',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ],

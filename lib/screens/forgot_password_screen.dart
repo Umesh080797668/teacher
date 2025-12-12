@@ -256,11 +256,31 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> with Single
                                   TextFormField(
                                     controller: _emailController,
                                     keyboardType: TextInputType.emailAddress,
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 16,
+                                    ),
                                     decoration: InputDecoration(
                                       labelText: 'Email Address',
-                                      prefixIcon: const Icon(Icons.email_outlined),
+                                      labelStyle: TextStyle(
+                                        color: Colors.grey[700],
+                                        fontSize: 16,
+                                      ),
+                                      floatingLabelStyle: const TextStyle(
+                                        color: Color(0xFF6366F1),
+                                        fontSize: 18,
+                                      ),
+                                      prefixIcon: Icon(Icons.email_outlined, color: Colors.grey[700]),
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide(color: Colors.grey[300]!),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                                       ),
                                       filled: true,
                                       fillColor: Colors.grey[50],
@@ -287,19 +307,36 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> with Single
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: const Color(0xFF6366F1),
                                         foregroundColor: Colors.white,
+                                        disabledBackgroundColor: const Color(0xFF6366F1).withOpacity(0.7),
+                                        disabledForegroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(12),
                                         ),
                                         elevation: 2,
                                       ),
                                       child: _isLoading
-                                          ? const SizedBox(
-                                              height: 24,
-                                              width: 24,
-                                              child: CircularProgressIndicator(
-                                                color: Colors.white,
-                                                strokeWidth: 2,
-                                              ),
+                                          ? Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const SizedBox(
+                                                  height: 24,
+                                                  width: 24,
+                                                  child: CircularProgressIndicator(
+                                                    color: Colors.white,
+                                                    strokeWidth: 3,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Text(
+                                                  'Sending code...',
+                                                  style: GoogleFonts.poppins(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ],
                                             )
                                           : Text(
                                               'Send Reset Code',

@@ -442,14 +442,27 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> with SingleTi
                             child: TextFormField(
                               controller: _passwordController,
                               obscureText: !_isPasswordVisible,
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                fontSize: 16,
+                              ),
                               decoration: InputDecoration(
                                 labelText: 'New Password',
-                                prefixIcon: const Icon(Icons.lock_outlined),
+                                labelStyle: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 16,
+                                ),
+                                floatingLabelStyle: const TextStyle(
+                                  color: Color(0xFF6366F1),
+                                  fontSize: 18,
+                                ),
+                                prefixIcon: Icon(Icons.lock_outlined, color: Colors.grey[700]),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _isPasswordVisible
                                         ? Icons.visibility
                                         : Icons.visibility_off,
+                                    color: Colors.grey[700],
                                   ),
                                   onPressed: () {
                                     setState(() {
@@ -483,14 +496,27 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> with SingleTi
                             child: TextFormField(
                               controller: _confirmPasswordController,
                               obscureText: !_isConfirmPasswordVisible,
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                fontSize: 16,
+                              ),
                               decoration: InputDecoration(
                                 labelText: 'Confirm New Password',
-                                prefixIcon: const Icon(Icons.lock_outlined),
+                                labelStyle: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 16,
+                                ),
+                                floatingLabelStyle: const TextStyle(
+                                  color: Color(0xFF6366F1),
+                                  fontSize: 18,
+                                ),
+                                prefixIcon: Icon(Icons.lock_outlined, color: Colors.grey[700]),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _isConfirmPasswordVisible
                                         ? Icons.visibility
                                         : Icons.visibility_off,
+                                    color: Colors.grey[700],
                                   ),
                                   onPressed: () {
                                     setState(() {
@@ -517,19 +543,36 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> with SingleTi
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: const Color(0xFF6366F1),
+                                disabledBackgroundColor: Colors.white.withOpacity(0.7),
+                                disabledForegroundColor: const Color(0xFF6366F1),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 elevation: 2,
                               ),
                               child: _isLoading
-                                  ? const SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Color(0xFF6366F1),
-                                        strokeWidth: 2,
-                                      ),
+                                  ? Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const SizedBox(
+                                          height: 24,
+                                          width: 24,
+                                          child: CircularProgressIndicator(
+                                            color: Color(0xFF6366F1),
+                                            strokeWidth: 3,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Resetting...',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF6366F1),
+                                          ),
+                                        ),
+                                      ],
                                     )
                                   : Text(
                                       'Reset Password',

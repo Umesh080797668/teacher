@@ -524,7 +524,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     title: const Text('Auto Backup'),
-                    subtitle: const Text('Automatically backup data to cloud'),
+                    subtitle: const Text('Automatically backup data to local device'),
                     value: _autoBackup,
                     onChanged: _isLoading
                         ? null

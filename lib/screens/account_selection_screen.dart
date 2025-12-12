@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'registration_screen.dart';
@@ -10,27 +9,18 @@ class AccountSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          // Exit the app when back button is pressed
-          SystemNavigator.pop();
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Choose Account'),
-          centerTitle: true,
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-          automaticallyImplyLeading: false, // Remove back button from app bar
-        ),
-        body: Consumer<AuthProvider>(
-          builder: (context, auth, child) {
-            final accountHistory = auth.accountHistory;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Choose Account'),
+        centerTitle: true,
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+      ),
+      body: Consumer<AuthProvider>(
+        builder: (context, auth, child) {
+          final accountHistory = auth.accountHistory;
 
-            return Padding(
+          return Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -69,7 +59,6 @@ class AccountSelectionScreen extends StatelessWidget {
             );
           },
         ),
-      ),
     );
   }
 

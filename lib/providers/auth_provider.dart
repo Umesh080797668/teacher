@@ -78,14 +78,9 @@ class AuthProvider extends ChangeNotifier {
     _loadAuthState();
   }
 
-  /// Loads authentication state from SharedPreferences
-  /// This data persists across app updates and installations
-  /// as it's stored in the app's private storage directory
   Future<void> _loadAuthState() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
-      // Load authentication state - this persists across app updates
       _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
       _isGuest = prefs.getBool('is_guest') ?? false;
       _userEmail = prefs.getString('user_email');
@@ -96,16 +91,12 @@ class AuthProvider extends ChangeNotifier {
         _teacherData = Map<String, dynamic>.from(json.decode(teacherDataJson));
       }
 
-      // Load account history - this also persists across app updates
+      // Load account history
       final accountHistoryJson = prefs.getString('account_history');
       if (accountHistoryJson != null) {
         final List<dynamic> historyList = json.decode(accountHistoryJson);
-        _accountHistory =
-            historyList.map((item) => UserAccount.fromJson(item)).toList();
+        _accountHistory = historyList.map((item) => UserAccount.fromJson(item)).toList();
       }
-
-      debugPrint(
-          'Auth state loaded - isLoggedIn: $_isLoggedIn, isGuest: $_isGuest, email: $_userEmail');
     } catch (e) {
       debugPrint('Error loading auth state: $e');
     } finally {
@@ -114,8 +105,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> login(String email, String name,
-      {String? teacherId, Map<String, dynamic>? teacherData}) async {
+  Future<void> login(String email, String name, {String? teacherId, Map<String, dynamic>? teacherData}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_logged_in', true);
     await prefs.setBool('is_guest', false);
@@ -153,8 +143,7 @@ class AuthProvider extends ChangeNotifier {
     }
 
     // Save account history
-    await prefs.setString('account_history',
-        json.encode(_accountHistory.map((a) => a.toJson()).toList()));
+    await prefs.setString('account_history', json.encode(_accountHistory.map((a) => a.toJson()).toList()));
 
     notifyListeners();
   }
@@ -165,7 +154,7 @@ class AuthProvider extends ChangeNotifier {
     await prefs.setBool('is_guest', true);
     await prefs.remove('user_email');
     await prefs.remove('user_name');
-
+    
     _isLoggedIn = false;
     _isGuest = true;
     _userEmail = null;
@@ -181,7 +170,7 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('user_name');
     await prefs.remove('teacher_id');
     await prefs.remove('teacher_data');
-
+    
     _isLoggedIn = false;
     _isGuest = false;
     _userEmail = null;
@@ -203,8 +192,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> removeAccount(String email) async {
     _accountHistory.removeWhere((account) => account.email == email);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('account_history',
-        json.encode(_accountHistory.map((a) => a.toJson()).toList()));
+    await prefs.setString('account_history', json.encode(_accountHistory.map((a) => a.toJson()).toList()));
     notifyListeners();
   }
 }
