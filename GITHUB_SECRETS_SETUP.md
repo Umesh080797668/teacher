@@ -35,7 +35,7 @@ MIIKxAIBAzCCCm4GCSqGSIb3DQEHAaCCCl8EggpbMIIKVzCCBa4GCSqGSIb3DQEHAaCCBZ8EggWbMIIF
 storePassword=android123
 keyPassword=android123
 keyAlias=upload
-storeFile=app/upload-keystore.jks
+storeFile=upload-keystore.jks
 ```
 
 **Steps:**
@@ -43,6 +43,8 @@ storeFile=app/upload-keystore.jks
 2. Name: `KEY_PROPERTIES`
 3. Paste the 4 lines above exactly as shown
 4. Click **Add secret**
+
+**Important:** The `storeFile` path is relative to the `android` folder where both `key.properties` and `upload-keystore.jks` are located.
 
 ## ✅ Verification
 
