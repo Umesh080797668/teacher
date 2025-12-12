@@ -20,8 +20,8 @@ class PaymentProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addPayment(String studentId, String classId, double amount, String type) async {
-    final payment = await ApiService.createPayment(studentId, classId, amount, type);
+  Future<void> addPayment(String studentId, String classId, double amount, String type, {int? month}) async {
+    final payment = await ApiService.createPayment(studentId, classId, amount, type, month: month);
     _payments.add(payment);
     notifyListeners();
   }

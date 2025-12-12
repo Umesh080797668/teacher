@@ -20,8 +20,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? _selectedStudentId;
   String? _selectedClassId;
   String _selectedPaymentType = 'full';
+  String _selectedMonth = DateTime.now().month.toString();
   final TextEditingController _amountController = TextEditingController();
   bool _showForm = false;
+
+  final List<Map<String, dynamic>> _months = [
+    {'value': '1', 'label': 'January'},
+    {'value': '2', 'label': 'February'},
+    {'value': '3', 'label': 'March'},
+    {'value': '4', 'label': 'April'},
+    {'value': '5', 'label': 'May'},
+    {'value': '6', 'label': 'June'},
+    {'value': '7', 'label': 'July'},
+    {'value': '8', 'label': 'August'},
+    {'value': '9', 'label': 'September'},
+    {'value': '10', 'label': 'October'},
+    {'value': '11', 'label': 'November'},
+    {'value': '12', 'label': 'December'},
+  ];
 
   @override
   void initState() {
@@ -86,12 +102,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _selectedClassId!,
           amount,
           _selectedPaymentType,
+          month: int.parse(_selectedMonth),
         );
 
         setState(() {
           _selectedStudentId = null;
           _selectedClassId = null;
           _selectedPaymentType = 'full';
+          _selectedMonth = DateTime.now().month.toString();
           _amountController.clear();
           _showForm = false;
         });
@@ -395,6 +413,42 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                         return null;
                                       },
                                     );
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+
+                                // Month Selection
+                                DropdownButtonFormField<String>(
+                                  value: _selectedMonth,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  dropdownColor: Theme.of(context).colorScheme.surface,
+                                  decoration: InputDecoration(
+                                    labelText: 'Select Month',
+                                    labelStyle: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                    ),
+                                    prefixIcon: Icon(
+                                      Icons.calendar_today,
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                    ),
+                                  ),
+                                  items: _months.map((month) {
+                                    return DropdownMenuItem<String>(
+                                      value: month['value'],
+                                      child: Text(
+                                        month['label'],
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedMonth = value!;
+                                    });
                                   },
                                 ),
                                 const SizedBox(height: 12),

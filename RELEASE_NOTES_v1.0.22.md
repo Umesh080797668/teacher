@@ -1,11 +1,9 @@
 # Release Notes v1.0.22
 
-## 🐛 Bug Fixes
-- **Update Installation**: Fixed "Package Parse Error" during in-app updates by ensuring the correct `FileProvider` authority is used.
-- **Download Validation**: Improved download logic to prevent saving corrupt files (e.g., 404 error pages) as APKs.
-- **APK Optimization**: Removed unused x86 architectures to reduce APK size and improve compatibility with ARM devices.
+## ✨ New Features
+- **Payment Month Selection**: Added the ability to select the specific month when recording a payment.
+- **Delete Student from Class**: Added the ability to delete students directly from the Class Details screen.
 
-## 🔧 Technical Details
-- Updated `AndroidManifest.xml` to use `.installFileProvider` authority.
-- Updated `update_service.dart` to validate HTTP 200 status before saving downloads.
-- Updated `build.gradle.kts` to filter ABIs to `armeabi-v7a` and `arm64-v8a`.
+## � Bug Fixes & Improvements
+- **Update System**: Fixed "Package Parse Error" and optimized APK size.
+- **Dark Mode**: Improved visibility of payment month selection in dark mode.

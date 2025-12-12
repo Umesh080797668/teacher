@@ -418,8 +418,9 @@ class ApiService {
     String studentId,
     String classId,
     double amount,
-    String type,
-  ) async {
+    String type, {
+    int? month,
+  }) async {
     final response = await _makeRequest(
       'POST',
       '/api/payments',
@@ -428,6 +429,7 @@ class ApiService {
         'classId': classId,
         'amount': amount,
         'type': type,
+        if (month != null) 'month': month,
       },
     );
 

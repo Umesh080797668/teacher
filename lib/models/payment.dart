@@ -5,6 +5,7 @@ class Payment {
   final double amount;
   final String type; // 'full', 'half', 'free'
   final DateTime date;
+  final int? month;
 
   Payment({
     required this.id,
@@ -13,6 +14,7 @@ class Payment {
     required this.amount,
     required this.type,
     required this.date,
+    this.month,
   });
 
   factory Payment.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class Payment {
       amount: (json['amount'] as num).toDouble(),
       type: json['type'],
       date: DateTime.parse(json['date']),
+      month: json['month'],
     );
   }
 
@@ -33,6 +36,7 @@ class Payment {
       'amount': amount,
       'type': type,
       'date': date.toIso8601String(),
+      'month': month,
     };
   }
 }
