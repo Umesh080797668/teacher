@@ -1,6 +1,6 @@
 {
   "version": "1.0.19",
   "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.19/app-release.apk",
-  "releaseNotes": "🎉 Major Update v1.1.0\n\n✅ Fixed unwanted retry notifications from background tasks\n✅ Implemented proper push notification system with toggle control\n✅ Added 24-hour automatic backup system (local storage)\n✅ New Backup & Restore screen with full backup management\n✅ Export/Import backups for easy device transfers\n✅ File-based backup system (no cloud dependency)\n\nBackup Features:\n• Create manual backups anytime\n• Automatic backups every 24 hours\n• View all backup files with dates and sizes\n• Restore from any backup\n• Share backups to transfer to new devices\n• Import backups from external files",
+  "releaseNotes": "Major Update v1.1.0, Fixed unwanted retry notifications from background tasks, Implemented proper push notification system with toggle control, Added 24-hour automatic backup system (local storage), New Backup & Restore screen with full backup management, Export/Import backups for easy device transfers, File-based backup system (no cloud dependency), Backup Features: Create manual backups anytime Automatic backups every 24 hours View all backup files with dates and sizes Restore from any backup Share backups to transfer to new devices Import backups from external files",
   "isForced": false
 }
