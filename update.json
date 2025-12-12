@@ -1,6 +1,6 @@
 {
   "version": "1.0.23",
   "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.23/app-release.apk",
-  "releaseNotes": "New Features & Improvements v1.0.23\n\n✨ New Features:\n✅ Added month selection for payments\n✅ Added delete student capability in Class Details view\n\n🐛 Bug Fixes:\n✅ Fixed update installation issues\n✅ Optimized APK size",
+  "releaseNotes": "",
   "isForced": false
 }
