@@ -23,12 +23,9 @@ class UpdateInfo {
   });
 
   factory UpdateInfo.fromJson(Map<String, dynamic> json) {
-    // Allow overriding the download URL via environment variable
-    final envDownload = dotenv.env['UPDATE_DOWNLOAD_URL'];
-
     return UpdateInfo(
       version: json['version'] as String,
-      downloadUrl: envDownload ?? (json['downloadUrl'] as String),
+      downloadUrl: json['downloadUrl'] as String,
       releaseNotes: json['releaseNotes'] as String? ?? '',
       isForced: json['isForced'] as bool? ?? false,
     );
