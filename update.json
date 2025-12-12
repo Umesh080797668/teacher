@@ -1,6 +1,6 @@
 {
   "version": "1.0.20",
-  "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/v1.0.20/app-release.apk",
+  "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.20/app-release.apk",
   "releaseNotes": "UI/UX Improvements & Android Fixes v1.0.20\n\n🎨 UI/UX Improvements:\n✅ Fixed text field visibility in all authentication screens\n✅ Enhanced loading button visibility with clear status messages\n✅ Fixed dark mode visibility in backup dialogs\n✅ Updated backup text for clarity (local device storage)\n\n🔧 Android Optimizations:\n✅ Fixed GraphicBuffer allocation errors\n✅ Fixed Android 14+ OnBackInvokedCallback warnings\n✅ Improved memory management and build performance\n✅ Enhanced hardware acceleration support\n\n🐛 Bug Fixes:\n• Text fields now show clear labels and input text\n• Loading states display \"Signing in...\", \"Creating account...\", etc.\n• Backup dialogs fully visible in dark mode\n• Reset password screen syntax error fixed",
   "isForced": false
 }
