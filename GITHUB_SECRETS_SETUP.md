@@ -44,7 +44,7 @@ storeFile=upload-keystore.jks
 3. Paste the 4 lines above exactly as shown
 4. Click **Add secret**
 
-**Important:** The `storeFile` path is relative to the `android` folder where both `key.properties` and `upload-keystore.jks` are located.
+**Important:** The `storeFile` path is relative to the `android/app` folder. The workflow places the keystore at `android/app/upload-keystore.jks`.
 
 ## ✅ Verification
 
