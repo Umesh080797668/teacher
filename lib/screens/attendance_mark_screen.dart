@@ -41,7 +41,8 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     }
 
     try {
-      for (var entry in _attendanceStatus.entries) {
+      final entries = _attendanceStatus.entries.toList();
+      for (var entry in entries) {
         await ApiService.markAttendance(
           entry.key,
           _selectedDate,
