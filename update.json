@@ -1,6 +1,6 @@
 {
-  "version": "1.0.23",
-  "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.23/app-release.apk",
-  "releaseNotes": "",
+  "version": "1.0.24",
+  "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.24/app-release.apk",
+  "releaseNotes": "New Features & Improvements v1.0.24\n\n🐛 Bug Fixes:\n✅ Fixed app update installation process\n✅ Added permission check for unknown sources\n✅ Auto-restart app after update",
   "isForced": false
 }

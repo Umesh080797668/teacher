@@ -8,6 +8,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:install_plugin/install_plugin.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/services.dart';
 
 class UpdateInfo {
   final String version;
@@ -158,6 +160,17 @@ class UpdateService {
     Function(double)? onProgress,
   }) async {
     try {
+      // Request install packages permission before downloading
+      if (Platform.isAndroid) {
+        final status = await Permission.requestInstallPackages.status;
+        if (!status.isGranted) {
+          final result = await Permission.requestInstallPackages.request();
+          if (!result.isGranted) {
+            debugPrint('Install packages permission denied');
+          }
+        }
+      }
+
       debugPrint('Starting download from: $downloadUrl');
 
       // Get download directory
@@ -236,6 +249,11 @@ class UpdateService {
         debugPrint('Starting installation...');
         await InstallPlugin.install(savePath);
         debugPrint('Installation initiated successfully');
+        
+        // Close the app to allow update to proceed smoothly
+        await Future.delayed(const Duration(seconds: 1));
+        SystemNavigator.pop();
+        
         return true;
       }
 
