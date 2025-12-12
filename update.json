@@ -1,6 +1,6 @@
 {
   "version": "1.0.21",
   "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.21/app-release.apk",
-  "releaseNotes": "Bug Fixes & New Features v1.0.21\n\n✨ New Features:\n✅ Added ability to delete students from the students list\n\n� Bug Fixes:\n✅ Fixed 'setState() called during build' exception in Students screen\n✅ Improved stability of student loading",
+  "releaseNotes": "",
   "isForced": false
 }
