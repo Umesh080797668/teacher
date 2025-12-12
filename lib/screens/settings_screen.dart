@@ -8,7 +8,9 @@ import '../services/notification_service.dart';
 import '../services/backup_service.dart';
 import '../services/data_export_service.dart';
 import '../services/update_service.dart';
+import '../services/background_backup_service.dart';
 import 'profile_screen.dart';
+import 'backup_restore_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -370,6 +372,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         case 'auto_backup':
           _autoBackup = value;
           await _backupService.setAutoBackup(value);
+          // Enable or disable background backup service
+          if (value) {
+            await BackgroundBackupService.enableBackupTask();
+          } else {
+            await BackgroundBackupService.cancelBackupTask();
+          }
           break;
       }
 
@@ -536,6 +544,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               child: Column(
                 children: [
+                  ListTile(
+                    leading: Icon(
+                      Icons.backup,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: const Text('Backup & Restore'),
+                    subtitle: const Text('Manage local backups'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const BackupRestoreScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1),
                   ListTile(
                     leading: Icon(
                       Icons.download_outlined,

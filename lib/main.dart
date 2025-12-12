@@ -11,6 +11,7 @@ import 'providers/payment_provider.dart';
 import 'providers/reports_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/background_update_service.dart';
+import 'services/background_backup_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,9 @@ void main() async {
   
   // Initialize background update service for periodic checks even when app is closed
   await BackgroundUpdateService.initialize();
+  
+  // Initialize background backup service for automatic backups every 24 hours
+  await BackgroundBackupService.initialize();
   
   runApp(const MyApp());
 }

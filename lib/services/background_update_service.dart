@@ -19,7 +19,9 @@ void callbackDispatcher() {
       return Future.value(true);
     } catch (e) {
       debugPrint('Error in background update check: $e');
-      return Future.value(false);
+      // Return true to prevent WorkManager from showing error notifications
+      // Errors will be logged but won't notify the user
+      return Future.value(true);
     }
   });
 }
@@ -44,11 +46,9 @@ Future<void> _performBackgroundUpdateCheck() async {
     final currentVersion = packageInfo.version;
 
     debugPrint('Background check - Current version: $currentVersion');
-    debugPrint('Background check - PackageInfo details: appName=${packageInfo.appName}, packageName=${packageInfo.packageName}, version=${packageInfo.version}, buildNumber=${packageInfo.buildNumber}');
 
-    // Fetch update info from GitHub
+    // Fetch update info from GitHub with timeout
     final dio = Dio();
-    // Add cache-busting headers and timestamp to prevent stale data
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final updateUrl = 'https://raw.githubusercontent.com/Umesh080797668/teacher/main/update.json?t=$timestamp';
     
@@ -62,6 +62,8 @@ Future<void> _performBackgroundUpdateCheck() async {
           'Pragma': 'no-cache',
           'Expires': '0',
         },
+        sendTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
       ),
     );
 
@@ -71,7 +73,6 @@ Future<void> _performBackgroundUpdateCheck() async {
       final isForced = data['isForced'] as bool? ?? false;
 
       debugPrint('Background check - Latest version: $latestVersion');
-      debugPrint('Background check - Full response: $data');
 
       // Save last check time
       final prefs = await SharedPreferences.getInstance();
@@ -87,7 +88,7 @@ Future<void> _performBackgroundUpdateCheck() async {
       if (isNewer) {
         await prefs.setBool('update_available', true);
 
-        // Show notification
+        // Show notification only if updates are available
         const AndroidNotificationDetails androidDetails =
             AndroidNotificationDetails(
               'update_channel',
@@ -117,8 +118,9 @@ Future<void> _performBackgroundUpdateCheck() async {
       }
     }
   } catch (e) {
-    debugPrint('Error in background update check: $e');
-    rethrow;
+    // Silently fail - don't show error notifications to user
+    // Just log the error for debugging
+    debugPrint('Background update check failed (will retry later): $e');
   }
 }
 
