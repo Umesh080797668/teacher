@@ -51,7 +51,7 @@
         <!-- FileProvider for APK installation -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
+            android:authorities="com.example.teacher_attendance.installFileProvider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

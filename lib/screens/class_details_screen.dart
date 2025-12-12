@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import '../models/class.dart';
 import '../models/student.dart';
 import '../providers/students_provider.dart';
@@ -438,10 +439,66 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                   itemCount: studentsInClass.length,
                   itemBuilder: (context, index) {
                     final student = studentsInClass[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
+                    return Slidable(
+                      endActionPane: ActionPane(
+                        motion: const ScrollMotion(),
+                        children: [
+                          SlidableAction(
+                            onPressed: (context) async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Delete Student'),
+                                  content: Text('Are you sure you want to delete ${student.name} from this class?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, true),
+                                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirm == true && context.mounted) {
+                                try {
+                                  await Provider.of<StudentsProvider>(context, listen: false)
+                                      .deleteStudent(student.id);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Student deleted successfully'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Failed to delete student: $e'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            icon: Icons.delete,
+                            label: 'Delete',
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ],
+                      ),
+                      child: Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(16),
                         leading: CircleAvatar(
                           backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                           radius: 24,
@@ -491,6 +548,7 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                           );
                         },
                       ),
+                    ),
                     );
                   },
                 );

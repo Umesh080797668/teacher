@@ -187,7 +187,7 @@ class UpdateService {
         savePath,
         options: Options(
           followRedirects: true,
-          validateStatus: (status) => status != null && status < 500,
+          validateStatus: (status) => status != null && status == 200,
           receiveTimeout: const Duration(minutes: 10),
         ),
         onReceiveProgress: (received, total) {
