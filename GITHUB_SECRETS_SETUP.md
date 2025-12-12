@@ -35,7 +35,7 @@ MIIKxAIBAzCCCm4GCSqGSIb3DQEHAaCCCl8EggpbMIIKVzCCBa4GCSqGSIb3DQEHAaCCBZ8EggWbMIIF
 storePassword=android123
 keyPassword=android123
 keyAlias=upload
-storeFile=upload-keystore.jks
+storeFile=app/upload-keystore.jks
 ```
 
 **Steps:**
