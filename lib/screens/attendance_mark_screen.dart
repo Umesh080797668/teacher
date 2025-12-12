@@ -18,6 +18,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   DateTime _selectedDate = DateTime.now();
   String? _selectedClassId;
   final Map<String, String> _attendanceStatus = {};
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -30,6 +31,8 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   }
 
   Future<void> _markAllAttendance() async {
+    if (_isSaving) return;
+
     if (_attendanceStatus.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -39,6 +42,10 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       );
       return;
     }
+
+    setState(() {
+      _isSaving = true;
+    });
 
     try {
       final entries = _attendanceStatus.entries.toList();
@@ -78,6 +85,12 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
       }
     }
   }
@@ -325,9 +338,21 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       ),
       floatingActionButton: _attendanceStatus.isNotEmpty
           ? FloatingActionButton.extended(
-              onPressed: _markAllAttendance,
-              icon: const Icon(Icons.save),
-              label: Text('Save (${_attendanceStatus.length})'),
+              onPressed: _isSaving ? null : _markAllAttendance,
+              icon: _isSaving
+                  ? Container(
+                      width: 24,
+                      height: 24,
+                      padding: const EdgeInsets.all(2.0),
+                      child: const CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 3,
+                      ),
+                    )
+                  : const Icon(Icons.save),
+              label: Text(_isSaving
+                  ? 'Saving...'
+                  : 'Save (${_attendanceStatus.length})'),
               backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
             )
