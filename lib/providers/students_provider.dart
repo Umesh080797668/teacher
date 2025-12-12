@@ -25,4 +25,10 @@ class StudentsProvider with ChangeNotifier {
     _students.add(student);
     notifyListeners();
   }
+
+  Future<void> deleteStudent(String studentId) async {
+    await ApiService.deleteStudent(studentId);
+    _students.removeWhere((s) => s.id == studentId);
+    notifyListeners();
+  }
 }

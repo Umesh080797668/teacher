@@ -316,6 +316,10 @@ class ApiService {
     return Student.fromJson(json.decode(response.body));
   }
 
+  static Future<void> deleteStudent(String studentId) async {
+    await _makeRequest('DELETE', '/api/students/$studentId');
+  }
+
   // Attendance
   static Future<List<Attendance>> getAttendance({
     String? studentId,

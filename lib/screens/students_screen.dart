@@ -25,7 +25,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadStudents();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadStudents();
+    });
   }
 
   @override
@@ -391,11 +393,48 @@ class _StudentsScreenState extends State<StudentsScreen> {
                         motion: const ScrollMotion(),
                         children: [
                           SlidableAction(
-                            onPressed: (context) {
-                              // Delete functionality
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Delete feature coming soon!')),
+                            onPressed: (context) async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Delete Student'),
+                                  content: Text('Are you sure you want to delete ${student.name}?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, true),
+                                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                    ),
+                                  ],
+                                ),
                               );
+
+                              if (confirm == true && context.mounted) {
+                                try {
+                                  await Provider.of<StudentsProvider>(context, listen: false)
+                                      .deleteStudent(student.id);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Student deleted successfully'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Failed to delete student: $e'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              }
                             },
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
