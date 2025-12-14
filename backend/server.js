@@ -6,7 +6,6 @@ const bcrypt = require('bcryptjs');
 const http = require('http');
 const socketIo = require('socket.io');
 const QRCode = require('qrcode');
-const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -228,6 +227,7 @@ io.on('connection', (socket) => {
   // Web client requests QR code
   socket.on('request-qr', async ({ userType }) => {
     try {
+      const { v4: uuidv4 } = await import('uuid');
       const sessionId = uuidv4();
       const expiresAt = Date.now() + (5 * 60 * 1000); // 5 minutes
       
@@ -2141,6 +2141,7 @@ app.post('/api/web-session/generate-qr', async (req, res) => {
   try {
     await connectToDatabase();
     
+    const { v4: uuidv4 } = await import('uuid');
     const { userType = 'teacher' } = req.body;
     const sessionId = uuidv4();
     const expiresAt = new Date(Date.now() + (5 * 60 * 1000)); // 5 minutes
@@ -2245,6 +2246,7 @@ app.post('/api/admin/login', async (req, res) => {
     }
     
     // Generate session
+    const { v4: uuidv4 } = await import('uuid');
     const sessionId = uuidv4();
     const webSession = new WebSession({
       sessionId,
