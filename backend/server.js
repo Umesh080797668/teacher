@@ -3,9 +3,21 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcryptjs');
+const http = require('http');
+const socketIo = require('socket.io');
+const QRCode = require('qrcode');
+const { v4: uuidv4 } = require('uuid');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: true,
+    credentials: true,
+  }
+});
 const PORT = process.env.PORT || 3004;
 
 // Middleware
@@ -156,6 +168,29 @@ const PasswordResetSchema = new mongoose.Schema({
 // Add TTL index to automatically delete expired reset codes
 PasswordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
+// Web Session Schema for QR code authentication
+const WebSessionSchema = new mongoose.Schema({
+  sessionId: { type: String, required: true, unique: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'userModel' },
+  userModel: { type: String, enum: ['Teacher', 'Admin'] },
+  userType: { type: String, enum: ['admin', 'teacher'], required: true },
+  deviceId: { type: String, required: true },
+  isActive: { type: Boolean, default: true },
+  expiresAt: { type: Date, required: true },
+  teacherId: { type: String }, // Store teacherId for easy lookup
+}, { timestamps: true });
+
+// Add TTL index to automatically delete expired sessions
+WebSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+// Admin Schema for admin users
+const AdminSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  name: { type: String, required: true },
+  role: { type: String, default: 'admin' },
+}, { timestamps: true });
+
 AttendanceSchema.index({ studentId: 1, year: 1, month: 1 });
 
 const Student = mongoose.model('Student', StudentSchema);
@@ -165,6 +200,181 @@ const Payment = mongoose.model('Payment', PaymentSchema);
 const Teacher = mongoose.model('Teacher', TeacherSchema);
 const EmailVerification = mongoose.model('EmailVerification', EmailVerificationSchema);
 const PasswordReset = mongoose.model('PasswordReset', PasswordResetSchema);
+const WebSession = mongoose.model('WebSession', WebSessionSchema);
+const Admin = mongoose.model('Admin', AdminSchema);
+
+// Store for pending QR sessions and connected sockets
+const pendingQRSessions = new Map(); // sessionId -> { timestamp, userType }
+const connectedSockets = new Map(); // sessionId -> socket.id
+
+// WebSocket connection handling
+io.on('connection', (socket) => {
+  console.log('New WebSocket connection:', socket.id);
+
+  // Web client requests QR code
+  socket.on('request-qr', async ({ userType }) => {
+    try {
+      const sessionId = uuidv4();
+      const expiresAt = Date.now() + (5 * 60 * 1000); // 5 minutes
+      
+      pendingQRSessions.set(sessionId, {
+        timestamp: Date.now(),
+        expiresAt,
+        userType: userType || 'teacher',
+        socketId: socket.id,
+      });
+
+      // Generate QR code
+      const qrData = JSON.stringify({
+        sessionId,
+        timestamp: Date.now(),
+        expiresAt,
+        type: 'web-auth',
+      });
+
+      const qrCodeDataUrl = await QRCode.toDataURL(qrData);
+
+      socket.emit('qr-generated', {
+        sessionId,
+        qrCode: qrCodeDataUrl,
+        expiresAt,
+      });
+
+      // Auto-cleanup expired session
+      setTimeout(() => {
+        if (pendingQRSessions.has(sessionId)) {
+          pendingQRSessions.delete(sessionId);
+          socket.emit('qr-expired', { sessionId });
+        }
+      }, 5 * 60 * 1000);
+
+      console.log('QR code generated for session:', sessionId);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      socket.emit('error', { message: 'Failed to generate QR code' });
+    }
+  });
+
+  // Mobile app scans QR and sends authentication
+  socket.on('authenticate-qr', async ({ sessionId, teacherId, deviceId }) => {
+    try {
+      console.log('Authentication attempt for session:', sessionId);
+      
+      const pendingSession = pendingQRSessions.get(sessionId);
+      
+      if (!pendingSession) {
+        socket.emit('auth-failed', { message: 'Invalid or expired session' });
+        return;
+      }
+
+      if (Date.now() > pendingSession.expiresAt) {
+        pendingQRSessions.delete(sessionId);
+        socket.emit('auth-failed', { message: 'Session expired' });
+        return;
+      }
+
+      // Find teacher
+      const teacher = await Teacher.findOne({ teacherId });
+      
+      if (!teacher) {
+        socket.emit('auth-failed', { message: 'Teacher not found' });
+        return;
+      }
+
+      if (teacher.status !== 'active') {
+        socket.emit('auth-failed', { message: 'Teacher account is inactive' });
+        return;
+      }
+
+      // Create web session
+      const webSession = new WebSession({
+        sessionId,
+        userId: teacher._id,
+        userModel: 'Teacher',
+        userType: pendingSession.userType,
+        deviceId: deviceId || socket.id,
+        isActive: true,
+        expiresAt: new Date(Date.now() + (24 * 60 * 60 * 1000)), // 24 hours
+        teacherId: teacher.teacherId,
+      });
+
+      await webSession.save();
+
+      // Generate JWT token
+      const token = jwt.sign(
+        {
+          sessionId,
+          userId: teacher._id,
+          teacherId: teacher.teacherId,
+          userType: pendingSession.userType,
+        },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '24h' }
+      );
+
+      // Notify web client
+      const webSocketId = pendingSession.socketId;
+      io.to(webSocketId).emit('authenticated', {
+        success: true,
+        user: {
+          _id: teacher._id,
+          name: teacher.name,
+          email: teacher.email,
+          teacherId: teacher.teacherId,
+          status: teacher.status,
+        },
+        session: webSession,
+        token,
+      });
+
+      // Notify mobile app
+      socket.emit('auth-success', {
+        message: 'Successfully authenticated',
+        sessionId,
+      });
+
+      // Store connected socket
+      connectedSockets.set(sessionId, webSocketId);
+      pendingQRSessions.delete(sessionId);
+
+      console.log('Authentication successful for session:', sessionId);
+    } catch (error) {
+      console.error('Error authenticating QR:', error);
+      socket.emit('auth-failed', { message: 'Authentication failed' });
+    }
+  });
+
+  // Disconnect session
+  socket.on('disconnect-session', async ({ sessionId }) => {
+    try {
+      await WebSession.findOneAndUpdate(
+        { sessionId },
+        { isActive: false }
+      );
+      
+      const webSocketId = connectedSockets.get(sessionId);
+      if (webSocketId) {
+        io.to(webSocketId).emit('session-disconnected', { sessionId });
+        connectedSockets.delete(sessionId);
+      }
+
+      socket.emit('disconnect-success', { sessionId });
+    } catch (error) {
+      console.error('Error disconnecting session:', error);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('WebSocket disconnected:', socket.id);
+    
+    // Clean up any sessions associated with this socket
+    for (const [sessionId, socketId] of connectedSockets.entries()) {
+      if (socketId === socket.id) {
+        connectedSockets.delete(sessionId);
+      }
+    }
+  });
+});
 
 // Database connection middleware
 app.use(async (req, res, next) => {
@@ -1815,12 +2025,248 @@ app.post('/api/auth/reset-password', async (req, res) => {
   }
 });
 
+// ============================================
+// Web Session Management Routes
+// ============================================
+
+// Middleware to verify JWT token
+const verifyToken = (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    req.user = decoded;
+    next();
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// Get active web sessions
+app.get('/api/web-session/active', verifyToken, async (req, res) => {
+  try {
+    const sessions = await WebSession.find({
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    }).populate('userId');
+    
+    res.json(sessions);
+  } catch (error) {
+    console.error('Error fetching active sessions:', error);
+    res.status(500).json({ error: 'Failed to fetch sessions' });
+  }
+});
+
+// Verify session validity
+app.post('/api/web-session/verify', async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    
+    const session = await WebSession.findOne({
+      sessionId,
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    }).populate('userId');
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found or expired' });
+    }
+    
+    res.json({ valid: true, session });
+  } catch (error) {
+    console.error('Error verifying session:', error);
+    res.status(500).json({ error: 'Failed to verify session' });
+  }
+});
+
+// Disconnect a web session
+app.post('/api/web-session/disconnect', verifyToken, async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    
+    await WebSession.findOneAndUpdate(
+      { sessionId },
+      { isActive: false }
+    );
+    
+    // Notify via WebSocket
+    io.emit('session-disconnected', { sessionId });
+    
+    res.json({ message: 'Session disconnected successfully' });
+  } catch (error) {
+    console.error('Error disconnecting session:', error);
+    res.status(500).json({ error: 'Failed to disconnect session' });
+  }
+});
+
+// Get all web sessions for a teacher
+app.get('/api/web-session/teacher/:teacherId', verifyToken, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    
+    const sessions = await WebSession.find({
+      teacherId,
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    });
+    
+    res.json(sessions);
+  } catch (error) {
+    console.error('Error fetching teacher sessions:', error);
+    res.status(500).json({ error: 'Failed to fetch sessions' });
+  }
+});
+
+// ============================================
+// Admin Routes
+// ============================================
+
+// Admin login
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    const admin = await Admin.findOne({ email: email.toLowerCase().trim() });
+    
+    if (!admin) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    const isValidPassword = await bcrypt.compare(password, admin.password);
+    
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    // Generate session
+    const sessionId = uuidv4();
+    const webSession = new WebSession({
+      sessionId,
+      userId: admin._id,
+      userModel: 'Admin',
+      userType: 'admin',
+      deviceId: req.headers['user-agent'] || 'unknown',
+      isActive: true,
+      expiresAt: new Date(Date.now() + (24 * 60 * 60 * 1000)),
+    });
+    
+    await webSession.save();
+    
+    const token = jwt.sign(
+      {
+        sessionId,
+        userId: admin._id,
+        userType: 'admin',
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+    
+    res.json({
+      success: true,
+      user: {
+        _id: admin._id,
+        email: admin.email,
+        name: admin.name,
+        role: admin.role,
+      },
+      session: webSession,
+      token,
+    });
+  } catch (error) {
+    console.error('Error during admin login:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Create admin (protected - only for initial setup or by existing admin)
+app.post('/api/admin/create', async (req, res) => {
+  try {
+    const { email, password, name, secretKey } = req.body;
+    
+    // Check if this is the first admin (no secret key required)
+    const adminCount = await Admin.countDocuments();
+    
+    if (adminCount > 0 && secretKey !== process.env.ADMIN_CREATE_SECRET) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const hashedPassword = await bcrypt.hash(password, 12);
+    
+    const admin = new Admin({
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      name,
+    });
+    
+    await admin.save();
+    
+    res.status(201).json({
+      message: 'Admin created successfully',
+      admin: {
+        _id: admin._id,
+        email: admin.email,
+        name: admin.name,
+      },
+    });
+  } catch (error) {
+    console.error('Error creating admin:', error);
+    res.status(500).json({ error: 'Failed to create admin' });
+  }
+});
+
+// Get all teachers (admin only)
+app.get('/api/admin/teachers', verifyToken, async (req, res) => {
+  try {
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const teachers = await Teacher.find().select('-password');
+    res.json(teachers);
+  } catch (error) {
+    console.error('Error fetching teachers:', error);
+    res.status(500).json({ error: 'Failed to fetch teachers' });
+  }
+});
+
+// Get dashboard stats (admin)
+app.get('/api/admin/stats', verifyToken, async (req, res) => {
+  try {
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const [teacherCount, studentCount, classCount, activeSessionCount] = await Promise.all([
+      Teacher.countDocuments({ status: 'active' }),
+      Student.countDocuments(),
+      Class.countDocuments(),
+      WebSession.countDocuments({ isActive: true, expiresAt: { $gt: new Date() } }),
+    ]);
+    
+    res.json({
+      teachers: teacherCount,
+      students: studentCount,
+      classes: classCount,
+      activeSessions: activeSessionCount,
+    });
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
 // Export the app for Vercel
 module.exports = app;
 
 // Only listen when not in Vercel environment
 if (require.main === module) {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
 }

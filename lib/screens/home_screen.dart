@@ -11,6 +11,7 @@ import 'reports_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'account_selection_screen.dart';
+import 'qr_scanner_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../services/update_service.dart';
@@ -142,8 +143,8 @@ class _HomeScreenState extends State<HomeScreen> {
       for (var feature in features) {
         if (feature['title'].toString().toLowerCase().contains(searchLower) ||
             feature['subtitle'].toString().toLowerCase().contains(
-              searchLower,
-            )) {
+                  searchLower,
+                )) {
           results.add(feature);
         }
       }
@@ -202,7 +203,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final teacherId = auth.teacherId;
 
       final stats = await ApiService.getHomeStats(teacherId: teacherId);
-      final activities = await ApiService.getRecentActivities(teacherId: teacherId);
+      final activities =
+          await ApiService.getRecentActivities(teacherId: teacherId);
 
       setState(() {
         _stats = stats;
@@ -223,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showActivityDetails(BuildContext context, RecentActivity activity) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -251,8 +253,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   activity.subtitle,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: isDarkMode ? Colors.white.withOpacity(0.9) : null,
-                  ),
+                        color:
+                            isDarkMode ? Colors.white.withOpacity(0.9) : null,
+                      ),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -261,17 +264,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       Icons.access_time,
                       size: 16,
                       color: isDarkMode
-                        ? Colors.white.withOpacity(0.8)
-                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                          ? Colors.white.withOpacity(0.8)
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.8),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _formatTimestamp(activity.timestamp),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: isDarkMode
-                          ? Colors.white.withOpacity(0.8)
-                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
-                      ),
+                            color: isDarkMode
+                                ? Colors.white.withOpacity(0.8)
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.8),
+                          ),
                     ),
                   ],
                 ),
@@ -282,17 +291,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       Icons.category,
                       size: 16,
                       color: isDarkMode
-                        ? Colors.white.withOpacity(0.8)
-                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                          ? Colors.white.withOpacity(0.8)
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.8),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _getActivityTypeLabel(activity.type),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: isDarkMode
-                          ? Colors.white.withOpacity(0.8)
-                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
-                      ),
+                            color: isDarkMode
+                                ? Colors.white.withOpacity(0.8)
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.8),
+                          ),
                     ),
                   ],
                 ),
@@ -301,8 +316,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'This activity represents attendance records that were marked for students.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.75),
-                    ),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.75),
+                        ),
                   ),
                 ],
                 if (activity.type == 'student') ...[
@@ -310,8 +328,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'A new student has been registered in the system.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.75),
-                    ),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.75),
+                        ),
                   ),
                 ],
                 if (activity.type == 'payment') ...[
@@ -319,8 +340,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'A payment has been recorded in the system.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.75),
-                    ),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.75),
+                        ),
                   ),
                 ],
                 if (activity.type == 'class') ...[
@@ -328,8 +352,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'A new class has been created in the system.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.75),
-                    ),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.75),
+                        ),
                   ),
                 ],
               ],
@@ -475,22 +502,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                     builder: (context, auth, child) {
                                       // Extract first name from full name
                                       String getFirstName(String? fullName) {
-                                        if (fullName == null || fullName.isEmpty) {
+                                        if (fullName == null ||
+                                            fullName.isEmpty) {
                                           return '';
                                         }
                                         return fullName.split(' ').first;
                                       }
-                                      
+
                                       String welcomeMessage;
                                       if (auth.isGuest) {
                                         welcomeMessage = 'Welcome, Guest!';
                                       } else {
-                                        final firstName = getFirstName(auth.userName);
-                                        welcomeMessage = firstName.isNotEmpty 
-                                          ? 'Welcome back, $firstName!'
-                                          : 'Welcome Back!';
+                                        final firstName =
+                                            getFirstName(auth.userName);
+                                        welcomeMessage = firstName.isNotEmpty
+                                            ? 'Welcome back, $firstName!'
+                                            : 'Welcome Back!';
                                       }
-                                      
+
                                       return Text(
                                         welcomeMessage,
                                         style: Theme.of(context)
@@ -546,9 +575,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   onSelected: (value) async {
                                     final authProvider =
                                         Provider.of<AuthProvider>(
-                                          context,
-                                          listen: false,
-                                        );
+                                      context,
+                                      listen: false,
+                                    );
                                     if (value == 'logout') {
                                       await authProvider.logout();
                                       if (context.mounted) {
@@ -594,6 +623,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                         );
                                       }
+                                    } else if (value == 'qr_scanner') {
+                                      if (context.mounted) {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const QRScannerScreen(),
+                                          ),
+                                        );
+                                      }
                                     }
                                   },
                                   itemBuilder: (BuildContext context) => [
@@ -625,6 +663,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                             ),
                                             const SizedBox(width: 12),
                                             const Text('Settings'),
+                                          ],
+                                        ),
+                                      ),
+                                      PopupMenuItem<String>(
+                                        value: 'qr_scanner',
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.qr_code_scanner,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            const Text('Web Login QR'),
                                           ],
                                         ),
                                       ),
@@ -714,9 +767,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 vertical: 16,
                               ),
                             ),
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyLarge
+                                ?.copyWith(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
                           ),
                         ),
                       ],
@@ -735,7 +792,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 16),
                           Text(
                             'Search Results (${_searchResults.length})',
-                            style: Theme.of(context).textTheme.titleLarge
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
                                 ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Theme.of(
@@ -806,7 +865,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 16),
                             Text(
                               'No results found',
-                              style: Theme.of(context).textTheme.titleMedium
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
                                   ?.copyWith(
                                     color: Theme.of(context)
                                         .colorScheme
@@ -867,7 +928,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Text(
                                 'Overview',
-                                style: Theme.of(context).textTheme.titleLarge
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
                                     ?.copyWith(
                                       fontWeight: FontWeight.bold,
                                       color: Theme.of(
@@ -889,8 +952,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       trend: _stats?.studentsTrend ?? '0',
                                       trendColor:
                                           (_stats?.studentsPositive ?? true)
-                                          ? Colors.green
-                                          : Colors.red,
+                                              ? Colors.green
+                                              : Colors.red,
                                     ),
                                     const SizedBox(width: 16),
                                     _StatisticsCard(
@@ -902,8 +965,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       trend: _stats?.attendanceTrend ?? '0%',
                                       trendColor:
                                           (_stats?.attendancePositive ?? true)
-                                          ? Colors.green
-                                          : Colors.red,
+                                              ? Colors.green
+                                              : Colors.red,
                                     ),
                                     const SizedBox(width: 16),
                                     _StatisticsCard(
@@ -914,8 +977,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       trend: _stats?.classesTrend ?? '0',
                                       trendColor:
                                           (_stats?.classesPositive ?? true)
-                                          ? Colors.green
-                                          : Colors.red,
+                                              ? Colors.green
+                                              : Colors.red,
                                     ),
                                     const SizedBox(width: 16),
                                     _StatisticsCard(
@@ -927,8 +990,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       trend: _stats?.paymentTrend ?? '0%',
                                       trendColor:
                                           (_stats?.paymentPositive ?? true)
-                                          ? Colors.green
-                                          : Colors.red,
+                                              ? Colors.green
+                                              : Colors.red,
                                     ),
                                   ],
                                 ),
@@ -936,7 +999,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(height: 24),
                               Text(
                                 'Recent Activity',
-                                style: Theme.of(context).textTheme.titleLarge
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
                                     ?.copyWith(
                                       fontWeight: FontWeight.bold,
                                       color: Theme.of(
@@ -950,7 +1015,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   padding: const EdgeInsets.only(bottom: 12),
                                   child: _RecentActivityCard(
                                     activity: activity,
-                                    onTap: () => _showActivityDetails(context, activity),
+                                    onTap: () =>
+                                        _showActivityDetails(context, activity),
                                   ),
                                 ),
                               ),
@@ -987,11 +1053,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     sliver: SliverGrid(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 0.7,
-                          ),
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: 0.7,
+                      ),
                       delegate: SliverChildListDelegate([
                         Consumer<AuthProvider>(
                           builder: (context, auth, child) {
@@ -1277,10 +1343,10 @@ class _StatisticsCard extends StatelessWidget {
                 child: Text(
                   trend,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: trendColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11,
-                  ),
+                        color: trendColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1291,10 +1357,10 @@ class _StatisticsCard extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
-              fontSize: 28,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 28,
+                ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1302,11 +1368,11 @@ class _StatisticsCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withOpacity(0.7),
-              fontSize: 13,
-            ),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.7),
+                  fontSize: 13,
+                ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
@@ -1329,7 +1395,7 @@ class _RecentActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -1351,10 +1417,12 @@ class _RecentActivityCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _getActivityColor(activity.type).withOpacity(isDarkMode ? 0.2 : 0.1),
+                color: _getActivityColor(activity.type)
+                    .withOpacity(isDarkMode ? 0.2 : 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(_getActivityIcon(activity.type), color: _getActivityColor(activity.type), size: 24),
+              child: Icon(_getActivityIcon(activity.type),
+                  color: _getActivityColor(activity.type), size: 24),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1364,12 +1432,12 @@ class _RecentActivityCard extends StatelessWidget {
                   Text(
                     activity.title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: isDarkMode 
-                        ? Colors.white 
-                        : Theme.of(context).colorScheme.onSurface,
-                      fontSize: 14,
-                    ),
+                          fontWeight: FontWeight.w600,
+                          color: isDarkMode
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onSurface,
+                          fontSize: 14,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1377,11 +1445,14 @@ class _RecentActivityCard extends StatelessWidget {
                   Text(
                     activity.subtitle,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isDarkMode
-                        ? Colors.white.withOpacity(0.9)
-                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.85),
-                      fontSize: 12,
-                    ),
+                          color: isDarkMode
+                              ? Colors.white.withOpacity(0.9)
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.85),
+                          fontSize: 12,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1392,11 +1463,14 @@ class _RecentActivityCard extends StatelessWidget {
             Text(
               _getTimeAgo(activity.timestamp),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: isDarkMode
-                  ? Colors.white.withOpacity(0.7)
-                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                fontSize: 11,
-              ),
+                    color: isDarkMode
+                        ? Colors.white.withOpacity(0.7)
+                        : Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.7),
+                    fontSize: 11,
+                  ),
               textAlign: TextAlign.right,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1510,9 +1584,9 @@ class _SearchResultCard extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1520,10 +1594,10 @@ class _SearchResultCard extends StatelessWidget {
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withOpacity(0.7),
-                    ),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.7),
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1670,13 +1744,13 @@ class _FeatureCardState extends State<_FeatureCard>
                     Text(
                       widget.title,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: widget.isDisabled
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.4)
-                            : Theme.of(context).colorScheme.onSurface,
-                      ),
+                            fontWeight: FontWeight.bold,
+                            color: widget.isDisabled
+                                ? Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.4)
+                                : Theme.of(context).colorScheme.onSurface,
+                          ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
@@ -1685,14 +1759,14 @@ class _FeatureCardState extends State<_FeatureCard>
                     Text(
                       widget.subtitle,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: widget.isDisabled
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.3)
-                            : Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
-                      ),
+                            color: widget.isDisabled
+                                ? Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.3)
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.6),
+                          ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
@@ -1710,11 +1784,11 @@ class _FeatureCardState extends State<_FeatureCard>
                         ),
                         child: Text(
                           'Login Required',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Colors.orange[700],
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.orange[700],
+                                    fontWeight: FontWeight.w600,
+                                  ),
                         ),
                       ),
                     ],
