@@ -2165,12 +2165,15 @@ app.post('/api/web-session/generate-qr', async (req, res) => {
     
     await webSession.save();
     
-    // Generate QR code
+    // Generate QR code with format expected by mobile app
     const qrData = JSON.stringify({
+      type: 'web-auth',
       sessionId,
-      userType,
-      timestamp: Date.now(),
+      expiresAt: expiresAt.getTime(), // Timestamp in milliseconds
+      userType, // Keep for backward compatibility
     });
+    
+    console.log('Generated QR code data:', qrData);
     
     const qrCode = await QRCode.toDataURL(qrData);
     
