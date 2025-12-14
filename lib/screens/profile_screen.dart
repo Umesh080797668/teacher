@@ -222,6 +222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // This is a newly picked image that needs to be saved
         final imageFile = File(_profilePicturePath!);
         if (await imageFile.exists()) {
+          debugPrint('Saving new profile picture...');
           // Delete old profile picture if it exists
           await ImageStorageService.deleteOldProfilePicture(
             _teacher?.profilePicture,
@@ -232,10 +233,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             imageFile,
             auth.teacherId!,
           );
+          debugPrint('New profile picture saved at: $savedImagePath');
         }
       } else {
         // Keep existing profile picture path
         savedImagePath = _profilePicturePath;
+        debugPrint('Keeping existing profile picture: $savedImagePath');
       }
 
       final updatedData = {
@@ -246,6 +249,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             : _phoneController.text.trim(),
         'profilePicture': savedImagePath,
       };
+
+      debugPrint('Updating teacher with data: $updatedData');
 
       // Call API to update teacher
       final updatedTeacherData = await ApiService.updateTeacher(
@@ -261,7 +266,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Debug: Print the teacher object
       debugPrint(
-        'Updated Teacher: ${updatedTeacher.name}, ${updatedTeacher.email}',
+        'Updated Teacher: ${updatedTeacher.name}, ${updatedTeacher.email}, Profile: ${updatedTeacher.profilePicture}',
       );
 
       // Update local auth provider
@@ -276,12 +281,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         teacherData: updatedTeacher.toJson(),
       );
 
-      setState(() {
-        _teacher = updatedTeacher;
-        _profilePicturePath = updatedTeacher.profilePicture;
-        _isNewImage = false;
-        _isEditing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _teacher = updatedTeacher;
+          _profilePicturePath = updatedTeacher.profilePicture;
+          _isNewImage = false;
+          _isEditing = false;
+        });
+        debugPrint('State updated with new profile picture: $_profilePicturePath');
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -302,6 +310,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     } catch (e) {
+      debugPrint('Error updating profile: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -315,7 +324,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -401,8 +412,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: _profilePicturePath!.startsWith('/')
                                 ? Image.file(
                                     File(_profilePicturePath!),
+                                    key: ValueKey(_profilePicturePath),
                                     fit: BoxFit.cover,
+                                    width: 120,
+                                    height: 120,
                                     errorBuilder: (context, error, stackTrace) {
+                                      debugPrint('Error loading image: $error');
                                       return Icon(
                                         Icons.person,
                                         size: 60,
@@ -414,14 +429,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   )
                                 : Image.network(
                                     _profilePicturePath!,
+                                    key: ValueKey(_profilePicturePath),
                                     fit: BoxFit.cover,
+                                    width: 120,
+                                    height: 120,
+                                    cacheWidth: 240, // Cache at 2x size for better quality
                                     errorBuilder: (context, error, stackTrace) {
+                                      debugPrint('Error loading network image: $error');
                                       return Icon(
                                         Icons.person,
                                         size: 60,
                                         color: Theme.of(
                                           context,
                                         ).colorScheme.onPrimary,
+                                      );
+                                    },
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                        child: CircularProgressIndicator(
+                                          value: loadingProgress.expectedTotalBytes != null
+                                              ? loadingProgress.cumulativeBytesLoaded /
+                                                  loadingProgress.expectedTotalBytes!
+                                              : null,
+                                          color: Theme.of(context).colorScheme.onPrimary,
+                                        ),
                                       );
                                     },
                                   ),

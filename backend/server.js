@@ -161,6 +161,7 @@ const TeacherSchema = new mongoose.Schema({
   password: { type: String, required: true },
   teacherId: { type: String, unique: true },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  profilePicture: { type: String }, // Profile picture path
 }, { timestamps: true });
 
 const EmailVerificationSchema = new mongoose.Schema({
@@ -797,12 +798,16 @@ app.put('/api/teachers/:id', async (req, res) => {
     const { id } = req.params;
     const { name, email, phone, password, status, profilePicture } = req.body;
     
+    console.log('Update teacher request - ID:', id);
+    console.log('Update data received:', { name, email, phone, status, profilePicture });
+    
     // Prepare update object
     const updateData = { name, email, phone, status };
     
     // Add profilePicture to update data if provided
     if (profilePicture !== undefined) {
       updateData.profilePicture = profilePicture;
+      console.log('ProfilePicture added to update:', profilePicture);
     }
     
     // Hash password if provided
@@ -810,6 +815,8 @@ app.put('/api/teachers/:id', async (req, res) => {
       const saltRounds = 10;
       updateData.password = await bcrypt.hash(password, saltRounds);
     }
+    
+    console.log('Final update data:', updateData);
     
     // Try to find and update by teacherId first, then by _id if that fails
     let updatedTeacher = await Teacher.findOneAndUpdate(
@@ -826,6 +833,8 @@ app.put('/api/teachers/:id', async (req, res) => {
     if (!updatedTeacher) {
       return res.status(404).json({ error: 'Teacher not found' });
     }
+    
+    console.log('Teacher updated successfully:', updatedTeacher.toObject());
     res.status(200).json(updatedTeacher);
   } catch (error) {
     console.error('Error updating teacher:', error);

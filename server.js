@@ -51,6 +51,7 @@ const TeacherSchema = new mongoose.Schema({
   password: { type: String, required: true },
   teacherId: { type: String, unique: true },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  profilePicture: { type: String }, // Profile picture path
 }, { timestamps: true });
 
 AttendanceSchema.index({ studentId: 1, year: 1, month: 1 });

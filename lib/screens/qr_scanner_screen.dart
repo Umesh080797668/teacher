@@ -67,7 +67,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   }
 
   void _handleQRCode(BarcodeCapture capture) async {
-    if (_isProcessing) return;
+    if (_isProcessing || !mounted) return;
 
     final List<Barcode> barcodes = capture.barcodes;
     if (barcodes.isEmpty) return;
@@ -75,6 +75,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     final String? qrData = barcodes.first.rawValue;
     if (qrData == null) return;
 
+    if (!mounted) return;
+    
     setState(() {
       _isProcessing = true;
     });
@@ -86,9 +88,11 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       // Validate QR code
       if (qrJson['type'] != 'web-auth') {
         _showErrorDialog('Invalid QR code');
-        setState(() {
-          _isProcessing = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
         return;
       }
 
@@ -98,18 +102,22 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       // Check if expired
       if (DateTime.now().millisecondsSinceEpoch > expiresAt) {
         _showErrorDialog('QR code has expired');
-        setState(() {
-          _isProcessing = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
         return;
       }
 
       // Check if teacher is logged in
       if (_teacherId == null) {
         _showErrorDialog('Please login first');
-        setState(() {
-          _isProcessing = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
         return;
       }
 
@@ -121,13 +129,17 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       });
 
       // Show loading dialog
-      _showLoadingDialog();
+      if (mounted) {
+        _showLoadingDialog();
+      }
     } catch (e) {
       print('Error parsing QR code: $e');
       _showErrorDialog('Invalid QR code format');
-      setState(() {
-        _isProcessing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
@@ -149,6 +161,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   }
 
   void _showSuccessDialog(String message) {
+    if (!mounted) return;
+    
     Navigator.of(context).pop(); // Close loading dialog
     Navigator.of(context).pop(); // Close scanner screen
 
@@ -172,12 +186,16 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       ),
     );
 
-    setState(() {
-      _isProcessing = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isProcessing = false;
+      });
+    }
   }
 
   void _showErrorDialog(String message) {
+    if (!mounted) return;
+    
     if (Navigator.canPop(context)) {
       Navigator.of(context).pop(); // Close any open dialogs
     }
@@ -196,10 +214,14 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              setState(() {
-                _isProcessing = false;
-              });
+              if (mounted) {
+                Navigator.of(context).pop();
+                if (mounted) {
+                  setState(() {
+                    _isProcessing = false;
+                  });
+                }
+              }
             },
             child: const Text('OK'),
           ),
