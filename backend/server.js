@@ -2122,6 +2122,93 @@ app.get('/api/web-session/teacher/:teacherId', verifyToken, async (req, res) => 
   }
 });
 
+// Generate QR code for web login (HTTP endpoint)
+app.post('/api/web-session/generate-qr', async (req, res) => {
+  try {
+    await connectToDatabase();
+    
+    const { userType = 'teacher' } = req.body;
+    const sessionId = uuidv4();
+    const expiresAt = new Date(Date.now() + (5 * 60 * 1000)); // 5 minutes
+    
+    // Create web session
+    const webSession = new WebSession({
+      sessionId,
+      userType,
+      isActive: false, // Will be activated when scanned
+      expiresAt,
+    });
+    
+    await webSession.save();
+    
+    // Generate QR code
+    const qrData = JSON.stringify({
+      sessionId,
+      userType,
+      timestamp: Date.now(),
+    });
+    
+    const qrCode = await QRCode.toDataURL(qrData);
+    
+    res.json({
+      sessionId,
+      qrCode,
+      expiresAt: expiresAt.getTime(),
+    });
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    res.status(500).json({ error: 'Failed to generate QR code' });
+  }
+});
+
+// Check if QR session is authenticated (polling endpoint)
+app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
+  try {
+    await connectToDatabase();
+    
+    const { sessionId } = req.params;
+    
+    const session = await WebSession.findOne({
+      sessionId,
+      expiresAt: { $gt: new Date() },
+    }).populate('userId');
+    
+    if (!session) {
+      return res.status(404).json({ 
+        authenticated: false, 
+        error: 'Session not found or expired' 
+      });
+    }
+    
+    if (session.isActive && session.userId) {
+      // Session is authenticated
+      const token = jwt.sign(
+        {
+          sessionId: session.sessionId,
+          userId: session.userId._id,
+          userType: session.userType,
+        },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '24h' }
+      );
+      
+      return res.json({
+        authenticated: true,
+        success: true,
+        user: session.userId,
+        session,
+        token,
+      });
+    }
+    
+    // Not authenticated yet
+    res.json({ authenticated: false });
+  } catch (error) {
+    console.error('Error checking auth status:', error);
+    res.status(500).json({ error: 'Failed to check authentication status' });
+  }
+});
+
 // ============================================
 // Admin Routes
 // ============================================
