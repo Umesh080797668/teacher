@@ -1,7 +1,6 @@
 // Vercel serverless function for generating QR codes
 const mongoose = require('mongoose');
 const QRCode = require('qrcode');
-const { v4: uuidv4 } = require('uuid');
 
 // MongoDB connection with caching
 let cachedConnection = null;
@@ -23,6 +22,15 @@ async function connectToDatabase() {
     console.error('MongoDB connection error:', error);
     throw error;
   }
+}
+
+// Generate UUID without external library
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 // WebSession Schema
@@ -62,7 +70,7 @@ module.exports = async (req, res) => {
     await connectToDatabase();
     
     const { userType = 'teacher' } = req.body;
-    const sessionId = uuidv4();
+    const sessionId = generateUUID();
     const expiresAt = new Date(Date.now() + (5 * 60 * 1000)); // 5 minutes
     
     // Create web session
