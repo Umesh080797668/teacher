@@ -69,7 +69,17 @@ module.exports = async (req, res) => {
     // Connect to database
     await connectToDatabase();
     
-    const { userType = 'teacher' } = req.body;
+    // Parse body if needed (Vercel sometimes doesn't auto-parse)
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        body = {};
+      }
+    }
+    
+    const { userType = 'teacher' } = body || {};
     const sessionId = generateUUID();
     const expiresAt = new Date(Date.now() + (5 * 60 * 1000)); // 5 minutes
     
