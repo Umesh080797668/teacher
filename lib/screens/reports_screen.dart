@@ -131,6 +131,99 @@ class _AttendanceSummaryTab extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
+            'Daily Attendance by Class',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...reportsProvider.dailyByClass.map((classData) => Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          classData['className'] ?? 'Unknown Class',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${classData['totalStudents'] ?? 0} Students',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatItem(
+                          label: 'Present',
+                          value: classData['presentCount']?.toString() ?? '0',
+                          color: Colors.green,
+                        ),
+                      ),
+                      Expanded(
+                        child: _StatItem(
+                          label: 'Absent',
+                          value: classData['absentCount']?.toString() ?? '0',
+                          color: Colors.red,
+                        ),
+                      ),
+                      Expanded(
+                        child: _StatItem(
+                          label: 'Late',
+                          value: classData['lateCount']?.toString() ?? '0',
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: (classData['attendanceRate'] ?? 0) / 100,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      (classData['attendanceRate'] ?? 0) >= 75 ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Attendance Rate: ${(classData['attendanceRate'] ?? 0).toStringAsFixed(1)}%',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: (classData['attendanceRate'] ?? 0) >= 75 ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )),
+          const SizedBox(height: 24),
+          Text(
             'Monthly Overview',
             style: TextStyle(
               fontSize: 18,
@@ -218,7 +311,29 @@ class _MonthlyStatsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final monthlyStats = reportsProvider.monthlyStats;
+    final monthlyByClass = reportsProvider.monthlyByClass;
+
+    if (monthlyByClass.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.analytics_outlined,
+              size: 80,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No monthly statistics available',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -226,7 +341,7 @@ class _MonthlyStatsTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Monthly Statistics',
+            'Monthly Statistics by Class',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -234,59 +349,142 @@ class _MonthlyStatsTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          ...monthlyStats.map((stat) => Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${stat['month']}/${stat['year']}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
+          ...monthlyByClass.map((classData) {
+            final className = classData['className'] ?? 'Unknown Class';
+            final totalStudents = classData['totalStudents'] ?? 0;
+            final monthlyStats = classData['monthlyStats'] as List? ?? [];
+
+            return Card(
+              margin: const EdgeInsets.only(bottom: 16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            className,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$totalStudents Students',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatItem(
-                          label: 'Present',
-                          value: stat['presentCount']?.toString() ?? '0',
-                          color: Colors.green,
+                    const SizedBox(height: 16),
+                    if (monthlyStats.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: Text(
+                            'No attendance records yet',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        child: _StatItem(
-                          label: 'Absent',
-                          value: stat['absentCount']?.toString() ?? '0',
-                          color: Colors.red,
-                        ),
-                      ),
-                      Expanded(
-                        child: _StatItem(
-                          label: 'Late',
-                          value: stat['lateCount']?.toString() ?? '0',
-                          color: Colors.orange,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Average Rate: ${stat['averageRate']?.toStringAsFixed(1) ?? '0.0'}%',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                ],
+                      )
+                    else
+                      ...monthlyStats.map((stat) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${stat['month']}/${stat['year']}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _StatItem(
+                                      label: 'Present',
+                                      value: stat['presentCount']?.toString() ?? '0',
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _StatItem(
+                                      label: 'Absent',
+                                      value: stat['absentCount']?.toString() ?? '0',
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _StatItem(
+                                      label: 'Late',
+                                      value: stat['lateCount']?.toString() ?? '0',
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: LinearProgressIndicator(
+                                      value: (stat['averageRate'] ?? 0) / 100,
+                                      backgroundColor: Colors.grey[300],
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        (stat['averageRate'] ?? 0) >= 75 ? Colors.green : Colors.orange,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${(stat['averageRate'] ?? 0).toStringAsFixed(1)}%',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                      color: (stat['averageRate'] ?? 0) >= 75 ? Colors.green : Colors.orange,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                  ],
+                ),
               ),
-            ),
-          )),
+            );
+          }),
         ],
       ),
     );

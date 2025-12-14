@@ -571,10 +571,15 @@ app.post('/api/teachers', async (req, res) => {
 app.put('/api/teachers/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, password, status } = req.body;
+    const { name, email, phone, password, status, profilePicture } = req.body;
     
     // Prepare update object
     const updateData = { name, email, phone, status };
+    
+    // Add profilePicture to update data if provided
+    if (profilePicture !== undefined) {
+      updateData.profilePicture = profilePicture;
+    }
     
     // Hash password if provided
     if (password) {
@@ -790,6 +795,139 @@ app.get('/api/reports/monthly-stats', async (req, res) => {
     res.json(monthlyStats);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch monthly stats' });
+  }
+});
+
+// Daily attendance by class
+app.get('/api/reports/daily-by-class', async (req, res) => {
+  try {
+    const { teacherId, date } = req.query;
+    
+    // Use today if no date provided
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1);
+
+    let classQuery = {};
+    if (teacherId) {
+      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      if (teacher) {
+        classQuery.teacherId = teacher._id;
+      } else {
+        return res.json([]);
+      }
+    }
+
+    const classes = await Class.find(classQuery);
+    const reports = [];
+
+    for (const classObj of classes) {
+      const students = await Student.find({ classId: classObj._id });
+      const studentIds = students.map(s => s._id);
+      
+      const todayAttendance = await Attendance.find({
+        studentId: { $in: studentIds },
+        date: { $gte: startOfDay, $lt: endOfDay }
+      });
+
+      const presentCount = todayAttendance.filter(a => a.status === 'present').length;
+      const absentCount = todayAttendance.filter(a => a.status === 'absent').length;
+      const lateCount = todayAttendance.filter(a => a.status === 'late').length;
+      const totalStudents = students.length;
+      const attendanceRate = totalStudents > 0 ? ((presentCount + lateCount) / totalStudents) * 100 : 0;
+
+      reports.push({
+        classId: classObj._id,
+        className: classObj.name,
+        totalStudents,
+        presentCount,
+        absentCount,
+        lateCount,
+        attendanceRate
+      });
+    }
+
+    res.json(reports);
+  } catch (error) {
+    console.error('Error fetching daily attendance by class:', error);
+    res.status(500).json({ error: 'Failed to fetch daily attendance by class' });
+  }
+});
+
+// Monthly stats by class
+app.get('/api/reports/monthly-by-class', async (req, res) => {
+  try {
+    const { teacherId } = req.query;
+
+    let classQuery = {};
+    if (teacherId) {
+      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      if (teacher) {
+        classQuery.teacherId = teacher._id;
+      } else {
+        return res.json([]);
+      }
+    }
+
+    const classes = await Class.find(classQuery);
+    const reports = [];
+
+    for (const classObj of classes) {
+      const students = await Student.find({ classId: classObj._id });
+      const studentIds = students.map(s => s._id);
+
+      if (studentIds.length === 0) {
+        continue;
+      }
+
+      const pipeline = [
+        {
+          $match: { studentId: { $in: studentIds } }
+        },
+        {
+          $group: {
+            _id: { year: '$year', month: '$month' },
+            presentCount: { $sum: { $cond: [{ $eq: ['$status', 'present'] }, 1, 0] } },
+            absentCount: { $sum: { $cond: [{ $eq: ['$status', 'absent'] }, 1, 0] } },
+            lateCount: { $sum: { $cond: [{ $eq: ['$status', 'late'] }, 1, 0] } },
+            totalRecords: { $sum: 1 }
+          }
+        },
+        {
+          $project: {
+            year: '$_id.year',
+            month: '$_id.month',
+            presentCount: 1,
+            absentCount: 1,
+            lateCount: 1,
+            totalRecords: 1,
+            averageRate: {
+              $cond: {
+                if: { $gt: ['$totalRecords', 0] },
+                then: { $multiply: [{ $divide: ['$presentCount', '$totalRecords'] }, 100] },
+                else: 0
+              }
+            }
+          }
+        },
+        { $sort: { year: -1, month: -1 } },
+        { $limit: 12 }
+      ];
+
+      const monthlyStats = await Attendance.aggregate(pipeline);
+
+      reports.push({
+        classId: classObj._id,
+        className: classObj.name,
+        totalStudents: studentIds.length,
+        monthlyStats
+      });
+    }
+
+    res.json(reports);
+  } catch (error) {
+    console.error('Error fetching monthly stats by class:', error);
+    res.status(500).json({ error: 'Failed to fetch monthly stats by class' });
   }
 });
 

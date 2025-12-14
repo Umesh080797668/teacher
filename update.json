@@ -1,6 +1,6 @@
 {
-  "version": "1.0.24",
-  "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.24/app-release.apk",
-  "releaseNotes": "",
+  "version": "1.0.25",
+  "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.25/app-release.apk",
+  "releaseNotes": "Bug Fixes & Improvements v1.0.25\n\n✅ Fixed Issues:\n• Fixed student name display in view attendance (now shows actual names instead of database IDs)\n• Fixed teacher profile picture not updating properly\n• Added proper tracking for new profile picture uploads\n\n📊 New Features:\n• Daily attendance checker by class in reports page\n• Monthly statistics now show class-by-class breakdown\n• Enhanced attendance reports with visual progress indicators\n\n🔧 Technical Improvements:\n• Backend properly handles profile picture updates\n• Improved image handling logic in profile screen\n• Better data fetching for attendance reports",
   "isForced": false
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/student.dart';
 import '../models/attendance.dart';
@@ -117,6 +118,33 @@ class ApiService {
       }
       throw ApiException(
         'Request timed out. Please check your internet connection and try again.',
+      );
+    } on SocketException catch (e) {
+      if (retryCount < maxRetries) {
+        await Future.delayed(retryDelay);
+        return _makeRequest(
+          method,
+          endpoint,
+          headers: headers,
+          body: body,
+          retryCount: retryCount + 1,
+        );
+      }
+      // Handle SSL/TLS errors specifically
+      if (e.message.contains('CERTIFICATE_VERIFY_FAILED') ||
+          e.message.contains('Handshake error') ||
+          e.message.contains('SSL') ||
+          e.message.contains('TLS')) {
+        throw ApiException(
+          'Secure connection failed. Please check your device date/time settings or update your system.',
+        );
+      }
+      throw ApiException(
+        'Network error. Please check your internet connection and try again.',
+      );
+    } on HandshakeException {
+      throw ApiException(
+        'Secure connection failed. Please ensure your device has the latest security updates and correct date/time settings.',
       );
     } on http.ClientException {
       if (retryCount < maxRetries) {
@@ -471,6 +499,31 @@ class ApiService {
 
     final endpoint = Uri(
       path: '/api/reports/monthly-stats',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    ).toString();
+    final response = await _makeRequest('GET', endpoint);
+    return List<Map<String, dynamic>>.from(json.decode(response.body));
+  }
+
+  static Future<List<Map<String, dynamic>>> getDailyByClass({String? teacherId, String? date}) async {
+    final queryParams = <String, String>{};
+    if (teacherId != null) queryParams['teacherId'] = teacherId;
+    if (date != null) queryParams['date'] = date;
+
+    final endpoint = Uri(
+      path: '/api/reports/daily-by-class',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    ).toString();
+    final response = await _makeRequest('GET', endpoint);
+    return List<Map<String, dynamic>>.from(json.decode(response.body));
+  }
+
+  static Future<List<Map<String, dynamic>>> getMonthlyByClass({String? teacherId}) async {
+    final queryParams = <String, String>{};
+    if (teacherId != null) queryParams['teacherId'] = teacherId;
+
+    final endpoint = Uri(
+      path: '/api/reports/monthly-by-class',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
     final response = await _makeRequest('GET', endpoint);

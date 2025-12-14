@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../providers/attendance_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/students_provider.dart';
 
 class AttendanceViewScreen extends StatefulWidget {
   const AttendanceViewScreen({super.key});
@@ -25,9 +26,13 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
 
   Future<void> _loadAttendance() async {
     final provider = Provider.of<AttendanceProvider>(context, listen: false);
+    final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
     final auth = Provider.of<AuthProvider>(context, listen: false);
     try {
-      await provider.loadAttendance(month: _selectedMonth, year: _selectedYear, teacherId: auth.teacherId);
+      await Future.wait([
+        provider.loadAttendance(month: _selectedMonth, year: _selectedYear, teacherId: auth.teacherId),
+        studentsProvider.loadStudents(teacherId: auth.teacherId),
+      ]);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -397,53 +402,76 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> {
                                     statusIcon = Icons.help;
                                 }
 
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  child: ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: statusColor.withOpacity(0.2),
-                                      child: Icon(
-                                        statusIcon,
-                                        color: statusColor,
-                                      ),
-                                    ),
-                                    title: Text(
-                                      'Student ID: ${attendance.studentId}',
-                                      style: const TextStyle(fontWeight: FontWeight.w600),
-                                    ),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          DateFormat('EEEE, MMM d, y').format(attendance.date),
-                                        ),
-                                        Text(
-                                          'Session: ${attendance.session.toUpperCase()}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                // Get student name from students provider
+                                return Consumer<StudentsProvider>(
+                                  builder: (context, studentsProvider, child) {
+                                    var student;
+                                    try {
+                                      student = studentsProvider.students.firstWhere(
+                                        (s) => s.id == attendance.studentId,
+                                      );
+                                    } catch (e) {
+                                      student = null;
+                                    }
+                                    final studentName = student?.name ?? 'Unknown Student';
+                                    final studentId = student?.studentId ?? 'N/A';
+
+                                    return Card(
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      child: ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: statusColor.withOpacity(0.2),
+                                          child: Icon(
+                                            statusIcon,
+                                            color: statusColor,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    trailing: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: statusColor.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: statusColor, width: 1),
-                                      ),
-                                      child: Text(
-                                        attendance.status.toUpperCase(),
-                                        style: TextStyle(
-                                          color: statusColor,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
+                                        title: Text(
+                                          studentName,
+                                          style: const TextStyle(fontWeight: FontWeight.w600),
+                                        ),
+                                        subtitle: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'ID: $studentId',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                              ),
+                                            ),
+                                            Text(
+                                              DateFormat('EEEE, MMM d, y').format(attendance.date),
+                                            ),
+                                            Text(
+                                              'Session: ${attendance.session.toUpperCase()}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        trailing: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: statusColor.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: statusColor, width: 1),
+                                          ),
+                                          child: Text(
+                                            attendance.status.toUpperCase(),
+                                            style: TextStyle(
+                                              color: statusColor,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ),
+                                    );
+                                  },
                                 );
                               },
                             ),

@@ -26,6 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Teacher? _teacher;
   final ImagePicker _imagePicker = ImagePicker();
   String? _profilePicturePath;
+  bool _isNewImage = false;
 
   @override
   void initState() {
@@ -74,6 +75,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (pickedFile != null) {
         setState(() {
           _profilePicturePath = pickedFile.path;
+          _isNewImage = true;
         });
       } else {
         // User cancelled or permission was denied
@@ -185,6 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Navigator.of(context).pop();
                     setState(() {
                       _profilePicturePath = null;
+                      _isNewImage = false;
                     });
                   },
                 ),
@@ -215,8 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       String? savedImagePath;
 
       // Handle profile picture
-      if (_profilePicturePath != null &&
-          !_profilePicturePath!.startsWith('/')) {
+      if (_profilePicturePath != null && _isNewImage) {
         // This is a newly picked image that needs to be saved
         final imageFile = File(_profilePicturePath!);
         if (await imageFile.exists()) {
@@ -277,6 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _teacher = updatedTeacher;
         _profilePicturePath = updatedTeacher.profilePicture;
+        _isNewImage = false;
         _isEditing = false;
       });
 
@@ -343,6 +346,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _emailController.text = _teacher!.email;
                       _phoneController.text = _teacher!.phone ?? '';
                       _profilePicturePath = _teacher!.profilePicture;
+                      _isNewImage = false;
                     }
                     setState(() => _isEditing = false);
                   },

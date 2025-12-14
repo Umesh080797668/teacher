@@ -295,8 +295,17 @@ app.post('/api/teachers', async (req, res) => {
 app.put('/api/teachers/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, password, status } = req.body;
-    const updatedTeacher = await Teacher.findByIdAndUpdate(id, { name, email, password, status }, { new: true });
+    const { name, email, password, status, phone, profilePicture } = req.body;
+    
+    // Prepare update object
+    const updateData = { name, email, status };
+    
+    // Add optional fields if provided
+    if (phone !== undefined) updateData.phone = phone;
+    if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+    if (password) updateData.password = password;
+    
+    const updatedTeacher = await Teacher.findByIdAndUpdate(id, updateData, { new: true });
     if (!updatedTeacher) {
       return res.status(404).json({ error: 'Teacher not found' });
     }
