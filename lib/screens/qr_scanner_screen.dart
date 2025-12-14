@@ -349,8 +349,13 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            const Text('Scan QR Code'),
-            const SizedBox(width: 12),
+            const Flexible(
+              child: Text(
+                'Scan QR Code',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
             Container(
               width: 8,
               height: 8,
@@ -360,9 +365,12 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               ),
             ),
             const SizedBox(width: 4),
-            Text(
-              isConnected ? 'Connected' : 'Disconnected',
-              style: const TextStyle(fontSize: 12),
+            Flexible(
+              child: Text(
+                isConnected ? 'Connected' : 'Disconnected',
+                style: const TextStyle(fontSize: 11),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
