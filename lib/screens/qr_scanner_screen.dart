@@ -43,26 +43,64 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   void _connectWebSocket() {
     // Use the same backend URL as the mobile app API service
     const String backendUrl = ApiService.baseUrl;
+    
+    print('Connecting to WebSocket at: $backendUrl');
 
     socket = IO.io(backendUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
+      'reconnection': true,
+      'reconnectionAttempts': 5,
+      'reconnectionDelay': 1000,
     });
 
     socket?.on('connect', (_) {
-      print('WebSocket connected');
+      print('WebSocket connected successfully');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connected to server'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    });
+
+    socket?.on('connect_error', (error) {
+      print('WebSocket connection error: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connection error. Please check your internet.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     });
 
     socket?.on('auth-success', (data) {
+      print('Authentication successful: $data');
       _showSuccessDialog('Successfully connected to web interface!');
     });
 
     socket?.on('auth-failed', (data) {
+      print('Authentication failed: $data');
       _showErrorDialog(data['message'] ?? 'Authentication failed');
     });
 
     socket?.on('disconnect', (_) {
       print('WebSocket disconnected');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Disconnected from server'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     });
   }
 
@@ -70,10 +108,18 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     if (_isProcessing || !mounted) return;
 
     final List<Barcode> barcodes = capture.barcodes;
-    if (barcodes.isEmpty) return;
+    if (barcodes.isEmpty) {
+      print('No barcodes detected');
+      return;
+    }
 
     final String? qrData = barcodes.first.rawValue;
-    if (qrData == null) return;
+    if (qrData == null || qrData.isEmpty) {
+      print('QR data is null or empty');
+      return;
+    }
+
+    print('QR Code scanned: $qrData');
 
     if (!mounted) return;
     
@@ -84,10 +130,34 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     try {
       // Parse QR code data
       final Map<String, dynamic> qrJson = jsonDecode(qrData);
+      print('Parsed QR JSON: $qrJson');
 
-      // Validate QR code
+      // Validate QR code structure
+      if (!qrJson.containsKey('type')) {
+        print('QR code missing "type" field');
+        _showErrorDialog('Invalid QR code format - missing type');
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
+        return;
+      }
+
       if (qrJson['type'] != 'web-auth') {
-        _showErrorDialog('Invalid QR code');
+        print('QR code type is not "web-auth": ${qrJson['type']}');
+        _showErrorDialog('Invalid QR code - wrong type');
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
+        return;
+      }
+
+      if (!qrJson.containsKey('sessionId') || !qrJson.containsKey('expiresAt')) {
+        print('QR code missing required fields');
+        _showErrorDialog('Invalid QR code format');
         if (mounted) {
           setState(() {
             _isProcessing = false;
@@ -98,6 +168,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
       final String sessionId = qrJson['sessionId'];
       final int expiresAt = qrJson['expiresAt'];
+      print('Session ID: $sessionId, Expires at: $expiresAt');
 
       // Check if expired
       if (DateTime.now().millisecondsSinceEpoch > expiresAt) {
@@ -111,7 +182,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       }
 
       // Check if teacher is logged in
-      if (_teacherId == null) {
+      if (_teacherId == null || _teacherId!.isEmpty) {
+        print('Teacher not logged in');
         _showErrorDialog('Please login first');
         if (mounted) {
           setState(() {
@@ -121,6 +193,23 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         return;
       }
 
+      // Check WebSocket connection
+      if (socket == null || !socket!.connected) {
+        print('WebSocket not connected');
+        _showErrorDialog('Connection error. Please try again.');
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
+        return;
+      }
+
+      print('Sending authentication request...');
+      print('Teacher ID: $_teacherId');
+      print('Device ID: $_deviceId');
+      print('Session ID: $sessionId');
+
       // Send authentication to backend
       socket?.emit('authenticate-qr', {
         'sessionId': sessionId,
@@ -128,10 +217,25 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         'deviceId': _deviceId,
       });
 
+      print('Authentication request sent');
+
       // Show loading dialog
       if (mounted) {
         _showLoadingDialog();
       }
+
+      // Set timeout for authentication response
+      Future.delayed(const Duration(seconds: 10), () {
+        if (_isProcessing && mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+          _showErrorDialog('Authentication timeout. Please try again.');
+          if (mounted) {
+            setState(() {
+              _isProcessing = false;
+            });
+          }
+        }
+      });
     } catch (e) {
       print('Error parsing QR code: $e');
       _showErrorDialog('Invalid QR code format');
@@ -239,9 +343,29 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isConnected = socket?.connected ?? false;
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan QR Code'),
+        title: Row(
+          children: [
+            const Text('Scan QR Code'),
+            const SizedBox(width: 12),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isConnected ? Colors.green : Colors.red,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              isConnected ? 'Connected' : 'Disconnected',
+              style: const TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
         backgroundColor: const Color(0xFF6366F1),
         actions: [
           IconButton(
