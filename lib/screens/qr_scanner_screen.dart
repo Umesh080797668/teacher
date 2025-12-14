@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:async';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({Key? key}) : super(key: key);
@@ -15,24 +16,26 @@ class QRScannerScreen extends StatefulWidget {
 class _QRScannerScreenState extends State<QRScannerScreen> {
   MobileScannerController cameraController = MobileScannerController();
   bool _isProcessing = false;
-  IO.Socket? socket;
+  bool _isConnected = true; // HTTP is always "connected"
   String? _teacherId;
   String? _deviceId;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _loadTeacherData();
-    _connectWebSocket();
   }
 
   Future<void> _loadTeacherData() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _teacherId = prefs.getString('teacherId');
-      _deviceId = prefs.getString('deviceId') ??
-          DateTime.now().millisecondsSinceEpoch.toString();
-    });
+    if (mounted) {
+      setState(() {
+        _teacherId = prefs.getString('teacherId');
+        _deviceId = prefs.getString('deviceId') ??
+            DateTime.now().millisecondsSinceEpoch.toString();
+      });
+    }
 
     // Save deviceId if it's new
     if (!prefs.containsKey('deviceId')) {
@@ -40,68 +43,37 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     }
   }
 
-  void _connectWebSocket() {
-    // Use the same backend URL as the mobile app API service
-    const String backendUrl = ApiService.baseUrl;
-    
-    print('Connecting to WebSocket at: $backendUrl');
+  Future<Map<String, dynamic>?> _authenticateQR({
+    required String sessionId,
+    required String teacherId,
+    required String deviceId,
+  }) async {
+    try {
+      print('Sending HTTP authentication request...');
+      final response = await http.post(
+        Uri.parse('${ApiService.baseUrl}/api/web-session/authenticate'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'sessionId': sessionId,
+          'teacherId': teacherId,
+          'deviceId': deviceId,
+        }),
+      ).timeout(const Duration(seconds: 10));
 
-    socket = IO.io(backendUrl, <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': true,
-      'reconnection': true,
-      'reconnectionAttempts': 5,
-      'reconnectionDelay': 1000,
-    });
+      print('Authentication response status: ${response.statusCode}');
+      print('Authentication response body: ${response.body}');
 
-    socket?.on('connect', (_) {
-      print('WebSocket connected successfully');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connected to server'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data;
+      } else {
+        final error = jsonDecode(response.body);
+        return {'success': false, 'message': error['message'] ?? 'Authentication failed'};
       }
-    });
-
-    socket?.on('connect_error', (error) {
-      print('WebSocket connection error: $error');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connection error. Please check your internet.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    });
-
-    socket?.on('auth-success', (data) {
-      print('Authentication successful: $data');
-      _showSuccessDialog('Successfully connected to web interface!');
-    });
-
-    socket?.on('auth-failed', (data) {
-      print('Authentication failed: $data');
-      _showErrorDialog(data['message'] ?? 'Authentication failed');
-    });
-
-    socket?.on('disconnect', (_) {
-      print('WebSocket disconnected');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Disconnected from server'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    });
+    } catch (e) {
+      print('Authentication error: $e');
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
   }
 
   void _handleQRCode(BarcodeCapture capture) async {
@@ -193,49 +165,40 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         return;
       }
 
-      // Check WebSocket connection
-      if (socket == null || !socket!.connected) {
-        print('WebSocket not connected');
-        _showErrorDialog('Connection error. Please try again.');
-        if (mounted) {
-          setState(() {
-            _isProcessing = false;
-          });
-        }
-        return;
-      }
-
-      print('Sending authentication request...');
+      print('Sending HTTP authentication request...');
       print('Teacher ID: $_teacherId');
       print('Device ID: $_deviceId');
       print('Session ID: $sessionId');
-
-      // Send authentication to backend
-      socket?.emit('authenticate-qr', {
-        'sessionId': sessionId,
-        'teacherId': _teacherId,
-        'deviceId': _deviceId,
-      });
-
-      print('Authentication request sent');
 
       // Show loading dialog
       if (mounted) {
         _showLoadingDialog();
       }
 
-      // Set timeout for authentication response
-      Future.delayed(const Duration(seconds: 10), () {
-        if (_isProcessing && mounted) {
-          Navigator.of(context).pop(); // Close loading dialog
-          _showErrorDialog('Authentication timeout. Please try again.');
-          if (mounted) {
-            setState(() {
-              _isProcessing = false;
-            });
-          }
-        }
-      });
+      // Send authentication via HTTP
+      final result = await _authenticateQR(
+        sessionId: sessionId,
+        teacherId: _teacherId!,
+        deviceId: _deviceId!,
+      );
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      if (result != null && result['success'] == true) {
+        _showSuccessDialog('Successfully connected to web interface!');
+      } else {
+        final errorMessage = result?['message'] ?? 'Authentication failed';
+        _showErrorDialog(errorMessage);
+      }
+
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     } catch (e) {
       print('Error parsing QR code: $e');
       _showErrorDialog('Invalid QR code format');
@@ -337,13 +300,13 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   @override
   void dispose() {
     cameraController.dispose();
-    socket?.dispose();
+    _pollingTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isConnected = socket?.connected ?? false;
+    final bool isConnected = _isConnected;
     
     return Scaffold(
       appBar: AppBar(

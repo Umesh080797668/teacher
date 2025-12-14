@@ -2236,6 +2236,73 @@ app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
   }
 });
 
+// Authenticate QR code (HTTP endpoint for mobile app)
+app.post('/api/web-session/authenticate', async (req, res) => {
+  try {
+    await connectToDatabase();
+    
+    const { sessionId, teacherId, deviceId } = req.body;
+    
+    console.log('Authentication request received:', { sessionId, teacherId, deviceId });
+    
+    // Validate input
+    if (!sessionId || !teacherId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields' 
+      });
+    }
+    
+    // Find the web session
+    const session = await WebSession.findOne({
+      sessionId,
+      expiresAt: { $gt: new Date() },
+    });
+    
+    if (!session) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Session not found or expired' 
+      });
+    }
+    
+    // Find the teacher
+    const teacher = await Teacher.findById(teacherId);
+    
+    if (!teacher) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Teacher not found' 
+      });
+    }
+    
+    // Update session with teacher info
+    session.userId = teacherId;
+    session.isActive = true;
+    session.deviceId = deviceId;
+    await session.save();
+    
+    console.log('Authentication successful:', { sessionId, teacherId });
+    
+    res.json({
+      success: true,
+      message: 'Authentication successful',
+      sessionId,
+      teacher: {
+        id: teacher._id,
+        name: teacher.name,
+        email: teacher.email,
+      },
+    });
+  } catch (error) {
+    console.error('Error authenticating QR:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Authentication failed' 
+    });
+  }
+});
+
 // ============================================
 // Admin Routes
 // ============================================
