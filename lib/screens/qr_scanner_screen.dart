@@ -220,16 +220,16 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).dialogBackgroundColor,
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
             Text(
               'Authenticating...',
               style: TextStyle(
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -250,36 +250,39 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).dialogBackgroundColor,
         title: Row(
-          children: const [
+          children: [
             Icon(Icons.check_circle, color: Colors.green, size: 32),
             SizedBox(width: 12),
-            Text(
-              'Success',
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                'Success',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
         ),
         content: Text(
           message,
-          style: const TextStyle(
-            color: Colors.black87,
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyLarge?.color,
             fontSize: 16,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
+            child: Text(
               'OK',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ),
@@ -300,25 +303,27 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).dialogBackgroundColor,
         title: Row(
-          children: const [
+          children: [
             Icon(Icons.error, color: Colors.red, size: 32),
             SizedBox(width: 12),
-            Text(
-              'Error',
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                'Error',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
         ),
         content: Text(
           message,
-          style: const TextStyle(
-            color: Colors.black87,
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyLarge?.color,
             fontSize: 16,
           ),
         ),
@@ -334,11 +339,12 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 }
               }
             },
-            child: const Text(
+            child: Text(
               'OK',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ),
