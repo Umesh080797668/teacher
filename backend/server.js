@@ -519,6 +519,64 @@ app.post('/api/students', async (req, res) => {
   }
 });
 
+app.get('/api/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('GET /api/students/:id called with id:', id);
+    
+    // Validate ObjectId format
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ error: 'Invalid student ID format' });
+    }
+    
+    const student = await Student.findById(id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    
+    console.log('Student found:', student);
+    res.json(student);
+  } catch (error) {
+    console.error('Error fetching student:', error);
+    res.status(500).json({ error: 'Failed to fetch student', details: error.message });
+  }
+});
+
+app.put('/api/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    
+    // Convert classId to ObjectId if it's a string
+    if (updateData.classId && typeof updateData.classId === 'string' && updateData.classId.match(/^[0-9a-fA-F]{24}$/)) {
+      updateData.classId = new mongoose.Types.ObjectId(updateData.classId);
+    }
+    
+    const updatedStudent = await Student.findByIdAndUpdate(id, updateData, { new: true });
+    if (!updatedStudent) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    res.json(updatedStudent);
+  } catch (error) {
+    console.error('Error updating student:', error);
+    res.status(500).json({ error: 'Failed to update student', details: error.message });
+  }
+});
+
+app.delete('/api/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedStudent = await Student.findByIdAndDelete(id);
+    if (!deletedStudent) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    res.json({ message: 'Student deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting student:', error);
+    res.status(500).json({ error: 'Failed to delete student', details: error.message });
+  }
+});
+
 // Attendance
 app.get('/api/attendance', async (req, res) => {
   try {
@@ -634,6 +692,29 @@ app.post('/api/classes', async (req, res) => {
   } catch (error) {
     console.error('Error creating class:', error);
     res.status(500).json({ error: 'Failed to create class' });
+  }
+});
+
+app.get('/api/classes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('GET /api/classes/:id called with id:', id);
+    
+    // Validate ObjectId format
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ error: 'Invalid class ID format' });
+    }
+    
+    const classObj = await Class.findById(id);
+    if (!classObj) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+    
+    console.log('Class found:', classObj);
+    res.json(classObj);
+  } catch (error) {
+    console.error('Error fetching class:', error);
+    res.status(500).json({ error: 'Failed to fetch class', details: error.message });
   }
 });
 
