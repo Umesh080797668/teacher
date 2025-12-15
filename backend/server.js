@@ -2265,23 +2265,27 @@ app.post('/api/web-session/authenticate', async (req, res) => {
       });
     }
     
-    // Find the teacher
-    const teacher = await Teacher.findById(teacherId);
+    // Find the teacher by teacherId field (not MongoDB _id)
+    const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
     
     if (!teacher) {
+      console.log('Teacher not found for teacherId:', teacherId);
       return res.status(404).json({ 
         success: false, 
         message: 'Teacher not found' 
       });
     }
     
+    console.log('Teacher found:', teacher.name, teacher.teacherId);
+    
     // Update session with teacher info
-    session.userId = teacherId;
+    session.userId = teacher._id.toString(); // MongoDB ObjectId
+    session.teacherId = teacher.teacherId; // Custom teacher ID (TCH...)
     session.isActive = true;
     session.deviceId = deviceId;
     await session.save();
     
-    console.log('Authentication successful:', { sessionId, teacherId });
+    console.log('Authentication successful:', { sessionId, teacherId: teacher.teacherId, mongoId: teacher._id });
     
     res.json({
       success: true,

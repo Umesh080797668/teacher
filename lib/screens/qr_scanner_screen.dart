@@ -31,7 +31,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
-        _teacherId = prefs.getString('teacherId');
+        _teacherId = prefs.getString('teacher_id'); // Fixed: Changed from 'teacherId' to 'teacher_id'
         _deviceId = prefs.getString('deviceId') ??
             DateTime.now().millisecondsSinceEpoch.toString();
       });
@@ -41,6 +41,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     if (!prefs.containsKey('deviceId')) {
       await prefs.setString('deviceId', _deviceId!);
     }
+    
+    // Debug logging
+    print('Loaded teacher data - Teacher ID: $_teacherId, Device ID: $_deviceId');
   }
 
   Future<Map<String, dynamic>?> _authenticateQR({
