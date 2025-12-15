@@ -81,7 +81,8 @@ module.exports = async (req, res) => {
     
     const { userType = 'teacher' } = body || {};
     const sessionId = generateUUID();
-    const expiresAt = new Date(Date.now() + (5 * 60 * 1000)); // 5 minutes
+    // No expiration - QR codes are valid indefinitely
+    const expiresAt = new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)); // 1 year (effectively no expiration)
     
     // Create web session
     const webSession = new WebSession({
@@ -93,11 +94,11 @@ module.exports = async (req, res) => {
     
     await webSession.save();
     
-    // Generate QR code
+    // Generate QR code with format expected by mobile app
     const qrData = JSON.stringify({
+      type: 'web-auth',
       sessionId,
-      userType,
-      timestamp: Date.now(),
+      userType, // Keep for backward compatibility
     });
     
     const qrCode = await QRCode.toDataURL(qrData);
@@ -105,7 +106,6 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       sessionId,
       qrCode,
-      expiresAt: expiresAt.getTime(),
     });
   } catch (error) {
     console.error('Error generating QR code:', error);

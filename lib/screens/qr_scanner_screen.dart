@@ -127,8 +127,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         return;
       }
 
-      if (!qrJson.containsKey('sessionId') || !qrJson.containsKey('expiresAt')) {
-        print('QR code missing required fields');
+      if (!qrJson.containsKey('sessionId')) {
+        print('QR code missing sessionId field');
         _showErrorDialog('Invalid QR code format');
         if (mounted) {
           setState(() {
@@ -139,19 +139,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       }
 
       final String sessionId = qrJson['sessionId'];
-      final int expiresAt = qrJson['expiresAt'];
-      print('Session ID: $sessionId, Expires at: $expiresAt');
-
-      // Check if expired
-      if (DateTime.now().millisecondsSinceEpoch > expiresAt) {
-        _showErrorDialog('QR code has expired');
-        if (mounted) {
-          setState(() {
-            _isProcessing = false;
-          });
-        }
-        return;
-      }
+      print('Session ID: $sessionId');
 
       // Check if teacher is logged in
       if (_teacherId == null || _teacherId!.isEmpty) {

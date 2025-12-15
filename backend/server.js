@@ -2153,7 +2153,8 @@ app.post('/api/web-session/generate-qr', async (req, res) => {
     const { v4: uuidv4 } = await import('uuid');
     const { userType = 'teacher' } = req.body;
     const sessionId = uuidv4();
-    const expiresAt = new Date(Date.now() + (5 * 60 * 1000)); // 5 minutes
+    // No expiration - QR codes are valid indefinitely
+    const expiresAt = new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)); // 1 year (effectively no expiration)
     
     // Create web session
     const webSession = new WebSession({
@@ -2169,7 +2170,6 @@ app.post('/api/web-session/generate-qr', async (req, res) => {
     const qrData = JSON.stringify({
       type: 'web-auth',
       sessionId,
-      expiresAt: expiresAt.getTime(), // Timestamp in milliseconds
       userType, // Keep for backward compatibility
     });
     
@@ -2180,7 +2180,6 @@ app.post('/api/web-session/generate-qr', async (req, res) => {
     res.json({
       sessionId,
       qrCode,
-      expiresAt: expiresAt.getTime(),
     });
   } catch (error) {
     console.error('Error generating QR code:', error);
