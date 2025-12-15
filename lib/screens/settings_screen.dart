@@ -11,6 +11,7 @@ import '../services/update_service.dart';
 import '../services/background_backup_service.dart';
 import 'profile_screen.dart';
 import 'backup_restore_screen.dart';
+import 'linked_devices_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -467,6 +468,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: const Text('Email'),
                     subtitle: Text(auth.userEmail ?? 'Not set'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: Icon(
+                      Icons.devices,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: const Text('Linked Devices'),
+                    subtitle: const Text('Manage web sessions'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const LinkedDevicesScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
