@@ -2194,17 +2194,27 @@ app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
     
     const { sessionId } = req.params;
     
+    console.log('Checking auth status for session:', sessionId);
+    
     const session = await WebSession.findOne({
       sessionId,
       expiresAt: { $gt: new Date() },
     }).populate('userId');
     
     if (!session) {
+      console.log('Session not found or expired:', sessionId);
       return res.status(404).json({ 
         authenticated: false, 
         error: 'Session not found or expired' 
       });
     }
+    
+    console.log('Session found:', {
+      sessionId: session.sessionId,
+      isActive: session.isActive,
+      hasUserId: !!session.userId,
+      userType: session.userType
+    });
     
     if (session.isActive && session.userId) {
       // Session is authenticated
@@ -2218,6 +2228,8 @@ app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
         { expiresIn: '24h' }
       );
       
+      console.log('Session is authenticated, returning success');
+      
       return res.json({
         authenticated: true,
         success: true,
@@ -2228,6 +2240,7 @@ app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
     }
     
     // Not authenticated yet
+    console.log('Session not authenticated yet');
     res.json({ authenticated: false });
   } catch (error) {
     console.error('Error checking auth status:', error);
@@ -2279,10 +2292,11 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     console.log('Teacher found:', teacher.name, teacher.teacherId);
     
     // Update session with teacher info
-    session.userId = teacher._id.toString(); // MongoDB ObjectId
+    session.userId = teacher._id; // Store as ObjectId, not string
+    session.userModel = 'Teacher'; // Set the model reference
     session.teacherId = teacher.teacherId; // Custom teacher ID (TCH...)
     session.isActive = true;
-    session.deviceId = deviceId;
+    session.deviceId = deviceId || 'mobile-app';
     await session.save();
     
     console.log('Authentication successful:', { sessionId, teacherId: teacher.teacherId, mongoId: teacher._id });

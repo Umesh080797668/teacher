@@ -31,7 +31,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
-        _teacherId = prefs.getString('teacher_id'); // Fixed: Changed from 'teacherId' to 'teacher_id'
+        _teacherId = prefs.getString(
+            'teacher_id'); // Fixed: Changed from 'teacherId' to 'teacher_id'
         _deviceId = prefs.getString('deviceId') ??
             DateTime.now().millisecondsSinceEpoch.toString();
       });
@@ -41,9 +42,10 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     if (!prefs.containsKey('deviceId')) {
       await prefs.setString('deviceId', _deviceId!);
     }
-    
+
     // Debug logging
-    print('Loaded teacher data - Teacher ID: $_teacherId, Device ID: $_deviceId');
+    print(
+        'Loaded teacher data - Teacher ID: $_teacherId, Device ID: $_deviceId');
   }
 
   Future<Map<String, dynamic>?> _authenticateQR({
@@ -53,15 +55,17 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   }) async {
     try {
       print('Sending HTTP authentication request...');
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/api/web-session/authenticate'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'sessionId': sessionId,
-          'teacherId': teacherId,
-          'deviceId': deviceId,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('${ApiService.baseUrl}/api/web-session/authenticate'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'sessionId': sessionId,
+              'teacherId': teacherId,
+              'deviceId': deviceId,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       print('Authentication response status: ${response.statusCode}');
       print('Authentication response body: ${response.body}');
@@ -71,7 +75,10 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         return data;
       } else {
         final error = jsonDecode(response.body);
-        return {'success': false, 'message': error['message'] ?? 'Authentication failed'};
+        return {
+          'success': false,
+          'message': error['message'] ?? 'Authentication failed'
+        };
       }
     } catch (e) {
       print('Authentication error: $e');
@@ -97,7 +104,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     print('QR Code scanned: $qrData');
 
     if (!mounted) return;
-    
+
     setState(() {
       _isProcessing = true;
     });
@@ -175,14 +182,21 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
       if (!mounted) return;
 
-      // Close loading dialog
-      Navigator.of(context).pop();
+      // Close loading dialog first
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
 
       if (result != null && result['success'] == true) {
         _showSuccessDialog('Successfully connected to web interface!');
       } else {
         final errorMessage = result?['message'] ?? 'Authentication failed';
-        _showErrorDialog(errorMessage);
+        // Show error after a brief delay to ensure loading dialog is closed
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            _showErrorDialog(errorMessage);
+          }
+        });
       }
 
       if (mounted) {
@@ -206,12 +220,20 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: const [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Authenticating...'),
+            Text(
+              'Authenticating...',
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
       ),
@@ -220,25 +242,46 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
   void _showSuccessDialog(String message) {
     if (!mounted) return;
-    
-    Navigator.of(context).pop(); // Close loading dialog
-    Navigator.of(context).pop(); // Close scanner screen
 
+    // Close scanner screen first
+    Navigator.of(context).pop();
+
+    // Then show success dialog
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         title: Row(
           children: const [
             Icon(Icons.check_circle, color: Colors.green, size: 32),
             SizedBox(width: 12),
-            Text('Success'),
+            Text(
+              'Success',
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
-        content: Text(message),
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 16,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -253,22 +296,32 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
   void _showErrorDialog(String message) {
     if (!mounted) return;
-    
-    if (Navigator.canPop(context)) {
-      Navigator.of(context).pop(); // Close any open dialogs
-    }
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         title: Row(
           children: const [
             Icon(Icons.error, color: Colors.red, size: 32),
             SizedBox(width: 12),
-            Text('Error'),
+            Text(
+              'Error',
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
-        content: Text(message),
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 16,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -281,7 +334,13 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 }
               }
             },
-            child: const Text('OK'),
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -298,7 +357,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   @override
   Widget build(BuildContext context) {
     final bool isConnected = _isConnected;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
