@@ -202,6 +202,7 @@ const AdminSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   name: { type: String, required: true },
+  companyName: { type: String, required: true },
   role: { type: String, default: 'admin' },
 }, { timestamps: true });
 
@@ -2472,6 +2473,7 @@ app.post('/api/admin/login', async (req, res) => {
         _id: admin._id,
         email: admin.email,
         name: admin.name,
+        companyName: admin.companyName,
         role: admin.role,
       },
       session: webSession,
@@ -2480,6 +2482,59 @@ app.post('/api/admin/login', async (req, res) => {
   } catch (error) {
     console.error('Error during admin login:', error);
     res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Admin registration (public endpoint for first-time admin creation)
+app.post('/api/admin/register', async (req, res) => {
+  try {
+    const { email, password, name, companyName } = req.body;
+    
+    // Validate required fields
+    if (!email || !password || !name || !companyName) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    
+    // Check if admin with this email already exists
+    const existingAdmin = await Admin.findOne({ email: email.toLowerCase().trim() });
+    if (existingAdmin) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+    
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+    
+    // Create new admin
+    const admin = new Admin({
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      name: name.trim(),
+      companyName: companyName.trim(),
+    });
+    
+    await admin.save();
+    
+    res.status(201).json({
+      success: true,
+      message: 'Admin account created successfully',
+      admin: {
+        _id: admin._id,
+        email: admin.email,
+        name: admin.name,
+        companyName: admin.companyName,
+      },
+    });
+  } catch (error) {
+    console.error('Error during admin registration:', error);
+    if (error.code === 11000) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+    res.status(500).json({ error: 'Registration failed' });
   }
 });
 
