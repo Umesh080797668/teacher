@@ -188,8 +188,8 @@ const WebSessionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'userModel' },
   userModel: { type: String, enum: ['Teacher', 'Admin'] },
   userType: { type: String, enum: ['admin', 'teacher'], required: true },
-  deviceId: { type: String, required: true },
-  isActive: { type: Boolean, default: true },
+  deviceId: { type: String }, // Optional - set when QR is scanned
+  isActive: { type: Boolean, default: false },
   expiresAt: { type: Date, required: true },
   teacherId: { type: String }, // Store teacherId for easy lookup
 }, { timestamps: true });
@@ -2203,9 +2203,9 @@ app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
     
     if (!session) {
       console.log('Session not found or expired:', sessionId);
-      return res.status(404).json({ 
-        authenticated: false, 
-        error: 'Session not found or expired' 
+      return res.json({ 
+        authenticated: false,
+        message: 'Session not found or expired' 
       });
     }
     
@@ -2213,6 +2213,7 @@ app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
       sessionId: session.sessionId,
       isActive: session.isActive,
       hasUserId: !!session.userId,
+      userId: session.userId?._id,
       userType: session.userType
     });
     
@@ -2234,7 +2235,11 @@ app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
         authenticated: true,
         success: true,
         user: session.userId,
-        session,
+        session: {
+          sessionId: session.sessionId,
+          isActive: session.isActive,
+          userType: session.userType,
+        },
         token,
       });
     }
@@ -2244,7 +2249,7 @@ app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
     res.json({ authenticated: false });
   } catch (error) {
     console.error('Error checking auth status:', error);
-    res.status(500).json({ error: 'Failed to check authentication status' });
+    res.json({ authenticated: false, error: 'Internal server error' });
   }
 });
 
@@ -2255,10 +2260,14 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     
     const { sessionId, teacherId, deviceId } = req.body;
     
-    console.log('Authentication request received:', { sessionId, teacherId, deviceId });
+    console.log('=== Web Session Authentication Request ===');
+    console.log('Session ID:', sessionId);
+    console.log('Teacher ID:', teacherId);
+    console.log('Device ID:', deviceId);
     
     // Validate input
     if (!sessionId || !teacherId) {
+      console.log('ERROR: Missing required fields');
       return res.status(400).json({ 
         success: false, 
         message: 'Missing required fields' 
@@ -2272,24 +2281,27 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     });
     
     if (!session) {
+      console.log('ERROR: Session not found or expired');
       return res.status(404).json({ 
         success: false, 
         message: 'Session not found or expired' 
       });
     }
     
+    console.log('Session found:', session.sessionId);
+    
     // Find the teacher by teacherId field (not MongoDB _id)
     const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
     
     if (!teacher) {
-      console.log('Teacher not found for teacherId:', teacherId);
+      console.log('ERROR: Teacher not found for teacherId:', teacherId);
       return res.status(404).json({ 
         success: false, 
         message: 'Teacher not found' 
       });
     }
     
-    console.log('Teacher found:', teacher.name, teacher.teacherId);
+    console.log('Teacher found:', teacher.name, '(ID:', teacher.teacherId, ')');
     
     // Update session with teacher info
     session.userId = teacher._id; // Store as ObjectId, not string
@@ -2297,9 +2309,16 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     session.teacherId = teacher.teacherId; // Custom teacher ID (TCH...)
     session.isActive = true;
     session.deviceId = deviceId || 'mobile-app';
+    
     await session.save();
     
-    console.log('Authentication successful:', { sessionId, teacherId: teacher.teacherId, mongoId: teacher._id });
+    console.log('SUCCESS: Session updated and activated');
+    console.log('Session details:', {
+      sessionId: session.sessionId,
+      userId: session.userId,
+      isActive: session.isActive,
+      teacherId: session.teacherId,
+    });
     
     res.json({
       success: true,
@@ -2312,10 +2331,10 @@ app.post('/api/web-session/authenticate', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error authenticating QR:', error);
+    console.error('ERROR in web-session authentication:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Authentication failed' 
+      message: 'Authentication failed: ' + error.message 
     });
   }
 });
