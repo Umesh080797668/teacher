@@ -3614,6 +3614,112 @@ app.get('/api/admin/profile', verifyToken, async (req, res) => {
   }
 });
 
+// Update admin profile
+app.put('/api/admin/profile', verifyToken, async (req, res) => {
+  try {
+    console.log('=== Update Admin Profile Request ===');
+    console.log('User from token:', req.user);
+    console.log('Update data:', req.body);
+    
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const { name, companyName } = req.body;
+    
+    // Build update object with only provided fields
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (companyName !== undefined) updateData.companyName = companyName;
+    updateData.updatedAt = new Date();
+    
+    // Update admin in database
+    const admin = await Admin.findByIdAndUpdate(
+      req.user.userId,
+      { $set: updateData },
+      { new: true, select: '-password' }
+    );
+    
+    if (!admin) {
+      console.log('Admin not found for userId:', req.user.userId);
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+    
+    console.log('✓ Admin profile updated:', admin.email);
+    
+    res.json({
+      id: admin._id,
+      email: admin.email,
+      name: admin.name,
+      companyName: admin.companyName,
+      role: admin.role,
+      createdAt: admin.createdAt,
+      updatedAt: admin.updatedAt,
+    });
+  } catch (error) {
+    console.error('Error updating admin profile:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// Change admin password
+app.put('/api/admin/change-password', verifyToken, async (req, res) => {
+  try {
+    console.log('=== Change Admin Password Request ===');
+    console.log('User from token:', req.user);
+    
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const { currentPassword, newPassword } = req.body;
+    
+    // Validate inputs
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        error: 'Current password and new password are required' 
+      });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        error: 'New password must be at least 6 characters long' 
+      });
+    }
+    
+    // Get admin with password
+    const admin = await Admin.findById(req.user.userId);
+    
+    if (!admin) {
+      console.log('Admin not found for userId:', req.user.userId);
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+    
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, admin.password);
+    
+    if (!isPasswordValid) {
+      console.log('Invalid current password for admin:', admin.email);
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+    
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password
+    admin.password = hashedPassword;
+    admin.updatedAt = new Date();
+    await admin.save();
+    
+    console.log('✓ Password changed successfully for admin:', admin.email);
+    
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
 // Export the app for Vercel
 module.exports = app;
 
