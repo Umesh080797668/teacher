@@ -993,38 +993,86 @@ app.delete('/api/payments/:id', async (req, res) => {
 
 // Teachers
 app.get('/api/teachers', async (req, res) => {
+  const debugLog = [];
   try {
     const { status, companyId } = req.query;
-    console.log('GET /api/teachers called');
+    debugLog.push(`[TEACHERS API] GET /api/teachers called at ${new Date().toISOString()}`);
+    debugLog.push(`[TEACHERS API] Query params: status=${status}, companyId=${companyId}`);
+    console.log('=== GET /api/teachers ===');
     console.log('Query params:', { status, companyId });
 
     let query = {};
-    if (status) query.status = status;
+    if (status) {
+      query.status = status;
+      debugLog.push(`[TEACHERS API] Filtering by status: ${status}`);
+    }
     
     // Filter by companyId if provided (for multi-tenant support)
     // Teachers can belong to multiple companies, so check if companyId is in the array
     if (companyId) {
       // Use $in operator to check if companyId exists in the companyIds array
       query.companyIds = { $in: [companyId] };
+      debugLog.push(`[TEACHERS API] Filtering by companyId: ${companyId}`);
+      debugLog.push(`[TEACHERS API] Using $in operator to search in companyIds array`);
       console.log('Filtering teachers by companyId:', companyId);
+    } else {
+      debugLog.push(`[TEACHERS API] No companyId filter - will return ALL teachers`);
     }
     
+    debugLog.push(`[TEACHERS API] MongoDB query: ${JSON.stringify(query)}`);
     console.log('Executing Teacher.find with query:', JSON.stringify(query));
+    
     const teachers = await Teacher.find(query);
+    debugLog.push(`[TEACHERS API] Found ${teachers.length} teachers`);
     console.log(`Found ${teachers.length} teachers for company ${companyId || 'all'}`);
     
     // Log teacher details for debugging
     if (teachers.length > 0) {
-      console.log('Teachers found:', teachers.map(t => ({
+      const teacherDetails = teachers.map(t => ({
+        _id: t._id.toString(),
         teacherId: t.teacherId,
         name: t.name,
-        companyIds: t.companyIds
-      })));
+        email: t.email,
+        companyIds: t.companyIds ? t.companyIds.map(id => id.toString()) : [],
+        companyIdsCount: t.companyIds ? t.companyIds.length : 0
+      }));
+      debugLog.push(`[TEACHERS API] Teachers details: ${JSON.stringify(teacherDetails, null, 2)}`);
+      console.log('Teachers found:', teacherDetails);
+    } else {
+      debugLog.push(`[TEACHERS API] No teachers found matching query`);
+      
+      // Additional debugging: count all teachers
+      const totalTeachers = await Teacher.countDocuments({});
+      debugLog.push(`[TEACHERS API] Total teachers in database: ${totalTeachers}`);
+      console.log(`Total teachers in database: ${totalTeachers}`);
+      
+      if (companyId && totalTeachers > 0) {
+        // Check if any teacher has this companyId
+        const teachersWithCompany = await Teacher.find({ companyIds: companyId });
+        debugLog.push(`[TEACHERS API] Teachers with exact companyId match: ${teachersWithCompany.length}`);
+        console.log(`Teachers with companyId ${companyId}:`, teachersWithCompany.length);
+        
+        // List all teachers with their companyIds
+        const allTeachers = await Teacher.find({}).select('teacherId name companyIds');
+        debugLog.push(`[TEACHERS API] All teachers in DB:`);
+        allTeachers.forEach(t => {
+          const companies = t.companyIds ? t.companyIds.map(id => id.toString()) : [];
+          debugLog.push(`  - ${t.teacherId} (${t.name}): companies=[${companies.join(', ')}]`);
+          console.log(`  Teacher ${t.teacherId}:`, companies);
+        });
+      }
     }
+    
+    // Send debug logs in response headers (encoded for HTTP header safety)
+    const debugHeader = Buffer.from(debugLog.join('\n')).toString('base64');
+    res.setHeader('X-Debug-Log', debugHeader);
     
     res.json(teachers);
   } catch (error) {
     console.error('Error fetching teachers:', error);
+    debugLog.push(`[TEACHERS API] ERROR: ${error.message}`);
+    const debugHeader = Buffer.from(debugLog.join('\n')).toString('base64');
+    res.setHeader('X-Debug-Log', debugHeader);
     res.status(500).json({ error: 'Failed to fetch teachers' });
   }
 });
@@ -2572,27 +2620,73 @@ app.get('/api/web-session/teacher/:teacherId', verifyToken, async (req, res) => 
 
 // Get all teacher sessions for a company (admin view)
 app.get('/api/web-session/teacher-sessions/:companyId', verifyToken, async (req, res) => {
+  const debugLog = [];
   try {
     const { companyId } = req.params;
+    debugLog.push(`[SESSIONS API] GET /api/web-session/teacher-sessions/${companyId}`);
+    debugLog.push(`[SESSIONS API] Timestamp: ${new Date().toISOString()}`);
+    console.log('=== GET Teacher Sessions ===');
+    console.log('CompanyId:', companyId);
     
     // Convert companyId to ObjectId for proper comparison
     const companyObjectId = new mongoose.Types.ObjectId(companyId);
+    debugLog.push(`[SESSIONS API] Converted to ObjectId: ${companyObjectId.toString()}`);
     
     // First, get all teachers who belong to this company
+    debugLog.push(`[SESSIONS API] Finding teachers with companyId in companyIds array...`);
     const teachers = await Teacher.find({ companyIds: companyObjectId });
+    debugLog.push(`[SESSIONS API] Found ${teachers.length} teachers for this company`);
+    console.log(`Found ${teachers.length} teachers for company`);
+    
+    if (teachers.length > 0) {
+      const teacherDetails = teachers.map(t => ({
+        _id: t._id.toString(),
+        teacherId: t.teacherId,
+        name: t.name,
+        companyIds: t.companyIds.map(id => id.toString())
+      }));
+      debugLog.push(`[SESSIONS API] Teachers: ${JSON.stringify(teacherDetails, null, 2)}`);
+      console.log('Teachers:', teacherDetails);
+    }
+    
     const teacherIds = teachers.map(t => t._id);
+    debugLog.push(`[SESSIONS API] Looking for sessions for ${teacherIds.length} teacher IDs`);
     
     // Then get all active sessions for these teachers
-    const sessions = await WebSession.find({
+    const sessionQuery = {
       userId: { $in: teacherIds },
       userType: 'teacher',
       isActive: true,
       expiresAt: { $gt: new Date() },
-    }).populate('userId');
+    };
+    debugLog.push(`[SESSIONS API] Session query: ${JSON.stringify({...sessionQuery, expiresAt: 'Date > now'})}`);
+    
+    const sessions = await WebSession.find(sessionQuery).populate('userId');
+    debugLog.push(`[SESSIONS API] Found ${sessions.length} active sessions`);
+    console.log(`Found ${sessions.length} active sessions`);
+    
+    if (sessions.length > 0) {
+      const sessionDetails = sessions.map(s => ({
+        sessionId: s.sessionId,
+        teacherId: s.teacherId,
+        isActive: s.isActive,
+        deviceId: s.deviceId,
+        teacherName: s.userId?.name
+      }));
+      debugLog.push(`[SESSIONS API] Sessions: ${JSON.stringify(sessionDetails, null, 2)}`);
+      console.log('Sessions:', sessionDetails);
+    }
+    
+    // Send debug logs in response headers
+    const debugHeader = Buffer.from(debugLog.join('\n')).toString('base64');
+    res.setHeader('X-Debug-Log', debugHeader);
     
     res.json(sessions);
   } catch (error) {
     console.error('Error fetching company teacher sessions:', error);
+    debugLog.push(`[SESSIONS API] ERROR: ${error.message}`);
+    const debugHeader = Buffer.from(debugLog.join('\n')).toString('base64');
+    res.setHeader('X-Debug-Log', debugHeader);
     res.status(500).json({ error: 'Failed to fetch teacher sessions' });
   }
 });
@@ -3158,28 +3252,47 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     });
     
     // Add companyId to teacher's array if not already present
+    console.log('=== COMPANY ASSOCIATION LOGIC ===');
     if (session.companyId) {
+      console.log('Session has companyId:', session.companyId.toString());
+      
       if (!teacher.companyIds) {
         teacher.companyIds = [];
-        console.log('Initializing companyIds array for teacher');
+        console.log('✓ Initializing companyIds array for teacher');
+      } else {
+        console.log('Teacher current companyIds:', teacher.companyIds.map(id => id.toString()));
       }
       
       const companyIdStr = session.companyId.toString();
       const hasCompany = teacher.companyIds.some(id => id.toString() === companyIdStr);
+      console.log('Does teacher already have this company?', hasCompany);
       
       if (!hasCompany) {
-        console.log('Adding company to teacher:', companyIdStr);
+        console.log('➜ Adding company to teacher:', companyIdStr);
         teacher.companyIds.push(session.companyId);
-        await teacher.save();
-        console.log(`✓ Teacher ${teacherId} added to company ${companyIdStr}`);
-        console.log(`Teacher now belongs to ${teacher.companyIds.length} compan${teacher.companyIds.length === 1 ? 'y' : 'ies'}`);
+        
+        try {
+          await teacher.save();
+          console.log(`✓✓✓ SUCCESS: Teacher ${teacherId} added to company ${companyIdStr}`);
+          console.log(`✓ Teacher now belongs to ${teacher.companyIds.length} compan${teacher.companyIds.length === 1 ? 'y' : 'ies'}`);
+          console.log('✓ Updated companyIds:', teacher.companyIds.map(id => id.toString()));
+        } catch (saveError) {
+          console.error('❌ ERROR saving teacher with new companyId:', saveError);
+          throw saveError;
+        }
       } else {
         console.log(`✓ Teacher ${teacherId} already belongs to company ${companyIdStr}`);
       }
-      console.log('Current teacher companies:', teacher.companyIds.map(id => id.toString()));
+      console.log('Final teacher companies:', teacher.companyIds.map(id => id.toString()));
     } else {
-      console.log('⚠ No companyId in session, skipping teacher-company association');
+      console.error('⚠⚠⚠ WARNING: No companyId in session, skipping teacher-company association');
+      console.log('Session details:', {
+        sessionId: session.sessionId,
+        companyId: session.companyId,
+        userType: session.userType
+      });
     }
+    console.log('=== END COMPANY ASSOCIATION LOGIC ===');
     
     // Update session with teacher info and device metadata
     console.log('Updating session with authentication details...');
