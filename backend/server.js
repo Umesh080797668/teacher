@@ -45,6 +45,25 @@ app.use(express.json());
 // Handle OPTIONS requests explicitly
 app.options('*', cors());
 
+// Database connection middleware - ensure connection before processing requests
+app.use(async (req, res, next) => {
+  // Skip for health and debug endpoints that don't need DB
+  if (req.path === '/api/health' || req.path === '/api/debug/env') {
+    return next();
+  }
+  
+  try {
+    await connectToDatabase();
+    next();
+  } catch (error) {
+    console.error('Failed to connect to database:', error);
+    res.status(503).json({ 
+      error: 'Database connection failed',
+      message: error.message 
+    });
+  }
+});
+
 // Email transporter
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -280,60 +299,113 @@ io.on('connection', (socket) => {
   // Mobile app scans QR and sends authentication
   socket.on('authenticate-qr', async ({ sessionId, teacherId, deviceId }) => {
     try {
-      console.log('Authentication attempt for session:', sessionId);
+      console.log('=== Socket Authentication Request ===');
+      console.log('Session ID:', sessionId);
+      console.log('Teacher ID:', teacherId);
+      console.log('Device ID:', deviceId);
+      console.log('Socket ID:', socket.id);
       
       const pendingSession = pendingQRSessions.get(sessionId);
       
       if (!pendingSession) {
+        console.log('ERROR: Session not found in pending sessions');
         socket.emit('auth-failed', { message: 'Invalid or expired session' });
         return;
       }
 
+      console.log('Pending session found:', {
+        sessionId,
+        userType: pendingSession.userType,
+        socketId: pendingSession.socketId,
+        expiresAt: new Date(pendingSession.expiresAt).toISOString(),
+      });
+
       if (Date.now() > pendingSession.expiresAt) {
+        console.log('ERROR: Session expired');
         pendingQRSessions.delete(sessionId);
         socket.emit('auth-failed', { message: 'Session expired' });
         return;
       }
 
       // Find teacher
+      console.log('Looking for teacher...');
       const teacher = await Teacher.findOne({ teacherId });
       
       if (!teacher) {
+        console.log('ERROR: Teacher not found');
         socket.emit('auth-failed', { message: 'Teacher not found' });
         return;
       }
 
+      console.log('✓ Teacher found:', teacher.name, '(ID:', teacher.teacherId, ')');
+
       if (teacher.status !== 'active') {
+        console.log('ERROR: Teacher account inactive');
         socket.emit('auth-failed', { message: 'Teacher account is inactive' });
         return;
       }
 
       // Get the WebSession to retrieve companyId
+      console.log('Looking for web session...');
       const webSession = await WebSession.findOne({ sessionId });
       if (!webSession) {
+        console.log('ERROR: Web session not found');
         socket.emit('auth-failed', { message: 'Session not found' });
         return;
+      }
+
+      console.log('✓ Web session found');
+      console.log('Session details:', {
+        sessionId: webSession.sessionId,
+        companyId: webSession.companyId,
+        isActive: webSession.isActive,
+        currentUserId: webSession.userId,
+        currentDeviceId: webSession.deviceId,
+      });
+
+      // Check if session is already authenticated
+      if (webSession.isActive && webSession.userId && webSession.deviceId) {
+        console.log('⚠ Session already authenticated!');
+        console.log('Current device:', webSession.deviceId);
+        console.log('Requesting device:', deviceId);
+        
+        if (webSession.deviceId !== deviceId) {
+          console.log('ERROR: Session authenticated on different device');
+          socket.emit('auth-failed', { 
+            message: 'Session already authenticated on another device',
+            details: {
+              currentDevice: webSession.deviceId,
+              requestingDevice: deviceId,
+            }
+          });
+          return;
+        } else {
+          console.log('✓ Same device attempting to re-authenticate');
+        }
       }
 
       // Add companyId to teacher's array if not already present
       if (webSession.companyId) {
         if (!teacher.companyIds) {
           teacher.companyIds = [];
+          console.log('Initializing companyIds array');
         }
         
         const companyIdStr = webSession.companyId.toString();
         const hasCompany = teacher.companyIds.some(id => id.toString() === companyIdStr);
         
         if (!hasCompany) {
+          console.log('Adding company to teacher:', companyIdStr);
           teacher.companyIds.push(webSession.companyId);
           await teacher.save();
-          console.log(`Teacher ${teacherId} added to company ${companyIdStr}`);
+          console.log(`✓ Teacher ${teacherId} added to company ${companyIdStr}`);
         } else {
-          console.log(`Teacher ${teacherId} already belongs to company ${companyIdStr}`);
+          console.log(`✓ Teacher ${teacherId} already belongs to company ${companyIdStr}`);
         }
       }
 
       // Update web session with user info
+      console.log('Updating session with authentication details...');
       webSession.userId = teacher._id;
       webSession.userModel = 'Teacher';
       webSession.deviceId = deviceId || socket.id;
@@ -341,6 +413,8 @@ io.on('connection', (socket) => {
       webSession.expiresAt = new Date(Date.now() + (24 * 60 * 60 * 1000)); // 24 hours
       webSession.teacherId = teacher.teacherId;
       await webSession.save();
+
+      console.log('✓ Session updated');
 
       // Generate JWT token
       const token = jwt.sign(
@@ -357,6 +431,7 @@ io.on('connection', (socket) => {
 
       // Notify web client
       const webSocketId = pendingSession.socketId;
+      console.log('Notifying web client at socket:', webSocketId);
       io.to(webSocketId).emit('authenticated', {
         success: true,
         user: {
@@ -372,6 +447,7 @@ io.on('connection', (socket) => {
       });
 
       // Notify mobile app
+      console.log('Notifying mobile app');
       socket.emit('auth-success', {
         message: 'Successfully authenticated',
         sessionId,
@@ -381,9 +457,10 @@ io.on('connection', (socket) => {
       connectedSockets.set(sessionId, webSocketId);
       pendingQRSessions.delete(sessionId);
 
-      console.log('Authentication successful for session:', sessionId);
+      console.log('✓ Authentication successful for session:', sessionId);
     } catch (error) {
-      console.error('Error authenticating QR:', error);
+      console.error('❌ Error authenticating QR:', error);
+      console.error('Error stack:', error.stack);
       socket.emit('auth-failed', { message: 'Authentication failed' });
     }
   });
@@ -1293,6 +1370,9 @@ app.get('/api/reports/monthly-by-class', async (req, res) => {
 // Home Dashboard Endpoints
 app.get('/api/home/stats', async (req, res) => {
   try {
+    // Ensure database connection
+    await connectToDatabase();
+    
     const { teacherId } = req.query;
 
     let classIds = null;
@@ -1446,6 +1526,9 @@ app.get('/api/home/stats', async (req, res) => {
 
 app.get('/api/home/activities', async (req, res) => {
   try {
+    // Ensure database connection
+    await connectToDatabase();
+    
     const { teacherId } = req.query;
 
     let classIds = null;
@@ -2651,10 +2734,13 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     console.log('Session ID:', sessionId);
     console.log('Teacher ID:', teacherId);
     console.log('Device ID:', deviceId);
+    console.log('Request timestamp:', new Date().toISOString());
     
     // Validate input
     if (!sessionId || !teacherId) {
       console.log('ERROR: Missing required fields');
+      console.log('sessionId present:', !!sessionId);
+      console.log('teacherId present:', !!teacherId);
       return res.status(400).json({ 
         success: false, 
         message: 'Missing required fields' 
@@ -2662,6 +2748,7 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     }
     
     // Find the web session
+    console.log('Looking for session in database...');
     const session = await WebSession.findOne({
       sessionId,
       expiresAt: { $gt: new Date() },
@@ -2669,16 +2756,47 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     
     if (!session) {
       console.log('ERROR: Session not found or expired');
+      console.log('Searched for sessionId:', sessionId);
+      console.log('Current time:', new Date().toISOString());
       return res.status(404).json({ 
         success: false, 
         message: 'Session not found or expired' 
       });
     }
     
-    console.log('Session found:', session.sessionId);
-    console.log('Session companyId:', session.companyId);
+    console.log('✓ Session found:', session.sessionId);
+    console.log('Session details:', {
+      sessionId: session.sessionId,
+      companyId: session.companyId,
+      isActive: session.isActive,
+      currentUserId: session.userId,
+      currentDeviceId: session.deviceId,
+      expiresAt: session.expiresAt,
+    });
+    
+    // Check if session is already authenticated with a different device
+    if (session.isActive && session.userId && session.deviceId) {
+      console.log('⚠ Session already authenticated!');
+      console.log('Current device:', session.deviceId);
+      console.log('Requesting device:', deviceId);
+      
+      if (session.deviceId !== deviceId) {
+        console.log('ERROR: Session already authenticated on different device');
+        return res.status(409).json({ 
+          success: false, 
+          message: 'This session is already authenticated on another device',
+          details: {
+            currentDevice: session.deviceId,
+            requestingDevice: deviceId,
+          }
+        });
+      } else {
+        console.log('✓ Same device attempting to re-authenticate');
+      }
+    }
     
     // Find the teacher by teacherId field (not MongoDB _id)
+    console.log('Looking for teacher in database...');
     const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
     
     if (!teacher) {
@@ -2689,28 +2807,38 @@ app.post('/api/web-session/authenticate', async (req, res) => {
       });
     }
     
-    console.log('Teacher found:', teacher.name, '(ID:', teacher.teacherId, ')');
-    console.log('Teacher current companyIds:', teacher.companyIds);
+    console.log('✓ Teacher found:', teacher.name, '(ID:', teacher.teacherId, ')');
+    console.log('Teacher details:', {
+      _id: teacher._id,
+      name: teacher.name,
+      email: teacher.email,
+      teacherId: teacher.teacherId,
+      status: teacher.status,
+      companyIds: teacher.companyIds,
+    });
     
     // Add companyId to teacher's array if not already present
     if (session.companyId) {
       if (!teacher.companyIds) {
         teacher.companyIds = [];
+        console.log('Initializing companyIds array for teacher');
       }
       
       const companyIdStr = session.companyId.toString();
       const hasCompany = teacher.companyIds.some(id => id.toString() === companyIdStr);
       
       if (!hasCompany) {
+        console.log('Adding company to teacher:', companyIdStr);
         teacher.companyIds.push(session.companyId);
         await teacher.save();
-        console.log(`Teacher ${teacherId} added to company ${companyIdStr}`);
+        console.log(`✓ Teacher ${teacherId} added to company ${companyIdStr}`);
       } else {
-        console.log(`Teacher ${teacherId} already belongs to company ${companyIdStr}`);
+        console.log(`✓ Teacher ${teacherId} already belongs to company ${companyIdStr}`);
       }
     }
     
     // Update session with teacher info
+    console.log('Updating session with authentication details...');
     session.userId = teacher._id; // Store as ObjectId, not string
     session.userModel = 'Teacher'; // Set the model reference
     session.teacherId = teacher.teacherId; // Custom teacher ID (TCH...)
@@ -2719,13 +2847,14 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     
     await session.save();
     
-    console.log('SUCCESS: Session updated and activated');
-    console.log('Session details:', {
+    console.log('✓ SUCCESS: Session updated and activated');
+    console.log('Final session state:', {
       sessionId: session.sessionId,
       userId: session.userId,
       isActive: session.isActive,
       teacherId: session.teacherId,
       companyId: session.companyId,
+      deviceId: session.deviceId,
     });
     
     res.json({
@@ -2740,7 +2869,8 @@ app.post('/api/web-session/authenticate', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('ERROR in web-session authentication:', error);
+    console.error('❌ ERROR in web-session authentication:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       success: false, 
       message: 'Authentication failed: ' + error.message 
