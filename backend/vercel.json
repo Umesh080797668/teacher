@@ -14,6 +14,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/authenticate.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/check-env.js",
       "use": "@vercel/node"
     }
@@ -33,6 +37,11 @@
       "src": "/api/web-session/check-auth/(.*)",
       "dest": "api/check-auth.js?sessionId=$1",
       "methods": ["GET", "OPTIONS"]
+    },
+    {
+      "src": "/api/web-session/authenticate",
+      "dest": "api/authenticate.js",
+      "methods": ["POST", "OPTIONS"]
     },
     {
       "src": "/(.*)",
