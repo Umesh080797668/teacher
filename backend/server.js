@@ -2295,6 +2295,168 @@ app.get('/api/web-session/teacher-sessions/:companyId', verifyToken, async (req,
   }
 });
 
+// Get detailed teacher data for a specific session (admin view)
+app.get('/api/web-session/teacher-data/:sessionId', verifyToken, async (req, res) => {
+  try {
+    await connectToDatabase();
+    
+    const { sessionId } = req.params;
+    
+    // Find the session
+    const session = await WebSession.findOne({
+      sessionId,
+      isActive: true,
+      userType: 'teacher',
+      expiresAt: { $gt: new Date() },
+    }).populate('userId');
+    
+    if (!session || !session.userId) {
+      return res.status(404).json({ error: 'Session not found or inactive' });
+    }
+    
+    const teacher = session.userId;
+    const teacherId = teacher._id;
+    
+    // Get teacher's classes
+    const classes = await Class.find({ teacherId }).lean();
+    const classIds = classes.map(c => c._id);
+    
+    // Get students for these classes
+    const students = await Student.find({ classId: { $in: classIds } }).lean();
+    
+    // Get recent attendance records (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const attendance = await Attendance.find({
+      studentId: { $in: students.map(s => s._id) },
+      date: { $gte: thirtyDaysAgo },
+    }).populate('studentId').lean();
+    
+    // Get attendance summary
+    const totalStudents = students.length;
+    const todayAttendance = await Attendance.find({
+      studentId: { $in: students.map(s => s._id) },
+      date: {
+        $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+        $lt: new Date(new Date().setHours(23, 59, 59, 999)),
+      },
+    }).lean();
+    
+    const todayPresent = todayAttendance.filter(a => a.status === 'present').length;
+    const todayAbsent = todayAttendance.filter(a => a.status === 'absent').length;
+    
+    res.json({
+      session: {
+        sessionId: session.sessionId,
+        deviceId: session.deviceId,
+        createdAt: session.createdAt,
+        companyId: session.companyId,
+      },
+      teacher: {
+        _id: teacher._id,
+        name: teacher.name,
+        email: teacher.email,
+        teacherId: teacher.teacherId,
+        phone: teacher.phone,
+        status: teacher.status,
+      },
+      statistics: {
+        totalClasses: classes.length,
+        totalStudents,
+        todayPresent,
+        todayAbsent,
+        attendanceMarked: todayAttendance.length > 0,
+      },
+      classes,
+      students,
+      recentAttendance: attendance.slice(0, 50), // Last 50 records
+    });
+  } catch (error) {
+    console.error('Error fetching teacher data:', error);
+    res.status(500).json({ error: 'Failed to fetch teacher data' });
+  }
+});
+
+// Get all active teachers with their data for admin dashboard
+app.get('/api/admin/active-teachers/:companyId', verifyToken, async (req, res) => {
+  try {
+    await connectToDatabase();
+    
+    const { companyId } = req.params;
+    
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    // Get all active sessions for this company
+    const sessions = await WebSession.find({
+      companyId,
+      userType: 'teacher',
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    }).populate('userId').lean();
+    
+    // Get detailed data for each teacher
+    const teachersData = await Promise.all(
+      sessions.map(async (session) => {
+        if (!session.userId) return null;
+        
+        const teacher = session.userId;
+        const teacherId = teacher._id;
+        
+        // Get classes count
+        const classCount = await Class.countDocuments({ teacherId });
+        
+        // Get students count
+        const classIds = await Class.find({ teacherId }).distinct('_id');
+        const studentCount = await Student.countDocuments({ classId: { $in: classIds } });
+        
+        // Get today's attendance
+        const todayAttendance = await Attendance.find({
+          studentId: { $in: await Student.find({ classId: { $in: classIds } }).distinct('_id') },
+          date: {
+            $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+            $lt: new Date(new Date().setHours(23, 59, 59, 999)),
+          },
+        }).lean();
+        
+        return {
+          sessionId: session.sessionId,
+          deviceId: session.deviceId,
+          connectedAt: session.createdAt,
+          teacher: {
+            _id: teacher._id,
+            name: teacher.name,
+            email: teacher.email,
+            teacherId: teacher.teacherId,
+            phone: teacher.phone,
+          },
+          stats: {
+            classes: classCount,
+            students: studentCount,
+            todayPresent: todayAttendance.filter(a => a.status === 'present').length,
+            todayAbsent: todayAttendance.filter(a => a.status === 'absent').length,
+            todayTotal: todayAttendance.length,
+          },
+        };
+      })
+    );
+    
+    // Filter out null entries
+    const validTeachersData = teachersData.filter(t => t !== null);
+    
+    res.json({
+      success: true,
+      count: validTeachersData.length,
+      teachers: validTeachersData,
+    });
+  } catch (error) {
+    console.error('Error fetching active teachers:', error);
+    res.status(500).json({ error: 'Failed to fetch active teachers' });
+  }
+});
+
 // Logout a teacher session (admin action)
 app.post('/api/web-session/logout-teacher', verifyToken, async (req, res) => {
   try {
