@@ -1880,7 +1880,19 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
     
-    // Return teacher data (excluding password)
+    // Generate JWT token for the teacher
+    const token = jwt.sign(
+      {
+        userId: teacher._id,
+        teacherId: teacher.teacherId,
+        email: teacher.email,
+        userType: 'teacher',
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '30d' } // 30 days token validity
+    );
+    
+    // Return teacher data (excluding password) with token
     const teacherData = {
       _id: teacher._id,
       name: teacher.name,
@@ -1891,7 +1903,11 @@ app.post('/api/auth/login', async (req, res) => {
     };
     
     console.log('Login successful for email:', normalizedEmail);
-    res.json({ message: 'Login successful', teacher: teacherData });
+    res.json({ 
+      message: 'Login successful', 
+      teacher: teacherData,
+      token: token 
+    });
   } catch (error) {
     console.error('Unexpected error during login:', error);
     console.error('Error message:', error.message);
@@ -2591,11 +2607,21 @@ app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
       );
       
       console.log('Session is authenticated, returning success');
+      console.log('User type:', session.userType);
+      console.log('Teacher ID:', session.userId.teacherId);
       
       return res.json({
         authenticated: true,
         success: true,
-        user: session.userId,
+        user: {
+          _id: session.userId._id,
+          name: session.userId.name,
+          email: session.userId.email,
+          teacherId: session.userId.teacherId,
+          phone: session.userId.phone,
+          status: session.userId.status,
+          companyIds: session.userId.companyIds,
+        },
         session: {
           sessionId: session.sessionId,
           isActive: session.isActive,

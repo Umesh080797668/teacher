@@ -187,16 +187,18 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         Navigator.of(context).pop();
       }
 
+      // Add a small delay to ensure loading dialog is closed
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (!mounted) return;
+
       if (result != null && result['success'] == true) {
+        // Success - close scanner and show success dialog
         _showSuccessDialog('Successfully connected to web interface!');
       } else {
         final errorMessage = result?['message'] ?? 'Authentication failed';
-        // Show error after a brief delay to ensure loading dialog is closed
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted) {
-            _showErrorDialog(errorMessage);
-          }
-        });
+        // Show error dialog
+        _showErrorDialog(errorMessage);
       }
 
       if (mounted) {
@@ -246,55 +248,66 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     // Close scanner screen first
     Navigator.of(context).pop();
 
-    // Then show success dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).dialogBackgroundColor,
-        title: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 32),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Success',
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.titleLarge?.color,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+    // Add a small delay before showing success dialog
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (!mounted) return;
+
+      // Then show success dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Prevent dismissing by tapping outside
+        builder: (context) => WillPopScope(
+          onWillPop: () async => false, // Prevent back button from dismissing
+          child: AlertDialog(
+            backgroundColor: Theme.of(context).dialogBackgroundColor,
+            title: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green, size: 32),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Success',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.titleLarge?.color,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              message,
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontSize: 16,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close success dialog
+                  // Reset processing state
+                  if (mounted) {
+                    setState(() {
+                      _isProcessing = false;
+                    });
+                  }
+                },
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        content: Text(
-          message,
-          style: TextStyle(
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-            fontSize: 16,
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'OK',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (mounted) {
-      setState(() {
-        _isProcessing = false;
-      });
-    }
+      );
+    });
   }
 
   void _showErrorDialog(String message) {
@@ -302,53 +315,56 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).dialogBackgroundColor,
-        title: Row(
-          children: [
-            Icon(Icons.error, color: Colors.red, size: 32),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Error',
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.titleLarge?.color,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+      barrierDismissible: false, // Prevent dismissing by tapping outside
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false, // Prevent back button from dismissing
+        child: AlertDialog(
+          backgroundColor: Theme.of(context).dialogBackgroundColor,
+          title: Row(
+            children: [
+              Icon(Icons.error, color: Colors.red, size: 32),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Error',
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.titleLarge?.color,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        content: Text(
-          message,
-          style: TextStyle(
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-            fontSize: 16,
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              if (mounted) {
-                Navigator.of(context).pop();
+          content: Text(
+            message,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+              fontSize: 16,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close error dialog
+                // Reset processing state
                 if (mounted) {
                   setState(() {
                     _isProcessing = false;
                   });
                 }
-              }
-            },
-            child: Text(
-              'OK',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.primary,
+              },
+              child: Text(
+                'OK',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -84,13 +84,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // Make API call to login using centralized service
       final data = await ApiService.login(_emailController.text, _passwordController.text);
       final teacher = data['teacher'];
+      final token = data['token']; // Get JWT token from response
       
       // Commit autofill data for password manager to save credentials
       _emailController.text.isNotEmpty && _passwordController.text.isNotEmpty
           ? null
           : null; // Autofill will be saved automatically when login succeeds
       
-      // Persist remember-me email preference
+      // Persist remember-me email preference and auth token
       final prefs = await SharedPreferences.getInstance();
       if (_rememberMe) {
         await prefs.setString('saved_email', _emailController.text);
@@ -98,6 +99,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       } else {
         await prefs.remove('saved_email');
         await prefs.setBool('remember_me', false);
+      }
+      
+      // Store JWT token for authenticated API requests
+      if (token != null) {
+        await prefs.setString('auth_token', token);
       }
 
       if (!mounted) return; // avoid using BuildContext across async gap
