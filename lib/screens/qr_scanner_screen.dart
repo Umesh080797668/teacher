@@ -72,6 +72,14 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        
+        // Store the JWT token if provided
+        if (data['token'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_token', data['token']);
+          print('✓ JWT token saved to SharedPreferences');
+        }
+        
         return data;
       } else {
         final error = jsonDecode(response.body);

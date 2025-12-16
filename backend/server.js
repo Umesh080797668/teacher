@@ -2940,10 +2940,26 @@ app.post('/api/web-session/authenticate', async (req, res) => {
       deviceId: session.deviceId,
     });
     
+    // Generate JWT token for the mobile app
+    const token = jwt.sign(
+      {
+        userId: teacher._id.toString(),
+        teacherId: teacher.teacherId,
+        email: teacher.email,
+        companyIds: teacher.companyIds,
+        userType: 'teacher',
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+    
+    console.log('✓ JWT token generated for teacher:', teacher.teacherId);
+    
     res.json({
       success: true,
       message: 'Authentication successful',
       sessionId,
+      token, // Include the JWT token in the response
       teacher: {
         id: teacher._id,
         name: teacher.name,
