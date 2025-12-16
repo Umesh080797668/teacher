@@ -2764,12 +2764,18 @@ app.post('/api/web-session/generate-qr', async (req, res) => {
   try {
     await connectToDatabase();
     
+    console.log('=== Generate QR Request (HTTP) ===');
+    console.log('Request Body:', req.body);
+    
     const { v4: uuidv4 } = await import('uuid');
     const { userType = 'teacher', companyId } = req.body;
     
     if (!companyId) {
+      console.log('❌ Missing companyId in request');
       return res.status(400).json({ error: 'Company ID is required' });
     }
+    
+    console.log('Generating QR for companyId:', companyId);
     
     const sessionId = uuidv4();
     // No expiration - QR codes are valid indefinitely
@@ -2785,6 +2791,7 @@ app.post('/api/web-session/generate-qr', async (req, res) => {
     });
     
     await webSession.save();
+    console.log('✓ WebSession created with companyId:', webSession.companyId);
     
     // Generate QR code with format expected by mobile app (include companyId in QR)
     const qrData = JSON.stringify({
@@ -3072,6 +3079,8 @@ app.post('/api/web-session/authenticate', async (req, res) => {
       } else {
         console.log(`✓ Teacher ${teacherId} already belongs to company ${companyIdStr}`);
       }
+    } else {
+      console.log('⚠ No companyId in session, skipping teacher-company association');
     }
     
     // Update session with teacher info and device metadata
