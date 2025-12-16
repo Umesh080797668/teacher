@@ -19,6 +19,9 @@ const io = socketIo(server, {
 });
 const PORT = process.env.PORT || 3004;
 
+// Trust proxy for correct IP addresses (important for Vercel deployment)
+app.set('trust proxy', true);
+
 // Middleware
 app.use(cors({
   origin: true, // Allow all origins
@@ -2480,8 +2483,11 @@ app.get('/api/web-session/teacher-sessions/:companyId', verifyToken, async (req,
   try {
     const { companyId } = req.params;
     
+    // Convert companyId to ObjectId for proper comparison
+    const companyObjectId = new mongoose.Types.ObjectId(companyId);
+    
     // First, get all teachers who belong to this company
-    const teachers = await Teacher.find({ companyIds: companyId });
+    const teachers = await Teacher.find({ companyIds: companyObjectId });
     const teacherIds = teachers.map(t => t._id);
     
     // Then get all active sessions for these teachers
@@ -2888,7 +2894,7 @@ app.post('/api/web-session/authenticate', async (req, res) => {
       
       // Update the existing session instead of creating new one
       existingSession.lastActivity = new Date();
-      existingSession.ipAddress = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+      existingSession.ipAddress = (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip || req.connection.remoteAddress || 'unknown').split(',')[0].trim();
       existingSession.userAgent = req.headers['user-agent'] || 'unknown';
       await existingSession.save();
       
@@ -3024,7 +3030,7 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     session.teacherId = teacher.teacherId; // Custom teacher ID (TCH...)
     session.isActive = true;
     session.deviceId = deviceId || 'mobile-app';
-    session.ipAddress = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+    session.ipAddress = (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip || req.connection.remoteAddress || 'unknown').split(',')[0].trim();
     session.userAgent = req.headers['user-agent'] || 'unknown';
     session.lastActivity = new Date();
     
@@ -3116,7 +3122,7 @@ app.post('/api/admin/login', async (req, res) => {
       deviceId: req.headers['user-agent'] || 'unknown',
       isActive: true,
       expiresAt: new Date(Date.now() + (24 * 60 * 60 * 1000)),
-      ipAddress: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown',
+      ipAddress: (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip || req.connection.remoteAddress || 'unknown').split(',')[0].trim(),
       userAgent: req.headers['user-agent'] || 'unknown',
       lastActivity: new Date(),
     });
