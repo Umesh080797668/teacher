@@ -2282,15 +2282,37 @@ const verifyToken = (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
+    console.log('=== Token Verification ===');
+    console.log('Endpoint:', req.method, req.path);
+    console.log('Token present:', !!token);
+    
     if (!token) {
+      console.log('❌ No token provided');
       return res.status(401).json({ error: 'No token provided' });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    console.log('✓ Token verified successfully');
+    console.log('Decoded token:', {
+      userId: decoded.userId,
+      teacherId: decoded.teacherId,
+      email: decoded.email,
+      iat: new Date(decoded.iat * 1000).toISOString(),
+      exp: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : 'No expiration'
+    });
+    
     req.user = decoded;
     next();
   } catch (error) {
-    console.error('Token verification error:', error);
+    console.error('❌ Token verification error:', error.message);
+    if (error.name === 'TokenExpiredError') {
+      console.log('Token expired at:', error.expiredAt);
+      return res.status(401).json({ error: 'Token expired', expired: true });
+    }
+    if (error.name === 'JsonWebTokenError') {
+      console.log('Invalid token signature or format');
+      return res.status(401).json({ error: 'Invalid token' });
+    }
     res.status(401).json({ error: 'Invalid token' });
   }
 };
@@ -2298,14 +2320,53 @@ const verifyToken = (req, res, next) => {
 // Get active web sessions
 app.get('/api/web-session/active', verifyToken, async (req, res) => {
   try {
+    console.log('=== GET Active Web Sessions Request ===');
+    console.log('Authenticated user:', req.user);
+    console.log('Request timestamp:', new Date().toISOString());
+    
+    // Get the authenticated teacher's ID from the token
+    const teacherId = req.user.teacherId;
+    console.log('Looking for sessions for teacher:', teacherId);
+    
+    // Find sessions for this specific teacher
     const sessions = await WebSession.find({
+      teacherId: teacherId,
       isActive: true,
       expiresAt: { $gt: new Date() },
     }).populate('userId');
     
+    console.log(`✓ Found ${sessions.length} active session(s) for teacher ${teacherId}`);
+    
+    if (sessions.length > 0) {
+      console.log('Session details:');
+      sessions.forEach((session, index) => {
+        console.log(`  Session ${index + 1}:`, {
+          sessionId: session.sessionId,
+          teacherId: session.teacherId,
+          deviceId: session.deviceId,
+          isActive: session.isActive,
+          createdAt: session.createdAt,
+          expiresAt: session.expiresAt,
+          userAgent: session.userAgent?.substring(0, 50) + '...' || 'N/A'
+        });
+      });
+    } else {
+      console.log('⚠ No active sessions found for this teacher');
+      console.log('Checking all active sessions in database...');
+      const allSessions = await WebSession.find({
+        isActive: true,
+        expiresAt: { $gt: new Date() },
+      });
+      console.log(`Total active sessions in DB: ${allSessions.length}`);
+      if (allSessions.length > 0) {
+        console.log('Other teacher IDs with active sessions:', 
+          [...new Set(allSessions.map(s => s.teacherId))]);
+      }
+    }
+    
     res.json(sessions);
   } catch (error) {
-    console.error('Error fetching active sessions:', error);
+    console.error('❌ Error fetching active sessions:', error);
     res.status(500).json({ error: 'Failed to fetch sessions' });
   }
 });
@@ -2335,19 +2396,41 @@ app.post('/api/web-session/verify', async (req, res) => {
 // Disconnect a web session
 app.post('/api/web-session/disconnect', verifyToken, async (req, res) => {
   try {
+    console.log('=== Disconnect Web Session Request ===');
     const { sessionId } = req.body;
+    console.log('Session ID to disconnect:', sessionId);
+    console.log('Request from user:', req.user);
     
-    await WebSession.findOneAndUpdate(
+    const session = await WebSession.findOne({ sessionId });
+    
+    if (!session) {
+      console.log('❌ Session not found:', sessionId);
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    console.log('Found session:', {
+      sessionId: session.sessionId,
+      teacherId: session.teacherId,
+      isActive: session.isActive,
+      deviceId: session.deviceId
+    });
+    
+    const updatedSession = await WebSession.findOneAndUpdate(
       { sessionId },
-      { isActive: false }
+      { isActive: false },
+      { new: true }
     );
+    
+    console.log('✓ Session disconnected successfully');
+    console.log('Updated session isActive:', updatedSession.isActive);
     
     // Notify via WebSocket
     io.emit('session-disconnected', { sessionId });
+    console.log('WebSocket notification sent');
     
     res.json({ message: 'Session disconnected successfully' });
   } catch (error) {
-    console.error('Error disconnecting session:', error);
+    console.error('❌ Error disconnecting session:', error);
     res.status(500).json({ error: 'Failed to disconnect session' });
   }
 });

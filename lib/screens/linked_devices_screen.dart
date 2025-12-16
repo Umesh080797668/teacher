@@ -29,12 +29,17 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
     });
 
     try {
+      print('=== Loading Linked Devices ===');
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
 
       if (token == null) {
+        print('❌ No auth token found');
         throw Exception('Not authenticated');
       }
+
+      print('✓ Auth token found');
+      print('Making request to: https://teacher-eight-chi.vercel.app/api/web-session/active');
 
       final response = await http.get(
         Uri.parse('https://teacher-eight-chi.vercel.app/api/web-session/active'),
@@ -42,18 +47,47 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          print('❌ Request timed out after 30 seconds');
+          throw Exception('Request timed out');
+        },
       );
+
+      print('Response status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final sessions = json.decode(response.body) as List;
+        print('✓ Successfully loaded ${sessions.length} session(s)');
+        
+        if (sessions.isNotEmpty) {
+          print('Session details:');
+          for (var i = 0; i < sessions.length; i++) {
+            print('  Session ${i + 1}: ${sessions[i]}');
+          }
+        } else {
+          print('⚠ No active sessions found');
+        }
+        
         setState(() {
           _sessions = sessions;
           _isLoading = false;
         });
+      } else if (response.statusCode == 401) {
+        print('❌ Authentication failed (401)');
+        print('Response: ${response.body}');
+        throw Exception('Authentication failed. Please login again.');
       } else {
-        throw Exception('Failed to load sessions');
+        print('❌ Failed with status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        throw Exception('Failed to load sessions (${response.statusCode})');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ Error loading sessions: $e');
+      print('Stack trace: $stackTrace');
+      
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -63,7 +97,6 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
 
   Future<void> _disconnectSession(String sessionId, int index) async {
     // Show confirmation dialog
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -110,16 +143,25 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      print('User cancelled disconnect operation');
+      return;
+    }
 
     try {
+      print('=== Disconnecting Session ===');
+      print('Session ID: $sessionId');
+      
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
 
       if (token == null) {
+        print('❌ No auth token found');
         throw Exception('Not authenticated');
       }
 
+      print('✓ Auth token found, making disconnect request');
+      
       final response = await http.post(
         Uri.parse('https://teacher-eight-chi.vercel.app/api/web-session/disconnect'),
         headers: {
@@ -129,7 +171,11 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
         body: json.encode({'sessionId': sessionId}),
       );
 
+      print('Disconnect response status: ${response.statusCode}');
+      print('Disconnect response body: ${response.body}');
+
       if (response.statusCode == 200) {
+        print('✓ Session disconnected successfully');
         setState(() {
           _sessions.removeAt(index);
         });
@@ -153,9 +199,13 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
           );
         }
       } else {
-        throw Exception('Failed to disconnect session');
+        print('❌ Failed to disconnect with status: ${response.statusCode}');
+        throw Exception('Failed to disconnect session (${response.statusCode})');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ Error disconnecting session: $e');
+      print('Stack trace: $stackTrace');
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
