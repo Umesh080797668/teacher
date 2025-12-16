@@ -18,5 +18,6 @@ if [ ! -d "node_modules" ]; then
 fi
 
 echo "✅ Starting server on port 3004..."
-node server.js
+nohup node server.js > server.log 2>&1 &
+echo "Server started with PID $!"
 
