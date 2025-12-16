@@ -454,11 +454,17 @@ io.on('connection', (socket) => {
         if (!hasCompany) {
           console.log('Adding company to teacher:', companyIdStr);
           teacher.companyIds.push(webSession.companyId);
-          await teacher.save();
-          console.log(`✓ Teacher ${teacherId} added to company ${companyIdStr}`);
+          try {
+            await teacher.save();
+            console.log(`✓ Teacher ${teacherId} added to company ${companyIdStr}`);
+          } catch (saveError) {
+            console.error('Error saving teacher with new companyId:', saveError);
+          }
         } else {
           console.log(`✓ Teacher ${teacherId} already belongs to company ${companyIdStr}`);
         }
+      } else {
+        console.warn('⚠ No companyId found in WebSession - Teacher will not be linked to company');
       }
 
       // Update web session with user info
@@ -525,10 +531,27 @@ io.on('connection', (socket) => {
   // Disconnect session
   socket.on('disconnect-session', async ({ sessionId }) => {
     try {
-      await WebSession.findOneAndUpdate(
-        { sessionId },
-        { isActive: false }
-      );
+      console.log('Disconnecting session:', sessionId);
+      
+      // Find the session first to get details for cleanup
+      const webSession = await WebSession.findOne({ sessionId });
+      
+      if (webSession) {
+        // Deactivate session but KEEP the company association in teacher's companyIds
+        // The teacher remains associated with the company even after session ends
+        // This allows them to appear in the company's teacher list for future logins
+        webSession.isActive = false;
+        await webSession.save();
+        console.log('✓ Session deactivated');
+        
+        if (webSession.userModel === 'Teacher' && webSession.userId && webSession.companyId) {
+          const teacher = await Teacher.findById(webSession.userId);
+          console.log(`Teacher ${teacher?.teacherId} remains associated with company ${webSession.companyId}`);
+          console.log('Company association preserved for future logins');
+        }
+      } else {
+        console.log('Session not found for disconnect:', sessionId);
+      }
       
       const webSocketId = connectedSockets.get(sessionId);
       if (webSocketId) {
@@ -972,18 +995,36 @@ app.delete('/api/payments/:id', async (req, res) => {
 app.get('/api/teachers', async (req, res) => {
   try {
     const { status, companyId } = req.query;
+    console.log('GET /api/teachers called');
+    console.log('Query params:', { status, companyId });
+
     let query = {};
     if (status) query.status = status;
     
     // Filter by companyId if provided (for multi-tenant support)
     // Teachers can belong to multiple companies, so check if companyId is in the array
     if (companyId) {
-      query.companyIds = companyId;
+      // Use $in operator to check if companyId exists in the companyIds array
+      query.companyIds = { $in: [companyId] };
+      console.log('Filtering teachers by companyId:', companyId);
     }
     
+    console.log('Executing Teacher.find with query:', JSON.stringify(query));
     const teachers = await Teacher.find(query);
+    console.log(`Found ${teachers.length} teachers for company ${companyId || 'all'}`);
+    
+    // Log teacher details for debugging
+    if (teachers.length > 0) {
+      console.log('Teachers found:', teachers.map(t => ({
+        teacherId: t.teacherId,
+        name: t.name,
+        companyIds: t.companyIds
+      })));
+    }
+    
     res.json(teachers);
   } catch (error) {
+    console.error('Error fetching teachers:', error);
     res.status(500).json({ error: 'Failed to fetch teachers' });
   }
 });
@@ -2733,29 +2774,84 @@ app.post('/api/web-session/logout-teacher', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    // Get the teacher and remove the companyId from their array
-    if (session.userId && session.companyId) {
-      const teacher = await Teacher.findById(session.userId);
-      if (teacher && teacher.companyIds && teacher.companyIds.length > 0) {
-        const companyIdStr = session.companyId.toString();
-        teacher.companyIds = teacher.companyIds.filter(id => id.toString() !== companyIdStr);
-        await teacher.save();
-        console.log(`Removed company ${companyIdStr} from teacher ${teacher.teacherId}`);
-      }
-    }
-
-    // Deactivate the session
+    // Deactivate the session but KEEP the company association
+    // The teacher remains associated with the company for future logins
     session.isActive = false;
     session.expiresAt = new Date();
     await session.save();
     
+    console.log(`Session ${sessionId} deactivated. Teacher-company association preserved.`);
+    
     // Notify via WebSocket
     io.emit('session-disconnected', { sessionId });
     
-    res.json({ message: 'Teacher logged out successfully' });
+    res.json({ 
+      message: 'Teacher logged out successfully',
+      note: 'Teacher remains associated with company for future logins'
+    });
   } catch (error) {
     console.error('Error logging out teacher:', error);
     res.status(500).json({ error: 'Failed to logout teacher' });
+  }
+});
+
+// Remove teacher from company (admin action - permanently removes association)
+app.post('/api/teachers/remove-company', verifyToken, async (req, res) => {
+  try {
+    const { teacherId, companyId } = req.body;
+    
+    if (!teacherId || !companyId) {
+      return res.status(400).json({ error: 'Teacher ID and Company ID are required' });
+    }
+    
+    console.log(`Removing teacher ${teacherId} from company ${companyId}`);
+    
+    const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+    
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    if (!teacher.companyIds || teacher.companyIds.length === 0) {
+      return res.status(400).json({ error: 'Teacher has no company associations' });
+    }
+
+    const companyIdStr = companyId.toString();
+    const initialLength = teacher.companyIds.length;
+    teacher.companyIds = teacher.companyIds.filter(id => id.toString() !== companyIdStr);
+    
+    if (teacher.companyIds.length === initialLength) {
+      return res.status(400).json({ error: 'Teacher is not associated with this company' });
+    }
+
+    await teacher.save();
+    
+    // Also deactivate all active sessions for this teacher-company combination
+    await WebSession.updateMany(
+      {
+        teacherId: teacher.teacherId,
+        companyId: companyId,
+        isActive: true
+      },
+      {
+        isActive: false,
+        expiresAt: new Date()
+      }
+    );
+    
+    console.log(`✓ Teacher ${teacherId} removed from company ${companyId}`);
+    
+    res.json({ 
+      message: 'Teacher removed from company successfully',
+      teacher: {
+        teacherId: teacher.teacherId,
+        name: teacher.name,
+        remainingCompanies: teacher.companyIds.length
+      }
+    });
+  } catch (error) {
+    console.error('Error removing teacher from company:', error);
+    res.status(500).json({ error: 'Failed to remove teacher from company' });
   }
 });
 
@@ -3076,9 +3172,11 @@ app.post('/api/web-session/authenticate', async (req, res) => {
         teacher.companyIds.push(session.companyId);
         await teacher.save();
         console.log(`✓ Teacher ${teacherId} added to company ${companyIdStr}`);
+        console.log(`Teacher now belongs to ${teacher.companyIds.length} compan${teacher.companyIds.length === 1 ? 'y' : 'ies'}`);
       } else {
         console.log(`✓ Teacher ${teacherId} already belongs to company ${companyIdStr}`);
       }
+      console.log('Current teacher companies:', teacher.companyIds.map(id => id.toString()));
     } else {
       console.log('⚠ No companyId in session, skipping teacher-company association');
     }
