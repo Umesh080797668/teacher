@@ -2971,13 +2971,13 @@ app.post('/api/web-session/generate-qr', async (req, res) => {
     // No expiration - QR codes are valid indefinitely
     const expiresAt = new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)); // 1 year (effectively no expiration)
     
-    // Create web session with companyId
+    // Create web session with companyId (convert to ObjectId)
     const webSession = new WebSession({
       sessionId,
       userType,
       isActive: false, // Will be activated when scanned
       expiresAt,
-      companyId, // Associate with the admin's company
+      companyId: new mongoose.Types.ObjectId(companyId), // Associate with the admin's company
     });
     
     await webSession.save();
