@@ -3579,6 +3579,41 @@ app.get('/api/admin/stats', verifyToken, async (req, res) => {
   }
 });
 
+// Get admin profile
+app.get('/api/admin/profile', verifyToken, async (req, res) => {
+  try {
+    console.log('=== Admin Profile Request ===');
+    console.log('User from token:', req.user);
+    
+    if (req.user.userType !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    // Get admin from database
+    const admin = await Admin.findById(req.user.userId).select('-password');
+    
+    if (!admin) {
+      console.log('Admin not found for userId:', req.user.userId);
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+    
+    console.log('✓ Admin profile found:', admin.email);
+    
+    res.json({
+      id: admin._id,
+      email: admin.email,
+      name: admin.name,
+      companyName: admin.companyName,
+      role: admin.role,
+      createdAt: admin.createdAt,
+      updatedAt: admin.updatedAt,
+    });
+  } catch (error) {
+    console.error('Error fetching admin profile:', error);
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
 // Export the app for Vercel
 module.exports = app;
 
