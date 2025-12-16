@@ -95,15 +95,24 @@ module.exports = async (req, res) => {
     
     if (session.isActive && session.userId) {
       // Session is authenticated
+      const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+      
+      console.log('=== JWT Token Generation (check-auth.js) ===');
+      console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+      console.log('JWT_SECRET length:', jwtSecret.length);
+      console.log('Using JWT_SECRET for signing');
+      
       const token = jwt.sign(
         {
           sessionId: session.sessionId,
           userId: session.userId._id,
           userType: session.userType,
         },
-        process.env.JWT_SECRET || 'your-secret-key',
+        jwtSecret,
         { expiresIn: '24h' }
       );
+      
+      console.log('✓ Token generated successfully');
       
       return res.status(200).json({
         authenticated: true,

@@ -12,9 +12,18 @@
     {
       "src": "api/check-auth.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/check-env.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/check-env",
+      "dest": "api/check-env.js",
+      "methods": ["GET", "OPTIONS"]
+    },
     {
       "src": "/api/web-session/generate-qr",
       "dest": "api/generate-qr.js",

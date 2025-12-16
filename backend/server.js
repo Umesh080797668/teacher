@@ -2281,17 +2281,21 @@ app.post('/api/auth/reset-password', async (req, res) => {
 const verifyToken = (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
     
-    console.log('=== Token Verification ===');
+    console.log('=== Token Verification (server.js) ===');
     console.log('Endpoint:', req.method, req.path);
     console.log('Token present:', !!token);
+    console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+    console.log('JWT_SECRET length:', jwtSecret.length);
+    console.log('JWT_SECRET (first 10 chars):', jwtSecret.substring(0, 10) + '...');
     
     if (!token) {
       console.log('❌ No token provided');
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, jwtSecret);
     console.log('✓ Token verified successfully');
     console.log('Decoded token:', {
       userId: decoded.userId,
@@ -2762,13 +2766,19 @@ app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
     
     if (session.isActive && session.userId) {
       // Session is authenticated
+      const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+      
+      console.log('=== JWT Token Generation (check-auth endpoint) ===');
+      console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+      console.log('JWT_SECRET length:', jwtSecret.length);
+      
       const token = jwt.sign(
         {
           sessionId: session.sessionId,
           userId: session.userId._id,
           userType: session.userType,
         },
-        process.env.JWT_SECRET || 'your-secret-key',
+        jwtSecret,
         { expiresIn: '24h' }
       );
       
@@ -2941,6 +2951,12 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     });
     
     // Generate JWT token for the mobile app
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+    
+    console.log('=== JWT Token Generation (mobile auth) ===');
+    console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+    console.log('JWT_SECRET length:', jwtSecret.length);
+    
     const token = jwt.sign(
       {
         userId: teacher._id.toString(),
@@ -2949,7 +2965,7 @@ app.post('/api/web-session/authenticate', async (req, res) => {
         companyIds: teacher.companyIds,
         userType: 'teacher',
       },
-      process.env.JWT_SECRET || 'your-secret-key',
+      jwtSecret,
       { expiresIn: '24h' }
     );
     
@@ -3013,13 +3029,19 @@ app.post('/api/admin/login', async (req, res) => {
     
     await webSession.save();
     
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+    
+    console.log('=== JWT Token Generation (admin login) ===');
+    console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+    console.log('JWT_SECRET length:', jwtSecret.length);
+    
     const token = jwt.sign(
       {
         sessionId,
         userId: admin._id,
         userType: 'admin',
       },
-      process.env.JWT_SECRET || 'your-secret-key',
+      jwtSecret,
       { expiresIn: '24h' }
     );
     
