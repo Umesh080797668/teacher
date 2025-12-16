@@ -2665,23 +2665,38 @@ app.get('/api/web-session/teacher-sessions/:companyId', verifyToken, async (req,
     debugLog.push(`[SESSIONS API] Found ${sessions.length} active sessions`);
     console.log(`Found ${sessions.length} active sessions`);
     
-    if (sessions.length > 0) {
-      const sessionDetails = sessions.map(s => ({
+    // Format sessions with teacher data for frontend
+    const formattedSessions = sessions.map(s => ({
+      _id: s._id,
+      sessionId: s.sessionId,
+      teacherId: s.teacherId || s.userId?.teacherId,
+      teacherName: s.userId?.name || 'Unknown Teacher',
+      teacherEmail: s.userId?.email || 'No email',
+      deviceInfo: s.userAgent || `Device ${s.deviceId || 'Unknown'}`,
+      loginTime: s.createdAt,
+      lastActivity: s.lastActivity || s.createdAt,
+      isActive: s.isActive,
+      userId: s.userId, // Keep the populated userId for fallback
+    }));
+    
+    if (formattedSessions.length > 0) {
+      const sessionDetails = formattedSessions.map(s => ({
         sessionId: s.sessionId,
         teacherId: s.teacherId,
+        teacherName: s.teacherName,
+        teacherEmail: s.teacherEmail,
         isActive: s.isActive,
-        deviceId: s.deviceId,
-        teacherName: s.userId?.name
+        deviceId: s.deviceInfo
       }));
-      debugLog.push(`[SESSIONS API] Sessions: ${JSON.stringify(sessionDetails, null, 2)}`);
-      console.log('Sessions:', sessionDetails);
+      debugLog.push(`[SESSIONS API] Formatted Sessions: ${JSON.stringify(sessionDetails, null, 2)}`);
+      console.log('Formatted Sessions:', sessionDetails);
     }
     
     // Send debug logs in response headers
     const debugHeader = Buffer.from(debugLog.join('\n')).toString('base64');
     res.setHeader('X-Debug-Log', debugHeader);
     
-    res.json(sessions);
+    res.json(formattedSessions);
   } catch (error) {
     console.error('Error fetching company teacher sessions:', error);
     debugLog.push(`[SESSIONS API] ERROR: ${error.message}`);
