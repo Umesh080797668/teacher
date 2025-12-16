@@ -42,6 +42,7 @@ const WebSessionSchema = new mongoose.Schema({
   deviceId: String,
   isActive: { type: Boolean, default: false },
   expiresAt: { type: Date, required: true },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin who generated the QR
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -79,7 +80,12 @@ module.exports = async (req, res) => {
       }
     }
     
-    const { userType = 'teacher' } = body || {};
+    const { userType = 'teacher', companyId } = body || {};
+    
+    if (!companyId) {
+      return res.status(400).json({ error: 'Company ID is required' });
+    }
+
     const sessionId = generateUUID();
     // No expiration - QR codes are valid indefinitely
     const expiresAt = new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)); // 1 year (effectively no expiration)
@@ -90,6 +96,7 @@ module.exports = async (req, res) => {
       userType,
       isActive: false, // Will be activated when scanned
       expiresAt,
+      companyId: new mongoose.Types.ObjectId(companyId),
     });
     
     await webSession.save();
@@ -99,6 +106,7 @@ module.exports = async (req, res) => {
       type: 'web-auth',
       sessionId,
       userType, // Keep for backward compatibility
+      companyId,
     });
     
     const qrCode = await QRCode.toDataURL(qrData);
