@@ -2227,6 +2227,58 @@ app.get('/api/web-session/teacher/:teacherId', verifyToken, async (req, res) => 
   }
 });
 
+// Get all teacher sessions for a company (admin view)
+app.get('/api/web-session/teacher-sessions/:companyId', verifyToken, async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    
+    // First, get all teachers under this company
+    const teachers = await Teacher.find({ companyId });
+    const teacherIds = teachers.map(t => t._id);
+    
+    // Then get all active sessions for these teachers
+    const sessions = await WebSession.find({
+      userId: { $in: teacherIds },
+      userType: 'teacher',
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    }).populate('userId');
+    
+    res.json(sessions);
+  } catch (error) {
+    console.error('Error fetching company teacher sessions:', error);
+    res.status(500).json({ error: 'Failed to fetch teacher sessions' });
+  }
+});
+
+// Logout a teacher session (admin action)
+app.post('/api/web-session/logout-teacher', verifyToken, async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID is required' });
+    }
+    
+    const session = await WebSession.findOneAndUpdate(
+      { sessionId },
+      { isActive: false, expiresAt: new Date() }
+    );
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    // Notify via WebSocket
+    io.emit('session-disconnected', { sessionId });
+    
+    res.json({ message: 'Teacher logged out successfully' });
+  } catch (error) {
+    console.error('Error logging out teacher:', error);
+    res.status(500).json({ error: 'Failed to logout teacher' });
+  }
+});
+
 // Generate QR code for web login (HTTP endpoint)
 app.post('/api/web-session/generate-qr', async (req, res) => {
   try {
