@@ -33,6 +33,11 @@ const WebSessionSchema = new mongoose.Schema({
   deviceId: String,
   isActive: { type: Boolean, default: false },
   expiresAt: { type: Date, required: true },
+  teacherId: String,
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+  ipAddress: String,
+  userAgent: String,
+  lastActivity: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -43,6 +48,9 @@ const TeacherSchema = new mongoose.Schema({
   name: String,
   email: String,
   phone: String,
+  teacherId: String,
+  status: String,
+  companyIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }],
 }, { collection: 'teachers' });
 
 const Teacher = mongoose.models.Teacher || mongoose.model('Teacher', TeacherSchema);
@@ -106,6 +114,8 @@ module.exports = async (req, res) => {
         {
           sessionId: session.sessionId,
           userId: session.userId._id,
+          teacherId: session.userId.teacherId,
+          email: session.userId.email,
           userType: session.userType,
         },
         jwtSecret,
@@ -117,8 +127,20 @@ module.exports = async (req, res) => {
       return res.status(200).json({
         authenticated: true,
         success: true,
-        user: session.userId,
-        session,
+        user: {
+          _id: session.userId._id,
+          name: session.userId.name,
+          email: session.userId.email,
+          teacherId: session.userId.teacherId,
+          phone: session.userId.phone,
+          status: session.userId.status,
+          companyIds: session.userId.companyIds,
+        },
+        session: {
+          sessionId: session.sessionId,
+          isActive: session.isActive,
+          userType: session.userType,
+        },
         token,
       });
     }

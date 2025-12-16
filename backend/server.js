@@ -217,6 +217,9 @@ const WebSessionSchema = new mongoose.Schema({
   expiresAt: { type: Date, required: true },
   teacherId: { type: String }, // Store teacherId for easy lookup
   companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin who generated the QR
+  ipAddress: { type: String }, // IP address of the device
+  userAgent: { type: String }, // User agent string
+  lastActivity: { type: Date, default: Date.now }, // Last activity timestamp
 }, { timestamps: true });
 
 // Add TTL index to automatically delete expired sessions
@@ -2351,6 +2354,8 @@ app.get('/api/web-session/active', verifyToken, async (req, res) => {
           isActive: session.isActive,
           createdAt: session.createdAt,
           expiresAt: session.expiresAt,
+          ipAddress: session.ipAddress || 'unknown',
+          lastActivity: session.lastActivity || session.updatedAt || session.createdAt,
           userAgent: session.userAgent?.substring(0, 50) + '...' || 'N/A'
         });
       });
@@ -2368,7 +2373,20 @@ app.get('/api/web-session/active', verifyToken, async (req, res) => {
       }
     }
     
-    res.json(sessions);
+    // Map sessions to include IP and lastActivity
+    const sessionsWithMetadata = sessions.map(session => ({
+      sessionId: session.sessionId,
+      teacherId: session.teacherId,
+      deviceId: session.deviceId,
+      isActive: session.isActive,
+      createdAt: session.createdAt,
+      expiresAt: session.expiresAt,
+      ipAddress: session.ipAddress || 'unknown',
+      lastActivity: session.lastActivity || session.updatedAt || session.createdAt,
+      userAgent: session.userAgent || 'unknown'
+    }));
+    
+    res.json(sessionsWithMetadata);
   } catch (error) {
     console.error('❌ Error fetching active sessions:', error);
     res.status(500).json({ error: 'Failed to fetch sessions' });
@@ -2776,6 +2794,8 @@ app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
         {
           sessionId: session.sessionId,
           userId: session.userId._id,
+          teacherId: session.userId.teacherId,
+          email: session.userId.email,
           userType: session.userType,
         },
         jwtSecret,
@@ -2840,6 +2860,85 @@ app.post('/api/web-session/authenticate', async (req, res) => {
       });
     }
     
+    // Find the teacher by teacherId field (not MongoDB _id)
+    console.log('Looking for teacher in database...');
+    const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+    
+    if (!teacher) {
+      console.log('ERROR: Teacher not found for teacherId:', teacherId);
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Teacher not found' 
+      });
+    }
+    
+    console.log('✓ Teacher found:', teacher.name, '(ID:', teacher.teacherId, ')');
+    
+    // Check if this device already has an active session for this teacher
+    const existingSession = await WebSession.findOne({
+      teacherId: teacher.teacherId,
+      deviceId: deviceId,
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    });
+    
+    if (existingSession) {
+      console.log('✓ Found existing session for this device, updating it');
+      console.log('Existing session ID:', existingSession.sessionId);
+      
+      // Update the existing session instead of creating new one
+      existingSession.lastActivity = new Date();
+      existingSession.ipAddress = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+      existingSession.userAgent = req.headers['user-agent'] || 'unknown';
+      await existingSession.save();
+      
+      // Now find and update the new session that was just scanned
+      const newSession = await WebSession.findOne({
+        sessionId,
+        expiresAt: { $gt: new Date() },
+      });
+      
+      if (newSession) {
+        // Deactivate the new scanned session and use the existing one
+        newSession.isActive = false;
+        await newSession.save();
+      }
+      
+      // Generate JWT token for the mobile app
+      const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+      
+      console.log('=== JWT Token Generation (mobile auth - existing session) ===');
+      console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+      console.log('JWT_SECRET length:', jwtSecret.length);
+      
+      const token = jwt.sign(
+        {
+          userId: teacher._id.toString(),
+          teacherId: teacher.teacherId,
+          email: teacher.email,
+          companyIds: teacher.companyIds,
+          userType: 'teacher',
+        },
+        jwtSecret,
+        { expiresIn: '24h' }
+      );
+      
+      console.log('✓ JWT token generated for teacher:', teacher.teacherId);
+      
+      return res.json({
+        success: true,
+        message: 'Authentication successful (existing session updated)',
+        sessionId: existingSession.sessionId,
+        token,
+        teacher: {
+          id: teacher._id,
+          name: teacher.name,
+          email: teacher.email,
+          companyIds: teacher.companyIds,
+        },
+      });
+    }
+    
     // Find the web session
     console.log('Looking for session in database...');
     const session = await WebSession.findOne({
@@ -2888,18 +2987,6 @@ app.post('/api/web-session/authenticate', async (req, res) => {
       }
     }
     
-    // Find the teacher by teacherId field (not MongoDB _id)
-    console.log('Looking for teacher in database...');
-    const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
-    
-    if (!teacher) {
-      console.log('ERROR: Teacher not found for teacherId:', teacherId);
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Teacher not found' 
-      });
-    }
-    
     console.log('✓ Teacher found:', teacher.name, '(ID:', teacher.teacherId, ')');
     console.log('Teacher details:', {
       _id: teacher._id,
@@ -2930,13 +3017,16 @@ app.post('/api/web-session/authenticate', async (req, res) => {
       }
     }
     
-    // Update session with teacher info
+    // Update session with teacher info and device metadata
     console.log('Updating session with authentication details...');
     session.userId = teacher._id; // Store as ObjectId, not string
     session.userModel = 'Teacher'; // Set the model reference
     session.teacherId = teacher.teacherId; // Custom teacher ID (TCH...)
     session.isActive = true;
     session.deviceId = deviceId || 'mobile-app';
+    session.ipAddress = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+    session.userAgent = req.headers['user-agent'] || 'unknown';
+    session.lastActivity = new Date();
     
     await session.save();
     
@@ -2948,6 +3038,7 @@ app.post('/api/web-session/authenticate', async (req, res) => {
       teacherId: session.teacherId,
       companyId: session.companyId,
       deviceId: session.deviceId,
+      ipAddress: session.ipAddress,
     });
     
     // Generate JWT token for the mobile app
@@ -3025,6 +3116,9 @@ app.post('/api/admin/login', async (req, res) => {
       deviceId: req.headers['user-agent'] || 'unknown',
       isActive: true,
       expiresAt: new Date(Date.now() + (24 * 60 * 60 * 1000)),
+      ipAddress: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown',
+      userAgent: req.headers['user-agent'] || 'unknown',
+      lastActivity: new Date(),
     });
     
     await webSession.save();
