@@ -128,6 +128,7 @@ mongoose.connection.on('connected', () => {
 const ClassSchema = new mongoose.Schema({
   name: { type: String, required: true },
   teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', required: true },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin association
 }, { timestamps: true });
 
 const StudentSchema = new mongoose.Schema({
@@ -135,6 +136,7 @@ const StudentSchema = new mongoose.Schema({
   email: String,
   studentId: { type: String, unique: true },
   classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin association
 }, { timestamps: true });
 
 const AttendanceSchema = new mongoose.Schema({
@@ -144,6 +146,7 @@ const AttendanceSchema = new mongoose.Schema({
   status: { type: String, enum: ['present', 'absent', 'late'], required: true },
   month: { type: Number, required: true },
   year: { type: Number, required: true },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin association
 }, { timestamps: true });
 
 const PaymentSchema = new mongoose.Schema({
@@ -152,6 +155,7 @@ const PaymentSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   type: { type: String, enum: ['full', 'half', 'free'], required: true },
   date: { type: Date, default: Date.now },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin association
 }, { timestamps: true });
 
 const TeacherSchema = new mongoose.Schema({
@@ -162,6 +166,7 @@ const TeacherSchema = new mongoose.Schema({
   teacherId: { type: String, unique: true },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   profilePicture: { type: String }, // Profile picture path
+  companyIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }], // Multiple companies - added when QR scanned
 }, { timestamps: true });
 
 const EmailVerificationSchema = new mongoose.Schema({
@@ -192,6 +197,7 @@ const WebSessionSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: false },
   expiresAt: { type: Date, required: true },
   teacherId: { type: String }, // Store teacherId for easy lookup
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin who generated the QR
 }, { timestamps: true });
 
 // Add TTL index to automatically delete expired sessions
@@ -302,18 +308,38 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Create web session
-      const webSession = new WebSession({
-        sessionId,
-        userId: teacher._id,
-        userModel: 'Teacher',
-        userType: pendingSession.userType,
-        deviceId: deviceId || socket.id,
-        isActive: true,
-        expiresAt: new Date(Date.now() + (24 * 60 * 60 * 1000)), // 24 hours
-        teacherId: teacher.teacherId,
-      });
+      // Get the WebSession to retrieve companyId
+      const webSession = await WebSession.findOne({ sessionId });
+      if (!webSession) {
+        socket.emit('auth-failed', { message: 'Session not found' });
+        return;
+      }
 
+      // Add companyId to teacher's array if not already present
+      if (webSession.companyId) {
+        if (!teacher.companyIds) {
+          teacher.companyIds = [];
+        }
+        
+        const companyIdStr = webSession.companyId.toString();
+        const hasCompany = teacher.companyIds.some(id => id.toString() === companyIdStr);
+        
+        if (!hasCompany) {
+          teacher.companyIds.push(webSession.companyId);
+          await teacher.save();
+          console.log(`Teacher ${teacherId} added to company ${companyIdStr}`);
+        } else {
+          console.log(`Teacher ${teacherId} already belongs to company ${companyIdStr}`);
+        }
+      }
+
+      // Update web session with user info
+      webSession.userId = teacher._id;
+      webSession.userModel = 'Teacher';
+      webSession.deviceId = deviceId || socket.id;
+      webSession.isActive = true;
+      webSession.expiresAt = new Date(Date.now() + (24 * 60 * 60 * 1000)); // 24 hours
+      webSession.teacherId = teacher.teacherId;
       await webSession.save();
 
       // Generate JWT token
@@ -323,6 +349,7 @@ io.on('connection', (socket) => {
           userId: teacher._id,
           teacherId: teacher.teacherId,
           userType: pendingSession.userType,
+          companyIds: teacher.companyIds,
         },
         process.env.JWT_SECRET || 'your-secret-key',
         { expiresIn: '24h' }
@@ -338,6 +365,7 @@ io.on('connection', (socket) => {
           email: teacher.email,
           teacherId: teacher.teacherId,
           status: teacher.status,
+          companyIds: teacher.companyIds,
         },
         session: webSession,
         token,
@@ -809,9 +837,15 @@ app.delete('/api/payments/:id', async (req, res) => {
 // Teachers
 app.get('/api/teachers', async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, companyId } = req.query;
     let query = {};
     if (status) query.status = status;
+    
+    // Filter by companyId if provided (for multi-tenant support)
+    // Teachers can belong to multiple companies, so check if companyId is in the array
+    if (companyId) {
+      query.companyIds = companyId;
+    }
     
     const teachers = await Teacher.find(query);
     res.json(teachers);
@@ -867,10 +901,20 @@ app.post('/api/teachers', async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     
-    const teacher = new Teacher({ name, email, phone, password: hashedPassword, teacherId: finalTeacherId, status });
+    // Create teacher WITHOUT companyId - will be added when they scan QR
+    const teacher = new Teacher({ 
+      name, 
+      email, 
+      phone, 
+      password: hashedPassword, 
+      teacherId: finalTeacherId, 
+      status,
+      companyIds: [] // Initialize empty array
+    });
     await teacher.save();
     res.status(201).json(teacher);
   } catch (error) {
+    console.error('Error creating teacher:', error);
     res.status(500).json({ error: 'Failed to create teacher' });
   }
 });
@@ -2232,8 +2276,8 @@ app.get('/api/web-session/teacher-sessions/:companyId', verifyToken, async (req,
   try {
     const { companyId } = req.params;
     
-    // First, get all teachers under this company
-    const teachers = await Teacher.find({ companyId });
+    // First, get all teachers who belong to this company
+    const teachers = await Teacher.find({ companyIds: companyId });
     const teacherIds = teachers.map(t => t._id);
     
     // Then get all active sessions for these teachers
@@ -2260,14 +2304,27 @@ app.post('/api/web-session/logout-teacher', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Session ID is required' });
     }
     
-    const session = await WebSession.findOneAndUpdate(
-      { sessionId },
-      { isActive: false, expiresAt: new Date() }
-    );
+    const session = await WebSession.findOne({ sessionId });
     
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
+
+    // Get the teacher and remove the companyId from their array
+    if (session.userId && session.companyId) {
+      const teacher = await Teacher.findById(session.userId);
+      if (teacher && teacher.companyIds && teacher.companyIds.length > 0) {
+        const companyIdStr = session.companyId.toString();
+        teacher.companyIds = teacher.companyIds.filter(id => id.toString() !== companyIdStr);
+        await teacher.save();
+        console.log(`Removed company ${companyIdStr} from teacher ${teacher.teacherId}`);
+      }
+    }
+
+    // Deactivate the session
+    session.isActive = false;
+    session.expiresAt = new Date();
+    await session.save();
     
     // Notify via WebSocket
     io.emit('session-disconnected', { sessionId });
@@ -2285,26 +2342,33 @@ app.post('/api/web-session/generate-qr', async (req, res) => {
     await connectToDatabase();
     
     const { v4: uuidv4 } = await import('uuid');
-    const { userType = 'teacher' } = req.body;
+    const { userType = 'teacher', companyId } = req.body;
+    
+    if (!companyId) {
+      return res.status(400).json({ error: 'Company ID is required' });
+    }
+    
     const sessionId = uuidv4();
     // No expiration - QR codes are valid indefinitely
     const expiresAt = new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)); // 1 year (effectively no expiration)
     
-    // Create web session
+    // Create web session with companyId
     const webSession = new WebSession({
       sessionId,
       userType,
       isActive: false, // Will be activated when scanned
       expiresAt,
+      companyId, // Associate with the admin's company
     });
     
     await webSession.save();
     
-    // Generate QR code with format expected by mobile app
+    // Generate QR code with format expected by mobile app (include companyId in QR)
     const qrData = JSON.stringify({
       type: 'web-auth',
       sessionId,
       userType, // Keep for backward compatibility
+      companyId: companyId.toString(), // Include companyId for validation
     });
     
     console.log('Generated QR code data:', qrData);
@@ -2314,6 +2378,7 @@ app.post('/api/web-session/generate-qr', async (req, res) => {
     res.json({
       sessionId,
       qrCode,
+      qrData, // Return the raw data for debugging
     });
   } catch (error) {
     console.error('Error generating QR code:', error);
@@ -2423,6 +2488,7 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     }
     
     console.log('Session found:', session.sessionId);
+    console.log('Session companyId:', session.companyId);
     
     // Find the teacher by teacherId field (not MongoDB _id)
     const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
@@ -2436,6 +2502,25 @@ app.post('/api/web-session/authenticate', async (req, res) => {
     }
     
     console.log('Teacher found:', teacher.name, '(ID:', teacher.teacherId, ')');
+    console.log('Teacher current companyIds:', teacher.companyIds);
+    
+    // Add companyId to teacher's array if not already present
+    if (session.companyId) {
+      if (!teacher.companyIds) {
+        teacher.companyIds = [];
+      }
+      
+      const companyIdStr = session.companyId.toString();
+      const hasCompany = teacher.companyIds.some(id => id.toString() === companyIdStr);
+      
+      if (!hasCompany) {
+        teacher.companyIds.push(session.companyId);
+        await teacher.save();
+        console.log(`Teacher ${teacherId} added to company ${companyIdStr}`);
+      } else {
+        console.log(`Teacher ${teacherId} already belongs to company ${companyIdStr}`);
+      }
+    }
     
     // Update session with teacher info
     session.userId = teacher._id; // Store as ObjectId, not string
@@ -2452,6 +2537,7 @@ app.post('/api/web-session/authenticate', async (req, res) => {
       userId: session.userId,
       isActive: session.isActive,
       teacherId: session.teacherId,
+      companyId: session.companyId,
     });
     
     res.json({
@@ -2462,6 +2548,7 @@ app.post('/api/web-session/authenticate', async (req, res) => {
         id: teacher._id,
         name: teacher.name,
         email: teacher.email,
+        companyIds: teacher.companyIds,
       },
     });
   } catch (error) {
