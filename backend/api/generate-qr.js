@@ -81,35 +81,41 @@ module.exports = async (req, res) => {
     }
     
     const { userType = 'teacher', companyId } = body || {};
-    
-    if (!companyId) {
-      return res.status(400).json({ error: 'Company ID is required' });
-    }
 
     const sessionId = generateUUID();
     // No expiration - QR codes are valid indefinitely
     const expiresAt = new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)); // 1 year (effectively no expiration)
     
     // Create web session
-    const webSession = new WebSession({
+    const sessionData = {
       sessionId,
       userType,
       isActive: false, // Will be activated when scanned
       expiresAt,
-      companyId: new mongoose.Types.ObjectId(companyId),
-    });
+    };
+    
+    // Only add companyId if it's provided (for admin sessions)
+    if (companyId) {
+      sessionData.companyId = new mongoose.Types.ObjectId(companyId);
+    }
+    
+    const webSession = new WebSession(sessionData);
     
     await webSession.save();
     
     // Generate QR code with format expected by mobile app
-    const qrData = JSON.stringify({
+    const qrData = {
       type: 'web-auth',
       sessionId,
       userType, // Keep for backward compatibility
-      companyId,
-    });
+    };
     
-    const qrCode = await QRCode.toDataURL(qrData);
+    // Only add companyId to QR data if it exists
+    if (companyId) {
+      qrData.companyId = companyId;
+    }
+    
+    const qrCode = await QRCode.toDataURL(JSON.stringify(qrData));
     
     return res.status(200).json({
       sessionId,
