@@ -258,17 +258,37 @@ io.on('connection', (socket) => {
   console.log('New WebSocket connection:', socket.id);
 
   // Web client requests QR code
-  socket.on('request-qr', async ({ userType }) => {
+  socket.on('request-qr', async ({ userType, companyId }) => {
     try {
       const { v4: uuidv4 } = await import('uuid');
       const sessionId = uuidv4();
       const expiresAt = Date.now() + (5 * 60 * 1000); // 5 minutes
+      
+      console.log('QR Request received:', { userType, companyId });
+
+      // Create WebSession in DB to store companyId
+      if (companyId) {
+        try {
+          const webSession = new WebSession({
+            sessionId,
+            userType: userType || 'teacher',
+            isActive: false,
+            expiresAt: new Date(expiresAt),
+            companyId: new mongoose.Types.ObjectId(companyId),
+          });
+          await webSession.save();
+          console.log('Created WebSession in DB for QR code');
+        } catch (dbError) {
+          console.error('Error creating WebSession in DB:', dbError);
+        }
+      }
       
       pendingQRSessions.set(sessionId, {
         timestamp: Date.now(),
         expiresAt,
         userType: userType || 'teacher',
         socketId: socket.id,
+        companyId
       });
 
       // Generate QR code
@@ -277,6 +297,7 @@ io.on('connection', (socket) => {
         timestamp: Date.now(),
         expiresAt,
         type: 'web-auth',
+        companyId // Include companyId in QR data
       });
 
       const qrCodeDataUrl = await QRCode.toDataURL(qrData);
@@ -288,10 +309,17 @@ io.on('connection', (socket) => {
       });
 
       // Auto-cleanup expired session
-      setTimeout(() => {
+      setTimeout(async () => {
         if (pendingQRSessions.has(sessionId)) {
           pendingQRSessions.delete(sessionId);
           socket.emit('qr-expired', { sessionId });
+          
+          // Also cleanup DB session
+          try {
+            await WebSession.deleteOne({ sessionId });
+          } catch (e) {
+            console.error('Error cleaning up expired WebSession:', e);
+          }
         }
       }, 5 * 60 * 1000);
 
@@ -353,11 +381,34 @@ io.on('connection', (socket) => {
 
       // Get the WebSession to retrieve companyId
       console.log('Looking for web session...');
-      const webSession = await WebSession.findOne({ sessionId });
+      let webSession = await WebSession.findOne({ sessionId });
+      
       if (!webSession) {
-        console.log('ERROR: Web session not found');
-        socket.emit('auth-failed', { message: 'Session not found' });
-        return;
+        console.log('Web session not found in DB');
+        
+        // Fallback: Create session if we have info in pendingSession
+        if (pendingSession && pendingSession.companyId) {
+          console.log('Creating WebSession from pending session data');
+          try {
+            webSession = new WebSession({
+              sessionId,
+              userType: pendingSession.userType,
+              isActive: false,
+              expiresAt: new Date(pendingSession.expiresAt),
+              companyId: new mongoose.Types.ObjectId(pendingSession.companyId),
+            });
+            await webSession.save();
+            console.log('✓ WebSession created on-the-fly');
+          } catch (err) {
+            console.error('Error creating fallback session:', err);
+            socket.emit('auth-failed', { message: 'Session creation failed' });
+            return;
+          }
+        } else {
+          console.log('ERROR: Web session not found and cannot be recreated');
+          socket.emit('auth-failed', { message: 'Session not found' });
+          return;
+        }
       }
 
       console.log('✓ Web session found');
