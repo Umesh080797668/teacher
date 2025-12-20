@@ -31,6 +31,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final reportsProvider = Provider.of<ReportsProvider>(context, listen: false);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Reports'),
@@ -44,22 +46,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           ],
         ),
       ),
-      body: Consumer<ReportsProvider>(
-        builder: (context, reportsProvider, child) {
-          if (reportsProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              _AttendanceSummaryTab(reportsProvider: reportsProvider),
-              _StudentReportsTab(reportsProvider: reportsProvider),
-              _DailyViewTab(reportsProvider: reportsProvider),
-              _MonthlyStatsTab(reportsProvider: reportsProvider),
-            ],
-          );
-        },
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _AttendanceSummaryTab(reportsProvider: reportsProvider),
+          _StudentReportsTab(reportsProvider: reportsProvider),
+          _DailyViewTab(reportsProvider: reportsProvider),
+          _MonthlyStatsTab(reportsProvider: reportsProvider),
+        ],
       ),
     );
   }
@@ -72,76 +66,82 @@ class _AttendanceSummaryTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final summary = reportsProvider.attendanceSummary;
+    return Consumer<ReportsProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Overall Attendance Summary',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
+        final summary = provider.attendanceSummary;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _SummaryCard(
-                  title: 'Total Students',
-                  value: summary['totalStudents']?.toString() ?? '0',
-                  color: Colors.blue,
-                  icon: Icons.people,
+              Text(
+                'Overall Attendance Summary',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _SummaryCard(
-                  title: 'Present Today',
-                  value: summary['presentToday']?.toString() ?? '0',
-                  color: Colors.green,
-                  icon: Icons.check_circle,
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SummaryCard(
+                      title: 'Total Students',
+                      value: summary['totalStudents']?.toString() ?? '0',
+                      color: Colors.blue,
+                      icon: Icons.people,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _SummaryCard(
+                      title: 'Present Today',
+                      value: summary['presentToday']?.toString() ?? '0',
+                      color: Colors.green,
+                      icon: Icons.check_circle,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SummaryCard(
+                      title: 'Absent Today',
+                      value: summary['absentToday']?.toString() ?? '0',
+                      color: Colors.red,
+                      icon: Icons.cancel,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _SummaryCard(
+                      title: 'Late Today',
+                      value: summary['lateToday']?.toString() ?? '0',
+                      color: Colors.orange,
+                      icon: Icons.schedule,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Daily Attendance by Class',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _SummaryCard(
-                  title: 'Absent Today',
-                  value: summary['absentToday']?.toString() ?? '0',
-                  color: Colors.red,
-                  icon: Icons.cancel,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _SummaryCard(
-                  title: 'Late Today',
-                  value: summary['lateToday']?.toString() ?? '0',
-                  color: Colors.orange,
-                  icon: Icons.schedule,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Daily Attendance by Class',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...reportsProvider.dailyByClass.map((classData) => Card(
+              const SizedBox(height: 16),
+              ...provider.dailyByClass.map((classData) => Card(
             margin: const EdgeInsets.only(bottom: 12),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -234,9 +234,11 @@ class _AttendanceSummaryTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _MonthlyOverviewChart(reportsProvider: reportsProvider),
+          _MonthlyOverviewChart(reportsProvider: provider),
         ],
       ),
+        );
+      },
     );
   }
 }
@@ -248,58 +250,66 @@ class _StudentReportsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final studentReports = reportsProvider.studentReports;
+    return Consumer<ReportsProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: studentReports.length,
-      itemBuilder: (context, index) {
-        final report = studentReports[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  report['studentName'] ?? 'Unknown Student',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
+        final studentReports = provider.studentReports;
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: studentReports.length,
+          itemBuilder: (context, index) {
+            final report = studentReports[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _StatChip(
-                      label: 'Present: ${report['presentCount'] ?? 0}',
-                      color: Colors.green,
+                    Text(
+                      report['studentName'] ?? 'Unknown Student',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    _StatChip(
-                      label: 'Absent: ${report['absentCount'] ?? 0}',
-                      color: Colors.red,
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _StatChip(
+                          label: 'Present: ${report['presentCount'] ?? 0}',
+                          color: Colors.green,
+                        ),
+                        const SizedBox(width: 8),
+                        _StatChip(
+                          label: 'Absent: ${report['absentCount'] ?? 0}',
+                          color: Colors.red,
+                        ),
+                        const SizedBox(width: 8),
+                        _StatChip(
+                          label: 'Late: ${report['lateCount'] ?? 0}',
+                          color: Colors.orange,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    _StatChip(
-                      label: 'Late: ${report['lateCount'] ?? 0}',
-                      color: Colors.orange,
+                    const SizedBox(height: 8),
+                    Text(
+                      'Attendance Rate: ${report['attendanceRate']?.toStringAsFixed(1) ?? '0.0'}%',
+                      style: TextStyle(
+                        color: (report['attendanceRate'] ?? 0) >= 75 ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Attendance Rate: ${report['attendanceRate']?.toStringAsFixed(1) ?? '0.0'}%',
-                  style: TextStyle(
-                    color: (report['attendanceRate'] ?? 0) >= 75 ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -352,52 +362,54 @@ class _DailyViewTabState extends State<_DailyViewTab> {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate day of year
-    final firstDayOfYear = DateTime(_selectedDate.year, 1, 1);
-    final dayOfYear = _selectedDate.difference(firstDayOfYear).inDays + 1;
+    return Consumer<ReportsProvider>(
+      builder: (context, provider, child) {
+        // Calculate day of year
+        final firstDayOfYear = DateTime(_selectedDate.year, 1, 1);
+        final dayOfYear = _selectedDate.difference(firstDayOfYear).inDays + 1;
 
-    // Show loading indicator while data is being fetched
-    if (widget.reportsProvider.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+        // Show loading indicator while data is being fetched
+        if (provider.isDailyLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    // Get daily stats
-    final dailyStats = widget.reportsProvider.getDailyStats();
-    final studentsByClass = widget.reportsProvider.getStudentsByClass();
+        // Get daily stats
+        final dailyStats = provider.getDailyStats();
+        final studentsByClass = provider.getStudentsByClass();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Date Picker Card
-          Card(
-            elevation: 4,
-            color: Theme.of(context).colorScheme.primaryContainer,
-            child: InkWell(
-              onTap: _changeDate,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Date Picker Card
+              Card(
+                elevation: 4,
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: InkWell(
+                  onTap: _changeDate,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Selected Date',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                              style: TextStyle(
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Selected Date',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                                  style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -675,6 +687,8 @@ class _DailyViewTabState extends State<_DailyViewTab> {
             }).toList(),
         ],
       ),
+        );
+      },
     );
   }
 }
@@ -686,45 +700,51 @@ class _MonthlyStatsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final monthlyByClass = reportsProvider.monthlyByClass;
+    return Consumer<ReportsProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    if (monthlyByClass.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.analytics_outlined,
-              size: 80,
-              color: Theme.of(context).colorScheme.outline,
+        final monthlyByClass = provider.monthlyByClass;
+
+        if (monthlyByClass.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.analytics_outlined,
+                  size: 80,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No monthly statistics available',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              'No monthly statistics available',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
+          );
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Monthly Statistics by Class',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Monthly Statistics by Class',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...monthlyByClass.map((classData) {
+              const SizedBox(height: 16),
+              ...monthlyByClass.map((classData) {
             final className = classData['className'] ?? 'Unknown Class';
             final totalStudents = classData['totalStudents'] ?? 0;
             final monthlyStats = classData['monthlyStats'] as List? ?? [];
@@ -862,6 +882,8 @@ class _MonthlyStatsTab extends StatelessWidget {
           }),
         ],
       ),
+        );
+      },
     );
   }
 }

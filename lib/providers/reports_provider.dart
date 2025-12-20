@@ -6,6 +6,7 @@ import '../models/class.dart';
 
 class ReportsProvider with ChangeNotifier {
   bool _isLoading = false;
+  bool _isDailyLoading = false;
 
   Map<String, dynamic> _attendanceSummary = {};
   List<Map<String, dynamic>> _studentReports = [];
@@ -19,6 +20,7 @@ class ReportsProvider with ChangeNotifier {
   List<Class> _allClasses = [];
 
   bool get isLoading => _isLoading;
+  bool get isDailyLoading => _isDailyLoading;
   Map<String, dynamic> get attendanceSummary => _attendanceSummary;
   List<Map<String, dynamic>> get studentReports => _studentReports;
   List<Map<String, dynamic>> get monthlyStats => _monthlyStats;
@@ -102,7 +104,7 @@ class ReportsProvider with ChangeNotifier {
 
   // Load daily attendance data for a specific date
   Future<void> loadDailyAttendance(DateTime date, {String? teacherId}) async {
-    _isLoading = true;
+    _isDailyLoading = true;
     notifyListeners();
 
     try {
@@ -134,7 +136,7 @@ class ReportsProvider with ChangeNotifier {
       _allStudents = [];
       _allClasses = [];
     } finally {
-      _isLoading = false;
+      _isDailyLoading = false;
       notifyListeners();
     }
   }
