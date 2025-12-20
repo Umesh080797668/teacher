@@ -1209,6 +1209,47 @@ app.put('/api/teachers/:id/status', async (req, res) => {
     res.status(500).json({ error: 'Failed to update teacher status' });
   }
 });
+
+app.delete('/api/teachers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('DELETE /api/teachers/:id called with id:', id);
+    
+    // Find the teacher first to get their information
+    const teacher = await Teacher.findById(id);
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    
+    console.log('Deleting teacher:', teacher.name, teacher.email);
+    
+    // Delete the teacher
+    await Teacher.findByIdAndDelete(id);
+    
+    // Clean up active sessions for this teacher
+    try {
+      // Find and delete any active web sessions for this teacher
+      const WebSession = mongoose.model('WebSession');
+      const deletedSessions = await WebSession.deleteMany({ userId: teacher._id });
+      console.log(`Cleaned up ${deletedSessions.deletedCount} active web sessions for teacher ${teacher.name}`);
+      
+      // Also clean up any socket connections if they exist
+      // This would require additional logic to disconnect active sockets
+    } catch (sessionError) {
+      console.error('Error cleaning up sessions:', sessionError);
+      // Don't fail the deletion if session cleanup fails
+    }
+    
+    res.status(200).json({ 
+      message: 'Teacher deleted successfully',
+      teacherName: teacher.name 
+    });
+  } catch (error) {
+    console.error('Error deleting teacher:', error);
+    res.status(500).json({ error: 'Failed to delete teacher', details: error.message });
+  }
+});
+
 app.get('/api/reports/attendance-summary', async (req, res) => {
   try {
     const { teacherId } = req.query;
