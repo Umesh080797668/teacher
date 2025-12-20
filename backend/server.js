@@ -565,13 +565,31 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     console.log('WebSocket disconnected:', socket.id);
     
-    // Clean up any sessions associated with this socket
+    // Clean up any sessions associated with this socket and mark them inactive
     for (const [sessionId, socketId] of connectedSockets.entries()) {
       if (socketId === socket.id) {
         connectedSockets.delete(sessionId);
+        
+        try {
+          // Find and update the session to inactive
+          const WebSession = mongoose.model('WebSession');
+          const updatedSession = await WebSession.findOneAndUpdate(
+            { sessionId },
+            { isActive: false },
+            { new: true }
+          );
+          
+          if (updatedSession) {
+            console.log('Marked session inactive due to disconnect:', sessionId);
+            // Notify all connected clients about the session disconnect
+            io.emit('session-disconnected', { sessionId });
+          }
+        } catch (error) {
+          console.error('Error updating session on disconnect:', error);
+        }
       }
     }
   });
