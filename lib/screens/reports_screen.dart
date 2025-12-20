@@ -16,7 +16,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       context.read<ReportsProvider>().loadReports(teacherId: auth.teacherId);
@@ -39,6 +39,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           tabs: const [
             Tab(text: 'Attendance Summary'),
             Tab(text: 'Student Reports'),
+            Tab(text: 'Daily View'),
             Tab(text: 'Monthly Stats'),
           ],
         ),
@@ -54,6 +55,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             children: [
               _AttendanceSummaryTab(reportsProvider: reportsProvider),
               _StudentReportsTab(reportsProvider: reportsProvider),
+              _DailyViewTab(reportsProvider: reportsProvider),
               _MonthlyStatsTab(reportsProvider: reportsProvider),
             ],
           );
@@ -300,6 +302,220 @@ class _StudentReportsTab extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _DailyViewTab extends StatefulWidget {
+  final ReportsProvider reportsProvider;
+
+  const _DailyViewTab({required this.reportsProvider});
+
+  @override
+  State<_DailyViewTab> createState() => _DailyViewTabState();
+}
+
+class _DailyViewTabState extends State<_DailyViewTab> {
+  DateTime _selectedDate = DateTime.now();
+
+  @override
+  Widget build(BuildContext context) {
+    // Calculate day of year
+    final firstDayOfYear = DateTime(_selectedDate.year, 1, 1);
+    final dayOfYear = _selectedDate.difference(firstDayOfYear).inDays + 1;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Date Picker Card
+          Card(
+            elevation: 4,
+            color: Theme.of(context).colorScheme.primaryContainer,
+            child: InkWell(
+              onTap: () async {
+                final pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (pickedDate != null) {
+                  setState(() {
+                    _selectedDate = pickedDate;
+                  });
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Selected Date',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Day of Year',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Day $dayOfYear',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _selectedDate.toString().split(' ')[0],
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Note: This is a placeholder implementation
+          // You would need to fetch actual attendance data for the selected date
+          Text(
+            'Daily Attendance View',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'This feature shows students who attended on the selected date.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Daily Statistics Summary
+          Row(
+            children: [
+              Expanded(
+                child: _SummaryCard(
+                  title: 'Present',
+                  value: '0',
+                  color: Colors.green,
+                  icon: Icons.check_circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _SummaryCard(
+                  title: 'Absent',
+                  value: '0',
+                  color: Colors.red,
+                  icon: Icons.cancel,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _SummaryCard(
+                  title: 'Late',
+                  value: '0',
+                  color: Colors.orange,
+                  icon: Icons.schedule,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _SummaryCard(
+                  title: 'Rate',
+                  value: '0%',
+                  color: Colors.blue,
+                  icon: Icons.analytics,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Students List Placeholder
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Select a date to view attendance',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tap on the date card above to change the date',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.outline.withOpacity(0.7),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
