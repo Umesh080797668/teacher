@@ -231,7 +231,9 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
     if (dateStr == null) return 'Unknown';
     try {
       final date = DateTime.parse(dateStr);
-      return DateFormat('MMM dd, yyyy HH:mm').format(date);
+      // Convert to local timezone
+      final localDate = date.toLocal();
+      return DateFormat('MMM dd, yyyy HH:mm').format(localDate);
     } catch (e) {
       return 'Unknown';
     }
