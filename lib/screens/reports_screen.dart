@@ -321,7 +321,10 @@ class _DailyViewTabState extends State<_DailyViewTab> {
   @override
   void initState() {
     super.initState();
-    _loadDailyData();
+    // Schedule the data loading after the build is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadDailyData();
+    });
   }
 
   Future<void> _loadDailyData() async {
@@ -352,6 +355,11 @@ class _DailyViewTabState extends State<_DailyViewTab> {
     // Calculate day of year
     final firstDayOfYear = DateTime(_selectedDate.year, 1, 1);
     final dayOfYear = _selectedDate.difference(firstDayOfYear).inDays + 1;
+
+    // Show loading indicator while data is being fetched
+    if (widget.reportsProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     // Get daily stats
     final dailyStats = widget.reportsProvider.getDailyStats();
