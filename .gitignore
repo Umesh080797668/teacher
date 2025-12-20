@@ -49,9 +49,7 @@ app.*.map.json
 # For Node.js backend
 node_modules/
 
-# Environment variables
-.env
-.env
+# Environment variables (exclude sensitive env files only)
 .env.local
 .env.production
 .env.staging
