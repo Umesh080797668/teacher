@@ -1,6 +1,6 @@
 {
   "version": "1.0.27",
   "downloadUrl": "https://github.com/Umesh080797668/teacher/releases/download/1.0.27/app-release.apk",
-  "releaseNotes": "🔧 Bug Fixes:\n• Fixed QR code company association - Teachers now properly added to companies when scanning QR codes\n• Resolved web session authentication flow for multi-company support\n• Fixed missing .env file error that caused app crashes\n\n✨ Improvements:\n• Enhanced QR code generation to include company identification\n• Improved admin dashboard teacher management\n• Better error handling for session authentication\n\n📱 Technical Updates:\n• Updated serverless function to save companyId in web sessions\n• Added proper validation for QR code generation requests\n• Improved environment configuration management",
+  "releaseNotes": "",
   "isForced": false
 }
