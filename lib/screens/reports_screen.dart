@@ -319,10 +319,43 @@ class _DailyViewTabState extends State<_DailyViewTab> {
   DateTime _selectedDate = DateTime.now();
 
   @override
+  void initState() {
+    super.initState();
+    _loadDailyData();
+  }
+
+  Future<void> _loadDailyData() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    await widget.reportsProvider.loadDailyAttendance(
+      _selectedDate,
+      teacherId: auth.teacherId,
+    );
+  }
+
+  Future<void> _changeDate() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (pickedDate != null) {
+      setState(() {
+        _selectedDate = pickedDate;
+      });
+      _loadDailyData();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Calculate day of year
     final firstDayOfYear = DateTime(_selectedDate.year, 1, 1);
     final dayOfYear = _selectedDate.difference(firstDayOfYear).inDays + 1;
+
+    // Get daily stats
+    final dailyStats = widget.reportsProvider.getDailyStats();
+    final studentsByClass = widget.reportsProvider.getStudentsByClass();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -334,19 +367,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
             elevation: 4,
             color: Theme.of(context).colorScheme.primaryContainer,
             child: InkWell(
-              onTap: () async {
-                final pickedDate = await showDatePicker(
-                  context: context,
-                  initialDate: _selectedDate,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (pickedDate != null) {
-                  setState(() {
-                    _selectedDate = pickedDate;
-                  });
-                }
-              },
+              onTap: _changeDate,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -414,8 +435,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
           ),
           const SizedBox(height: 16),
           
-          // Note: This is a placeholder implementation
-          // You would need to fetch actual attendance data for the selected date
+          // Daily Attendance View Title
           Text(
             'Daily Attendance View',
             style: TextStyle(
@@ -426,7 +446,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
           ),
           const SizedBox(height: 8),
           Text(
-            'This feature shows students who attended on the selected date.',
+            'Shows attendance for ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
             style: TextStyle(
               fontSize: 14,
               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
@@ -440,7 +460,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
               Expanded(
                 child: _SummaryCard(
                   title: 'Present',
-                  value: '0',
+                  value: dailyStats['presentCount'].toString(),
                   color: Colors.green,
                   icon: Icons.check_circle,
                 ),
@@ -449,7 +469,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
               Expanded(
                 child: _SummaryCard(
                   title: 'Absent',
-                  value: '0',
+                  value: dailyStats['absentCount'].toString(),
                   color: Colors.red,
                   icon: Icons.cancel,
                 ),
@@ -462,7 +482,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
               Expanded(
                 child: _SummaryCard(
                   title: 'Late',
-                  value: '0',
+                  value: dailyStats['lateCount'].toString(),
                   color: Colors.orange,
                   icon: Icons.schedule,
                 ),
@@ -471,7 +491,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
               Expanded(
                 child: _SummaryCard(
                   title: 'Rate',
-                  value: '0%',
+                  value: '${dailyStats['attendanceRate'].toStringAsFixed(0)}%',
                   color: Colors.blue,
                   icon: Icons.analytics,
                 ),
@@ -480,40 +500,171 @@ class _DailyViewTabState extends State<_DailyViewTab> {
           ),
           const SizedBox(height: 16),
           
-          // Students List Placeholder
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Select a date to view attendance',
-                      style: TextStyle(
-                        fontSize: 16,
+          // Students List by Class
+          if (studentsByClass.isEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 64,
                         color: Theme.of(context).colorScheme.outline,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tap on the date card above to change the date',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.outline.withOpacity(0.7),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No data available for this date',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ),
+            )
+          else
+            ...studentsByClass.entries.map((entry) {
+              final className = entry.key;
+              final students = entry.value;
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              className,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${students.length} Students',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ...students.map((student) {
+                        final status = student['status'] as String;
+                        Color statusColor;
+                        IconData statusIcon;
+                        String statusText;
+
+                        switch (status) {
+                          case 'present':
+                            statusColor = Colors.green;
+                            statusIcon = Icons.check_circle;
+                            statusText = 'Present';
+                            break;
+                          case 'absent':
+                            statusColor = Colors.red;
+                            statusIcon = Icons.cancel;
+                            statusText = 'Absent';
+                            break;
+                          case 'late':
+                            statusColor = Colors.orange;
+                            statusIcon = Icons.schedule;
+                            statusText = 'Late';
+                            break;
+                          default:
+                            statusColor = Colors.grey;
+                            statusIcon = Icons.help_outline;
+                            statusText = 'Not Recorded';
+                        }
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: statusColor.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(statusIcon, color: statusColor, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      student['name'],
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    if (student['studentId'] != null && student['studentId'].toString().isNotEmpty)
+                                      Text(
+                                        'ID: ${student['studentId']}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    statusText,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: statusColor,
+                                    ),
+                                  ),
+                                  if (student['session'] != null && student['session'].toString().isNotEmpty)
+                                    Text(
+                                      student['session'],
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
         ],
       ),
     );
