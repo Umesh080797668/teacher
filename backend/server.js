@@ -78,54 +78,95 @@ const transporter = nodemailer.createTransport({
 
 // MongoDB connection with connection reuse for serverless
 let cachedConnection = null;
+let connectionPromise = null;
 
 async function connectToDatabase() {
+  // If connection is already established and ready, return immediately
   if (cachedConnection && mongoose.connection.readyState === 1) {
     console.log('Using cached database connection');
     return cachedConnection;
   }
 
-  const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/teacher_attendance_mobile';
-  console.log('Connecting to MongoDB...');
-  console.log('MongoDB URI present:', !!process.env.MONGODB_URI); // Debug log
-
-  // Retry loop to handle transient network issues on serverless platforms
-  const maxAttempts = 3;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      console.log(`MongoDB connect attempt ${attempt}/${maxAttempts}`);
-      cachedConnection = await mongoose.connect(mongoUri, {
-        // Allow extra time for server selection and TLS handshake on cold starts
-        serverSelectionTimeoutMS: 60000,
-        connectTimeoutMS: 45000,
-        socketTimeoutMS: 60000,
-        // Keep pool small for serverless to avoid too many concurrent sockets
-        maxPoolSize: 5,
-        minPoolSize: 0,
-        // Prefer IPv4 where possible
-        family: 4,
-        // Don't buffer commands while connecting
-        bufferCommands: false,
-      });
-
-      console.log('MongoDB connected successfully');
-      return cachedConnection;
-    } catch (error) {
-      console.error(`MongoDB connection error on attempt ${attempt}:`, error && error.message ? error.message : error);
-      // Log topology if available for deeper insight
-      if (error && error.reason) {
-        console.error('Topology reason:', error.reason);
-      }
-      if (attempt < maxAttempts) {
-        const backoff = Math.pow(2, attempt) * 1000; // exponential backoff
-        console.log(`Retrying MongoDB connection in ${backoff}ms...`);
-        await new Promise(res => setTimeout(res, backoff));
-      } else {
-        console.error('All MongoDB connection attempts failed');
-        throw error;
-      }
-    }
+  // If a connection is already in progress, wait for it
+  if (connectionPromise) {
+    console.log('Connection in progress, waiting...');
+    return connectionPromise;
   }
+
+  // Create new connection promise
+  connectionPromise = (async () => {
+    try {
+      const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/teacher_attendance_mobile';
+      console.log('Connecting to MongoDB...');
+      console.log('MongoDB URI present:', !!process.env.MONGODB_URI); // Debug log
+
+      // Retry loop to handle transient network issues on serverless platforms
+      const maxAttempts = 3;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          console.log(`MongoDB connect attempt ${attempt}/${maxAttempts}`);
+          
+          // Connect to MongoDB
+          await mongoose.connect(mongoUri, {
+            // Allow extra time for server selection and TLS handshake on cold starts
+            serverSelectionTimeoutMS: 60000,
+            connectTimeoutMS: 45000,
+            socketTimeoutMS: 60000,
+            // Keep pool small for serverless to avoid too many concurrent sockets
+            maxPoolSize: 5,
+            minPoolSize: 0,
+            // Prefer IPv4 where possible
+            family: 4,
+            // Don't buffer commands while connecting
+            bufferCommands: false,
+          });
+
+          // Wait for connection to be fully ready
+          if (mongoose.connection.readyState !== 1) {
+            console.log('Waiting for connection to be ready...');
+            await new Promise((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                reject(new Error('Connection ready timeout'));
+              }, 10000);
+              
+              mongoose.connection.once('connected', () => {
+                clearTimeout(timeout);
+                resolve();
+              });
+              
+              // If already connected, resolve immediately
+              if (mongoose.connection.readyState === 1) {
+                clearTimeout(timeout);
+                resolve();
+              }
+            });
+          }
+
+          cachedConnection = mongoose.connection;
+          console.log('MongoDB connected successfully, readyState:', mongoose.connection.readyState);
+          return cachedConnection;
+        } catch (error) {
+          console.error(`MongoDB connection error on attempt ${attempt}:`, error && error.message ? error.message : error);
+          // Log topology if available for deeper insight
+          if (error && error.reason) {
+            console.error('Topology reason:', error.reason);
+          }
+          if (attempt < maxAttempts) {
+            const backoff = Math.pow(2, attempt) * 1000; // exponential backoff
+            console.log(`Retrying MongoDB connection in ${backoff}ms...`);
+            await new Promise(res => setTimeout(res, backoff));
+          } else {
+            console.error('All MongoDB connection attempts failed');
+            throw error;
+          }
+        }
+      }
+    } finally {
+      connectionPromise = null;
+    }
+  })();
+
+  return connectionPromise;
 }
 
 // Initialize connection - REMOVED for Vercel
@@ -1842,8 +1883,14 @@ app.get('/api/reports/class-student-details', async (req, res) => {
 // Home Dashboard Endpoints
 app.get('/api/home/stats', async (req, res) => {
   try {
-    // Ensure database connection
+    // Ensure database connection is fully ready
     await connectToDatabase();
+    
+    // Additional safety check for readyState
+    if (mongoose.connection.readyState !== 1) {
+      console.error('MongoDB not ready, readyState:', mongoose.connection.readyState);
+      return res.status(503).json({ error: 'Database not ready' });
+    }
     
     const { teacherId } = req.query;
 
@@ -1992,14 +2039,31 @@ app.get('/api/home/stats', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching home stats:', error);
-    res.status(500).json({ error: 'Failed to fetch home stats' });
+    
+    // Check if it's a Mongoose buffer commands error
+    if (error.message && error.message.includes('bufferCommands')) {
+      console.error('MongoDB connection not ready when query attempted');
+      console.error('Connection readyState:', mongoose.connection.readyState);
+      return res.status(503).json({ 
+        error: 'Database connection not ready', 
+        message: 'Please try again in a moment' 
+      });
+    }
+    
+    res.status(500).json({ error: 'Failed to fetch home stats', message: error.message });
   }
 });
 
 app.get('/api/home/activities', async (req, res) => {
   try {
-    // Ensure database connection
+    // Ensure database connection is fully ready
     await connectToDatabase();
+    
+    // Additional safety check for readyState
+    if (mongoose.connection.readyState !== 1) {
+      console.error('MongoDB not ready, readyState:', mongoose.connection.readyState);
+      return res.status(503).json({ error: 'Database not ready' });
+    }
     
     const { teacherId } = req.query;
 
@@ -2125,7 +2189,18 @@ app.get('/api/home/activities', async (req, res) => {
     res.json(activities.slice(0, 3));
   } catch (error) {
     console.error('Error fetching home activities:', error);
-    res.status(500).json({ error: 'Failed to fetch home activities' });
+    
+    // Check if it's a Mongoose buffer commands error
+    if (error.message && error.message.includes('bufferCommands')) {
+      console.error('MongoDB connection not ready when query attempted');
+      console.error('Connection readyState:', mongoose.connection.readyState);
+      return res.status(503).json({ 
+        error: 'Database connection not ready', 
+        message: 'Please try again in a moment' 
+      });
+    }
+    
+    res.status(500).json({ error: 'Failed to fetch home activities', message: error.message });
   }
 });
 
