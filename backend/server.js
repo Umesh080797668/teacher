@@ -1325,7 +1325,7 @@ app.get('/api/reports/attendance-summary', async (req, res) => {
 
 app.get('/api/reports/student-reports', async (req, res) => {
   try {
-    const { teacherId } = req.query;
+    const { teacherId, month, year } = req.query;
 
     let studentQuery = {};
     if (teacherId) {
@@ -1347,7 +1347,11 @@ app.get('/api/reports/student-reports', async (req, res) => {
     const reports = [];
 
     for (const student of students) {
-      const attendanceRecords = await Attendance.find({ studentId: student._id });
+      let attendanceQuery = { studentId: student._id };
+      if (month) attendanceQuery.month = parseInt(month);
+      if (year) attendanceQuery.year = parseInt(year);
+
+      const attendanceRecords = await Attendance.find(attendanceQuery);
       const totalRecords = attendanceRecords.length;
       const presentCount = attendanceRecords.filter(a => a.status === 'present').length;
       const absentCount = attendanceRecords.filter(a => a.status === 'absent').length;
@@ -1581,8 +1585,14 @@ app.get('/api/reports/class-student-details', async (req, res) => {
       return res.status(400).json({ error: 'classId, month, and year are required' });
     }
 
+    // Convert classId to ObjectId if it's a string
+    let classObjectId = classId;
+    if (typeof classId === 'string' && classId.match(/^[0-9a-fA-F]{24}$/)) {
+      classObjectId = new mongoose.Types.ObjectId(classId);
+    }
+
     // Get all students in the class
-    const students = await Student.find({ classId });
+    const students = await Student.find({ classId: classObjectId });
 
     if (students.length === 0) {
       return res.json({
@@ -1593,7 +1603,7 @@ app.get('/api/reports/class-student-details', async (req, res) => {
     }
 
     // Get class name
-    const classObj = await Class.findById(classId);
+    const classObj = await Class.findById(classObjectId);
     const className = classObj ? classObj.name : 'Unknown Class';
 
     // Get all attendance records for this class in the specified month
