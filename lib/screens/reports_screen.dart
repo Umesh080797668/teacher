@@ -39,7 +39,6 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         title: const Text('Reports'),
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: true,
           tabs: const [
             Tab(text: 'Attendance Summary'),
             Tab(text: 'Student Reports'),
@@ -264,17 +263,8 @@ class _StudentReportsTabState extends State<_StudentReportsTab> {
         }
 
         final allStudentReports = provider.studentReports;
+        final allClasses = provider.allClasses;
         
-        // Get unique classes from student reports
-        final classesMap = <String, String>{};
-        for (var report in allStudentReports) {
-          final classId = report['classId'] as String?;
-          final className = report['className'] as String?;
-          if (classId != null && className != null) {
-            classesMap[classId] = className;
-          }
-        }
-
         // Filter students by selected class
         final filteredReports = _selectedClassId == null
             ? allStudentReports
@@ -299,9 +289,9 @@ class _StudentReportsTabState extends State<_StudentReportsTab> {
                     value: null,
                     child: Text('All Classes'),
                   ),
-                  ...classesMap.entries.map((entry) => DropdownMenuItem<String>(
-                    value: entry.key,
-                    child: Text(entry.value),
+                  ...allClasses.map((cls) => DropdownMenuItem<String>(
+                    value: cls.id,
+                    child: Text(cls.name),
                   )),
                 ],
                 onChanged: (value) {
@@ -600,17 +590,8 @@ class _PaymentsTabState extends State<_PaymentsTab> {
 
         // Get payment data from provider
         final allPayments = provider.payments;
+        final allClasses = provider.allClasses;
         
-        // Get unique classes
-        final classesMap = <String, String>{};
-        for (var payment in allPayments) {
-          final classId = payment['classId'] as String?;
-          final className = payment['className'] as String?;
-          if (classId != null && className != null) {
-            classesMap[classId] = className;
-          }
-        }
-
         // Filter payments by class and month
         final filteredPayments = allPayments.where((payment) {
           final matchesClass = _selectedClassId == null || payment['classId'] == _selectedClassId;
@@ -659,9 +640,9 @@ class _PaymentsTabState extends State<_PaymentsTab> {
                         value: null,
                         child: Text('All Classes'),
                       ),
-                      ...classesMap.entries.map((entry) => DropdownMenuItem<String>(
-                        value: entry.key,
-                        child: Text(entry.value),
+                      ...allClasses.map((cls) => DropdownMenuItem<String>(
+                        value: cls.id,
+                        child: Text(cls.name),
                       )),
                     ],
                     onChanged: (value) {
