@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/reports_provider.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/class_student_details_modal.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -746,46 +747,79 @@ class _MonthlyStatsTab extends StatelessWidget {
               const SizedBox(height: 16),
               ...monthlyByClass.map((classData) {
             final className = classData['className'] ?? 'Unknown Class';
+            final classId = classData['classId'] ?? '';
             final totalStudents = classData['totalStudents'] ?? 0;
             final monthlyStats = classData['monthlyStats'] as List? ?? [];
 
             return Card(
               margin: const EdgeInsets.only(bottom: 16),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            className,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurface,
+              child: InkWell(
+                onTap: monthlyStats.isNotEmpty
+                    ? () {
+                        // Get the most recent month/year from monthlyStats
+                        final recentStat = monthlyStats.first;
+                        final month = recentStat['month'] ?? DateTime.now().month;
+                        final year = recentStat['year'] ?? DateTime.now().year;
+                        
+                        showDialog(
+                          context: context,
+                          builder: (context) => ClassStudentDetailsModal(
+                            classId: classId,
+                            className: className,
+                            month: month,
+                            year: year,
+                          ),
+                        );
+                      }
+                    : null,
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              className,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                             ),
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(12),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '$totalStudents Students',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                              ),
+                              if (monthlyStats.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
+                              ],
+                            ],
                           ),
-                          child: Text(
-                            '$totalStudents Students',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                     const SizedBox(height: 16),
                     if (monthlyStats.isEmpty)
                       Padding(
@@ -875,11 +909,12 @@ class _MonthlyStatsTab extends StatelessWidget {
                           ),
                         );
                       }).toList(),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
-          }),
+          }).toList(),
         ],
       ),
         );

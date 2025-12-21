@@ -1572,6 +1572,75 @@ app.get('/api/reports/monthly-by-class', async (req, res) => {
   }
 });
 
+// Get detailed student attendance for a specific class and month
+app.get('/api/reports/class-student-details', async (req, res) => {
+  try {
+    const { classId, month, year } = req.query;
+
+    if (!classId || !month || !year) {
+      return res.status(400).json({ error: 'classId, month, and year are required' });
+    }
+
+    // Get all students in the class
+    const students = await Student.find({ classId });
+
+    if (students.length === 0) {
+      return res.json({
+        className: '',
+        totalStudents: 0,
+        studentsDetails: []
+      });
+    }
+
+    // Get class name
+    const classObj = await Class.findById(classId);
+    const className = classObj ? classObj.name : 'Unknown Class';
+
+    // Get all attendance records for this class in the specified month
+    const studentIds = students.map(s => s._id);
+    const attendanceRecords = await Attendance.find({
+      studentId: { $in: studentIds },
+      month: parseInt(month),
+      year: parseInt(year)
+    });
+
+    // Calculate statistics for each student
+    const studentsDetails = students.map(student => {
+      const studentAttendance = attendanceRecords.filter(a => 
+        a.studentId.toString() === student._id.toString()
+      );
+
+      const presentCount = studentAttendance.filter(a => a.status === 'present').length;
+      const absentCount = studentAttendance.filter(a => a.status === 'absent').length;
+      const lateCount = studentAttendance.filter(a => a.status === 'late').length;
+      const totalClasses = studentAttendance.length;
+      const attendanceRate = totalClasses > 0 ? (presentCount / totalClasses) * 100 : 0;
+
+      return {
+        studentId: student._id,
+        studentName: student.name,
+        studentIdNumber: student.studentId,
+        presentCount,
+        absentCount,
+        lateCount,
+        totalClasses,
+        attendanceRate
+      };
+    }).sort((a, b) => b.attendanceRate - a.attendanceRate); // Sort by attendance rate descending
+
+    res.json({
+      className,
+      totalStudents: students.length,
+      month: parseInt(month),
+      year: parseInt(year),
+      studentsDetails
+    });
+  } catch (error) {
+    console.error('Error fetching class student details:', error);
+    res.status(500).json({ error: 'Failed to fetch class student details' });
+  }
+});
+
 // Home Dashboard Endpoints
 app.get('/api/home/stats', async (req, res) => {
   try {

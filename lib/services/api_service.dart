@@ -530,6 +530,25 @@ class ApiService {
     return List<Map<String, dynamic>>.from(json.decode(response.body));
   }
 
+  static Future<Map<String, dynamic>> getClassStudentDetails({
+    required String classId,
+    required int month,
+    required int year,
+  }) async {
+    final queryParams = <String, String>{
+      'classId': classId,
+      'month': month.toString(),
+      'year': year.toString(),
+    };
+
+    final endpoint = Uri(
+      path: '/api/reports/class-student-details',
+      queryParameters: queryParams,
+    ).toString();
+    final response = await _makeRequest('GET', endpoint);
+    return json.decode(response.body) as Map<String, dynamic>;
+  }
+
   // Home Dashboard
   static Future<HomeStats> getHomeStats({String? teacherId}) async {
     final queryParams = <String, String>{};
