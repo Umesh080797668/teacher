@@ -410,10 +410,39 @@ class _DailyViewTabState extends State<_DailyViewTab> {
   }
 }
 
-class _MonthlyStatsTab extends StatelessWidget {
+class _MonthlyStatsTab extends StatefulWidget {
   final ReportsProvider reportsProvider;
 
   const _MonthlyStatsTab({required this.reportsProvider});
+
+  @override
+  State<_MonthlyStatsTab> createState() => _MonthlyStatsTabState();
+}
+
+class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
+  DateTime _selectedMonth = DateTime.now();
+  bool _showAllMonths = true;
+
+  Future<void> _changeMonth() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedMonth,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (pickedDate != null) {
+      setState(() {
+        _selectedMonth = pickedDate;
+        _showAllMonths = false;
+      });
+    }
+  }
+
+  void _toggleShowAllMonths() {
+    setState(() {
+      _showAllMonths = !_showAllMonths;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -447,27 +476,37 @@ class _MonthlyStatsTab extends StatelessWidget {
           );
         }
 
+        // Filter data based on selected month if not showing all months
+        final filteredMonthlyByClass = _showAllMonths
+            ? monthlyByClass
+            : monthlyByClass.map((classData) {
+                final monthlyStats = classData['monthlyStats'] as List? ?? [];
+                final filteredStats = monthlyStats.where((monthStat) {
+                  final year = monthStat['year'] ?? 0;
+                  final month = monthStat['month'] ?? 0;
+                  return year == _selectedMonth.year && month == _selectedMonth.month;
+                }).toList();
+
+                return {
+                  ...classData,
+                  'monthlyStats': filteredStats,
+                };
+              }).where((classData) {
+                final monthlyStats = classData['monthlyStats'] as List? ?? [];
+                return monthlyStats.isNotEmpty;
+              }).toList();
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Monthly Attendance Statistics',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ...monthlyByClass.map((classData) {
-                final className = classData['className'] ?? 'Unknown Class';
-                final totalStudents = classData['totalStudents'] ?? 0;
-                final monthlyStats = classData['monthlyStats'] as List? ?? [];
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 16),
+              // Month selector header
+              Card(
+                elevation: 4,
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: InkWell(
+                  onTap: _changeMonth,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -476,7 +515,133 @@ class _MonthlyStatsTab extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Selected Month',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _showAllMonths
+                                      ? 'All Months'
+                                      : '${_getMonthName(_selectedMonth.month)} ${_selectedMonth.year}',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                TextButton.icon(
+                                  onPressed: _toggleShowAllMonths,
+                                  icon: Icon(
+                                    _showAllMonths ? Icons.calendar_view_month : Icons.calendar_view_week,
+                                    size: 18,
+                                  ),
+                                  label: Text(_showAllMonths ? 'Filter' : 'Show All'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                                if (!_showAllMonths)
+                                  IconButton(
+                                    onPressed: _changeMonth,
+                                    icon: Icon(
+                                      Icons.calendar_today,
+                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _showAllMonths
+                              ? 'Showing attendance for all months'
+                              : 'Tap to change month • Showing data for ${_getMonthName(_selectedMonth.month)} ${_selectedMonth.year}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Text(
+                'Monthly Attendance Statistics',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _showAllMonths
+                    ? 'Showing attendance statistics for all months'
+                    : 'Showing attendance statistics for ${_getMonthName(_selectedMonth.month)} ${_selectedMonth.year}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              if (filteredMonthlyByClass.isEmpty)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _showAllMonths
+                                ? 'No attendance records available'
+                                : 'No attendance records for ${_getMonthName(_selectedMonth.month)} ${_selectedMonth.year}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              else
+                ...filteredMonthlyByClass.map((classData) {
+                  final className = classData['className'] ?? 'Unknown Class';
+                  final totalStudents = classData['totalStudents'] ?? 0;
+                  final monthlyStats = classData['monthlyStats'] as List? ?? [];
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: ExpansionTile(
+                      title: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
                               className,
                               style: TextStyle(
                                 fontSize: 18,
@@ -484,26 +649,37 @@ class _MonthlyStatsTab extends StatelessWidget {
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Text(
-                                '$totalStudents Students',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              '$totalStudents Students',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
                               ),
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      subtitle: Text(
+                        _showAllMonths
+                            ? '${monthlyStats.length} months with records'
+                            : '${monthlyStats.isNotEmpty ? monthlyStats[0]['totalDays'] ?? 0 : 0} days conducted',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
+                      ),
+                      children: [
                         if (monthlyStats.isEmpty)
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: const EdgeInsets.all(16),
                             child: Center(
                               child: Text(
                                 'No attendance records yet',
@@ -521,7 +697,7 @@ class _MonthlyStatsTab extends StatelessWidget {
                             final totalDays = monthStat['totalDays'] ?? conductedDays.length;
 
                             return Container(
-                              margin: const EdgeInsets.only(top: 16),
+                              margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
@@ -537,7 +713,7 @@ class _MonthlyStatsTab extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        '${_getMonthName(month)} $year',
+                                        _showAllMonths ? '${_getMonthName(month)} $year' : 'Attendance Details',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -668,9 +844,8 @@ class _MonthlyStatsTab extends StatelessWidget {
                           }).toList(),
                       ],
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
             ],
           ),
         );
