@@ -468,6 +468,25 @@ class ApiService {
     await _makeRequest('DELETE', '/api/payments/$paymentId');
   }
 
+  // Get payments as raw map data for reports
+  static Future<List<Map<String, dynamic>>> getPaymentsMap({
+    String? classId,
+    String? studentId,
+    String? teacherId,
+  }) async {
+    final queryParams = <String, String>{};
+    if (classId != null) queryParams['classId'] = classId;
+    if (studentId != null) queryParams['studentId'] = studentId;
+    if (teacherId != null) queryParams['teacherId'] = teacherId;
+
+    final endpoint = Uri(
+      path: '/api/payments',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    ).toString();
+    final response = await _makeRequest('GET', endpoint);
+    return List<Map<String, dynamic>>.from(json.decode(response.body));
+  }
+
   // Reports
   static Future<Map<String, dynamic>> getAttendanceSummary({String? teacherId}) async {
     final queryParams = <String, String>{};

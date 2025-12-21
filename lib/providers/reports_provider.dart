@@ -13,6 +13,7 @@ class ReportsProvider with ChangeNotifier {
   List<Map<String, dynamic>> _monthlyStats = [];
   List<Map<String, dynamic>> _dailyByClass = [];
   List<Map<String, dynamic>> _monthlyByClass = [];
+  List<Map<String, dynamic>> _payments = [];
   
   // For daily view
   List<Attendance> _dailyAttendance = [];
@@ -26,6 +27,7 @@ class ReportsProvider with ChangeNotifier {
   List<Map<String, dynamic>> get monthlyStats => _monthlyStats;
   List<Map<String, dynamic>> get dailyByClass => _dailyByClass;
   List<Map<String, dynamic>> get monthlyByClass => _monthlyByClass;
+  List<Map<String, dynamic>> get payments => _payments;
   List<Attendance> get dailyAttendance => _dailyAttendance;
   List<Student> get allStudents => _allStudents;
   List<Class> get allClasses => _allClasses;
@@ -41,6 +43,7 @@ class ReportsProvider with ChangeNotifier {
         _loadMonthlyStats(teacherId: teacherId),
         _loadDailyByClass(teacherId: teacherId),
         _loadMonthlyByClass(teacherId: teacherId),
+        _loadPayments(teacherId: teacherId),
       ]);
     } finally {
       _isLoading = false;
@@ -95,6 +98,16 @@ class ReportsProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Error loading monthly by class: $e');
       _monthlyByClass = [];
+    }
+  }
+
+  Future<void> _loadPayments({String? teacherId}) async {
+    try {
+      final response = await ApiService.getPaymentsMap(teacherId: teacherId);
+      _payments = response;
+    } catch (e) {
+      debugPrint('Error loading payments: $e');
+      _payments = [];
     }
   }
 
