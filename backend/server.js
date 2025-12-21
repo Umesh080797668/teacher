@@ -992,7 +992,20 @@ app.get('/api/payments', async (req, res) => {
     }
 
     const payments = await Payment.find(query).sort({ date: -1 });
-    res.json(payments);
+    
+    // Populate student and class names
+    const paymentsWithDetails = await Promise.all(payments.map(async (payment) => {
+      const student = await Student.findById(payment.studentId);
+      const classDoc = await Class.findById(payment.classId);
+      
+      return {
+        ...payment.toObject(),
+        studentName: student ? student.name : 'Unknown Student',
+        className: classDoc ? classDoc.name : 'Unknown Class'
+      };
+    }));
+    
+    res.json(paymentsWithDetails);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch payments' });
   }
@@ -1406,9 +1419,14 @@ app.get('/api/reports/student-reports', async (req, res) => {
 
       const attendanceRate = totalRecords > 0 ? (presentCount / totalRecords) * 100 : 0;
 
+      // Get class name
+      const classDoc = await Class.findById(student.classId);
+
       reports.push({
         studentId: student._id,
         studentName: student.name,
+        classId: student.classId,
+        className: classDoc ? classDoc.name : 'Unknown Class',
         totalRecords,
         presentCount,
         absentCount,
@@ -1488,6 +1506,99 @@ app.get('/api/reports/monthly-stats', async (req, res) => {
     res.json(monthlyStats);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch monthly stats' });
+  }
+});
+
+// Monthly earnings by class - allows teacher to check how much each class earned each month
+app.get('/api/reports/monthly-earnings-by-class', async (req, res) => {
+  try {
+    const { teacherId, year, month } = req.query;
+
+    if (!teacherId) {
+      return res.status(400).json({ error: 'teacherId is required' });
+    }
+
+    // Find teacher by teacherId string
+    const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+    if (!teacher) {
+      console.log('Teacher not found for teacherId:', teacherId);
+      return res.json([]);
+    }
+
+    // Get all classes for this teacher
+    const classes = await Class.find({ teacherId: teacher._id });
+    
+    const earningsReports = [];
+
+    for (const classDoc of classes) {
+      // Get all students in this class
+      const students = await Student.find({ classId: classDoc._id });
+      const studentIds = students.map(s => s._id);
+
+      // Build payment query for this class
+      let paymentQuery = { 
+        classId: classDoc._id,
+        studentId: { $in: studentIds }
+      };
+
+      // Add date filters if provided
+      if (year && month) {
+        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+        const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+        paymentQuery.date = { $gte: startDate, $lte: endDate };
+      } else if (year) {
+        const startDate = new Date(parseInt(year), 0, 1);
+        const endDate = new Date(parseInt(year), 11, 31, 23, 59, 59);
+        paymentQuery.date = { $gte: startDate, $lte: endDate };
+      }
+
+      // Get all payments for this class
+      const payments = await Payment.find(paymentQuery);
+
+      // Calculate total earnings
+      const totalEarnings = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+      // Group by month if no specific month provided
+      const monthlyBreakdown = {};
+      payments.forEach(payment => {
+        if (payment.date) {
+          const paymentDate = new Date(payment.date);
+          const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
+          
+          if (!monthlyBreakdown[monthKey]) {
+            monthlyBreakdown[monthKey] = {
+              year: paymentDate.getFullYear(),
+              month: paymentDate.getMonth() + 1,
+              amount: 0,
+              paymentCount: 0
+            };
+          }
+          
+          monthlyBreakdown[monthKey].amount += payment.amount || 0;
+          monthlyBreakdown[monthKey].paymentCount += 1;
+        }
+      });
+
+      earningsReports.push({
+        classId: classDoc._id.toString(),
+        className: classDoc.name,
+        studentCount: students.length,
+        totalEarnings: totalEarnings,
+        paymentCount: payments.length,
+        monthlyBreakdown: Object.values(monthlyBreakdown).sort((a, b) => {
+          if (a.year !== b.year) return b.year - a.year;
+          return b.month - a.month;
+        })
+      });
+    }
+
+    // Sort by total earnings descending
+    earningsReports.sort((a, b) => b.totalEarnings - a.totalEarnings);
+
+    res.json(earningsReports);
+  } catch (error) {
+    console.error('Error in monthly-earnings-by-class:', error);
+    res.status(500).json({ error: 'Failed to fetch monthly earnings by class' });
   }
 });
 

@@ -14,6 +14,7 @@ class ReportsProvider with ChangeNotifier {
   List<Map<String, dynamic>> _dailyByClass = [];
   List<Map<String, dynamic>> _monthlyByClass = [];
   List<Map<String, dynamic>> _payments = [];
+  List<Map<String, dynamic>> _monthlyEarningsByClass = [];
   
   // For daily view
   List<Attendance> _dailyAttendance = [];
@@ -28,6 +29,7 @@ class ReportsProvider with ChangeNotifier {
   List<Map<String, dynamic>> get dailyByClass => _dailyByClass;
   List<Map<String, dynamic>> get monthlyByClass => _monthlyByClass;
   List<Map<String, dynamic>> get payments => _payments;
+  List<Map<String, dynamic>> get monthlyEarningsByClass => _monthlyEarningsByClass;
   List<Attendance> get dailyAttendance => _dailyAttendance;
   List<Student> get allStudents => _allStudents;
   List<Class> get allClasses => _allClasses;
@@ -45,6 +47,7 @@ class ReportsProvider with ChangeNotifier {
         _loadMonthlyByClass(teacherId: teacherId),
         _loadPayments(teacherId: teacherId),
         _loadStudentsAndClasses(teacherId: teacherId),
+        _loadMonthlyEarningsByClass(teacherId: teacherId),
       ]);
     } finally {
       _isLoading = false;
@@ -122,6 +125,16 @@ class ReportsProvider with ChangeNotifier {
       debugPrint('Error loading students and classes: $e');
       _allStudents = [];
       _allClasses = [];
+    }
+  }
+
+  Future<void> _loadMonthlyEarningsByClass({String? teacherId}) async {
+    try {
+      final response = await ApiService.getMonthlyEarningsByClass(teacherId: teacherId);
+      _monthlyEarningsByClass = List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Error loading monthly earnings by class: $e');
+      _monthlyEarningsByClass = [];
     }
   }
 
