@@ -951,7 +951,18 @@ app.get('/api/payments', async (req, res) => {
   try {
     const { classId, studentId, teacherId } = req.query;
     let query = {};
-    if (classId) query.classId = classId;
+    // Normalize classId to ObjectId if provided
+    let classObjectId = null;
+    if (classId) {
+      if (typeof classId === 'string' && classId.match(/^[0-9a-fA-F]{24}$/)) {
+        classObjectId = new mongoose.Types.ObjectId(classId);
+        query.classId = classObjectId;
+      } else {
+        // keep as-is (could be other form) or reject
+        console.log('Invalid classId format in payments query:', classId);
+        return res.status(400).json({ error: 'Invalid classId format' });
+      }
+    }
     if (studentId) query.studentId = studentId;
 
     if (teacherId) {
@@ -960,8 +971,19 @@ app.get('/api/payments', async (req, res) => {
       const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
       if (teacher) {
         const classes = await Class.find({ teacherId: teacher._id });
-        const classIds = classes.map(c => c._id);
-        query.classId = { $in: classIds };
+        const classIds = classes.map(c => c._id.toString());
+
+        // If a specific classId was requested, ensure it belongs to this teacher
+        if (classObjectId) {
+          if (!classIds.includes(classObjectId.toString())) {
+            console.log('Requested classId does not belong to teacher:', classObjectId.toString());
+            return res.json([]);
+          }
+          // query.classId already set to the specific classObjectId
+        } else {
+          // No specific class requested — restrict to all classes this teacher owns
+          query.classId = { $in: classIds };
+        }
         console.log('Found', classIds.length, 'classes for teacher');
       } else {
         console.log('Teacher not found for teacherId:', teacherId, '- returning empty array');
@@ -1325,17 +1347,42 @@ app.get('/api/reports/attendance-summary', async (req, res) => {
 
 app.get('/api/reports/student-reports', async (req, res) => {
   try {
-    const { teacherId, month, year } = req.query;
+    const { teacherId, month, year, classId } = req.query;
 
     let studentQuery = {};
+
+    // If classId is provided, prefer filtering by that single class (but validate format)
+    let classObjectId = null;
+    if (classId) {
+      if (typeof classId === 'string' && classId.match(/^[0-9a-fA-F]{24}$/)) {
+        classObjectId = new mongoose.Types.ObjectId(classId);
+        studentQuery.classId = classObjectId;
+      } else {
+        console.log('Invalid classId provided to student-reports:', classId);
+        return res.status(400).json({ error: 'Invalid classId format' });
+      }
+    }
+
     if (teacherId) {
-      // Find teacher by teacherId string and get their students
+      // Find teacher by teacherId string and get their classes
       console.log('Filtering student reports for teacherId:', teacherId);
       const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
       if (teacher) {
         const classes = await Class.find({ teacherId: teacher._id });
-        const classIds = classes.map(c => c._id);
-        studentQuery.classId = { $in: classIds };
+        const classIds = classes.map(c => c._id.toString());
+
+        // If a specific classId was provided, ensure it belongs to this teacher
+        if (classObjectId) {
+          if (!classIds.includes(classObjectId.toString())) {
+            console.log('Requested classId does not belong to teacher:', classObjectId.toString());
+            return res.json([]);
+          }
+          // studentQuery.classId already set to the specific class
+        } else {
+          // No specific class requested — filter to all classes for this teacher
+          studentQuery.classId = { $in: classIds };
+        }
+
         console.log('Found', classIds.length, 'classes for teacher');
       } else {
         console.log('Teacher not found for teacherId:', teacherId, '- returning empty array');
@@ -1372,6 +1419,7 @@ app.get('/api/reports/student-reports', async (req, res) => {
 
     res.json(reports);
   } catch (error) {
+    console.error('Error in student-reports:', error);
     res.status(500).json({ error: 'Failed to fetch student reports' });
   }
 });
