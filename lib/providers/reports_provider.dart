@@ -44,6 +44,7 @@ class ReportsProvider with ChangeNotifier {
         _loadDailyByClass(teacherId: teacherId),
         _loadMonthlyByClass(teacherId: teacherId),
         _loadPayments(teacherId: teacherId),
+        _loadStudentsAndClasses(teacherId: teacherId),
       ]);
     } finally {
       _isLoading = false;
@@ -108,6 +109,19 @@ class ReportsProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Error loading payments: $e');
       _payments = [];
+    }
+  }
+
+  Future<void> _loadStudentsAndClasses({String? teacherId}) async {
+    try {
+      final studentsList = await ApiService.getStudents(teacherId: teacherId);
+      final classesList = await ApiService.getClasses(teacherId: teacherId);
+      _allStudents = studentsList;
+      _allClasses = classesList;
+    } catch (e) {
+      debugPrint('Error loading students and classes: $e');
+      _allStudents = [];
+      _allClasses = [];
     }
   }
 
@@ -192,6 +206,18 @@ class ReportsProvider with ChangeNotifier {
       }).toList();
 
       result[cls.name] = studentsList;
+    }
+
+    return result;
+  }
+
+  // Get student count by class
+  Map<String, int> getStudentCountByClass() {
+    final Map<String, int> result = {};
+
+    for (final cls in _allClasses) {
+      final classStudents = _allStudents.where((s) => s.classId == cls.id).toList();
+      result[cls.name] = classStudents.length;
     }
 
     return result;

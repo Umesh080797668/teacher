@@ -1525,46 +1525,75 @@ app.get('/api/reports/monthly-by-class', async (req, res) => {
         continue;
       }
 
-      const pipeline = [
+      // Get attendance records grouped by year, month, and date
+      const dailyPipeline = [
         {
           $match: { studentId: { $in: studentIds } }
         },
         {
           $group: {
-            _id: { year: '$year', month: '$month' },
+            _id: {
+              year: '$year',
+              month: '$month',
+              date: '$date'
+            },
             presentCount: { $sum: { $cond: [{ $eq: ['$status', 'present'] }, 1, 0] } },
             absentCount: { $sum: { $cond: [{ $eq: ['$status', 'absent'] }, 1, 0] } },
             lateCount: { $sum: { $cond: [{ $eq: ['$status', 'late'] }, 1, 0] } },
-            totalRecords: { $sum: 1 }
+            totalRecorded: { $sum: 1 }
           }
         },
         {
           $project: {
+            _id: 0,
             year: '$_id.year',
             month: '$_id.month',
+            date: '$_id.date',
             presentCount: 1,
             absentCount: 1,
             lateCount: 1,
-            totalRecords: 1,
-            averageRate: {
-              $cond: {
-                if: { $gt: ['$totalRecords', 0] },
-                then: { $multiply: [{ $divide: ['$presentCount', '$totalRecords'] }, 100] },
-                else: 0
-              }
-            }
+            totalRecorded: 1
           }
         },
-        { $sort: { year: -1, month: -1 } },
-        { $limit: 12 }
+        { $sort: { year: -1, month: -1, date: -1 } }
       ];
 
-      const monthlyStats = await Attendance.aggregate(pipeline);
+      const dailyStats = await Attendance.aggregate(dailyPipeline);
+
+      // Group daily stats by month
+      const monthlyStatsMap = {};
+      dailyStats.forEach(stat => {
+        const monthKey = `${stat.year}-${stat.month}`;
+        if (!monthlyStatsMap[monthKey]) {
+          monthlyStatsMap[monthKey] = {
+            year: stat.year,
+            month: stat.month,
+            conductedDays: [],
+            totalDays: 0
+          };
+        }
+        monthlyStatsMap[monthKey].conductedDays.push({
+          date: stat.date,
+          presentCount: stat.presentCount,
+          absentCount: stat.absentCount,
+          lateCount: stat.lateCount,
+          totalRecorded: stat.totalRecorded
+        });
+        monthlyStatsMap[monthKey].totalDays++;
+      });
+
+      // Convert to array and limit to last 12 months
+      const monthlyStats = Object.values(monthlyStatsMap)
+        .sort((a, b) => {
+          if (b.year !== a.year) return b.year - a.year;
+          return b.month - a.month;
+        })
+        .slice(0, 12);
 
       reports.push({
         classId: classObj._id,
         className: classObj.name,
-        totalStudents: studentIds.length,
+        totalStudents: students.length,
         monthlyStats
       });
     }

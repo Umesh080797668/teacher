@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/reports_provider.dart';
-import '../widgets/class_student_details_modal.dart';
 
 class AttendanceViewScreen extends StatefulWidget {
   const AttendanceViewScreen({super.key});
@@ -438,7 +437,7 @@ class _MonthlyStatsTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No monthly statistics available',
+                  'No monthly attendance records available',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Theme.of(context).colorScheme.outline,
                   ),
@@ -454,7 +453,7 @@ class _MonthlyStatsTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Monthly Statistics by Class',
+                'Monthly Attendance Statistics',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -464,169 +463,210 @@ class _MonthlyStatsTab extends StatelessWidget {
               const SizedBox(height: 16),
               ...monthlyByClass.map((classData) {
                 final className = classData['className'] ?? 'Unknown Class';
-                final classId = classData['classId'] ?? '';
                 final totalStudents = classData['totalStudents'] ?? 0;
                 final monthlyStats = classData['monthlyStats'] as List? ?? [];
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
-                  child: InkWell(
-                    onTap: monthlyStats.isNotEmpty
-                        ? () {
-                            final recentStat = monthlyStats.first;
-                            final month = recentStat['month'] ?? DateTime.now().month;
-                            final year = recentStat['year'] ?? DateTime.now().year;
-                            
-                            showDialog(
-                              context: context,
-                              builder: (context) => ClassStudentDetailsModal(
-                                classId: classId,
-                                className: className,
-                                month: month,
-                                year: year,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              className,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
-                            );
-                          }
-                        : null,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  className,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onSurface,
-                                  ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                '$totalStudents Students',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
                                 ),
                               ),
-                              Row(
+                            ),
+                          ],
+                        ),
+                        if (monthlyStats.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Center(
+                              child: Text(
+                                'No attendance records yet',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          ...monthlyStats.map((monthStat) {
+                            final year = monthStat['year'] ?? 0;
+                            final month = monthStat['month'] ?? 0;
+                            final conductedDays = monthStat['conductedDays'] as List? ?? [];
+                            final totalDays = monthStat['totalDays'] ?? conductedDays.length;
+
+                            return Container(
+                              margin: const EdgeInsets.only(top: 16),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primaryContainer,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      '$totalStudents Students',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        '${_getMonthName(month)} $year',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
                                       ),
-                                    ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          '$totalDays Days Conducted',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(context).colorScheme.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  if (monthlyStats.isNotEmpty) ...[
-                                    const SizedBox(width: 8),
-                                    Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 16,
-                                      color: Theme.of(context).colorScheme.outline,
-                                    ),
-                                  ],
+                                  const SizedBox(height: 12),
+                                  ...conductedDays.map((dayStat) {
+                                    final dateStr = dayStat['date']?.toString() ?? '';
+                                    final present = dayStat['presentCount'] ?? 0;
+                                    final absent = dayStat['absentCount'] ?? 0;
+                                    final late = dayStat['lateCount'] ?? 0;
+                                    final total = dayStat['totalRecorded'] ?? 0;
+
+                                    // Parse and format date
+                                    DateTime? date;
+                                    try {
+                                      date = DateTime.parse(dateStr);
+                                    } catch (e) {
+                                      date = null;
+                                    }
+
+                                    final formattedDate = date != null
+                                        ? '${_getMonthName(date.month)} ${date.day}, ${date.year}'
+                                        : dateStr;
+
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.surface,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.calendar_today,
+                                                    size: 14,
+                                                    color: Theme.of(context).colorScheme.primary,
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    formattedDate,
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Theme.of(context).colorScheme.onSurface,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Theme.of(context).colorScheme.secondaryContainer,
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                                child: Text(
+                                                  'Total: $total',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: _StatItem(
+                                                  label: 'Present',
+                                                  value: present.toString(),
+                                                  color: Colors.green,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                child: _StatItem(
+                                                  label: 'Absent',
+                                                  value: absent.toString(),
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                child: _StatItem(
+                                                  label: 'Late',
+                                                  value: late.toString(),
+                                                  color: Colors.orange,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
                                 ],
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          if (monthlyStats.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              child: Center(
-                                child: Text(
-                                  'No attendance records yet',
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.outline,
-                                  ),
-                                ),
-                              ),
-                            )
-                          else
-                            ...monthlyStats.map((stat) {
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${stat['month']}/${stat['year']}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: _StatItem(
-                                            label: 'Present',
-                                            value: stat['presentCount']?.toString() ?? '0',
-                                            color: Colors.green,
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: _StatItem(
-                                            label: 'Absent',
-                                            value: stat['absentCount']?.toString() ?? '0',
-                                            color: Colors.red,
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: _StatItem(
-                                            label: 'Late',
-                                            value: stat['lateCount']?.toString() ?? '0',
-                                            color: Colors.orange,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: LinearProgressIndicator(
-                                            value: (stat['averageRate'] ?? 0) / 100,
-                                            backgroundColor: Colors.grey[300],
-                                            valueColor: AlwaysStoppedAnimation<Color>(
-                                              (stat['averageRate'] ?? 0) >= 75 ? Colors.green : Colors.orange,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          '${(stat['averageRate'] ?? 0).toStringAsFixed(1)}%',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 12,
-                                            color: (stat['averageRate'] ?? 0) >= 75 ? Colors.green : Colors.orange,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                        ],
-                      ),
+                            );
+                          }).toList(),
+                      ],
                     ),
                   ),
                 );
@@ -636,6 +676,14 @@ class _MonthlyStatsTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return month >= 1 && month <= 12 ? months[month - 1] : 'Unknown';
   }
 }
 
