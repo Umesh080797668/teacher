@@ -209,7 +209,18 @@ app.post('/api/attendance', async (req, res) => {
 // Classes
 app.get('/api/classes', async (req, res) => {
   try {
-    const classes = await Class.find({});
+    const { teacherId } = req.query;
+    let query = {};
+    if (teacherId) {
+      // validate teacherId and filter
+      if (typeof teacherId === 'string' && teacherId.match(/^[0-9a-fA-F]{24}$/)) {
+        query.teacherId = new mongoose.Types.ObjectId(teacherId);
+      } else {
+        return res.status(400).json({ error: 'Invalid teacherId format' });
+      }
+    }
+
+    const classes = await Class.find(query);
     res.json(classes);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch classes' });
@@ -286,13 +297,84 @@ app.get('/api/payments', async (req, res) => {
   try {
     const { classId, studentId } = req.query;
     let query = {};
-    if (classId) query.classId = classId;
-    if (studentId) query.studentId = studentId;
+    // Accept classId and studentId as ObjectId strings or ObjectIds
+    if (classId) {
+      if (typeof classId === 'string' && classId.match(/^[0-9a-fA-F]{24}$/)) {
+        query.classId = new mongoose.Types.ObjectId(classId);
+      } else if (classId instanceof mongoose.Types.ObjectId) {
+        query.classId = classId;
+      } else {
+        return res.status(400).json({ error: 'Invalid classId format' });
+      }
+    }
+
+    if (studentId) {
+      if (typeof studentId === 'string' && studentId.match(/^[0-9a-fA-F]{24}$/)) {
+        query.studentId = new mongoose.Types.ObjectId(studentId);
+      } else if (studentId instanceof mongoose.Types.ObjectId) {
+        query.studentId = studentId;
+      } else {
+        return res.status(400).json({ error: 'Invalid studentId format' });
+      }
+    }
 
     const payments = await Payment.find(query).sort({ date: -1 });
     res.json(payments);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch payments' });
+  }
+});
+
+// Reports: class payments summary (per-class totals for a teacher)
+app.get('/api/reports/class-payments', async (req, res) => {
+  try {
+    const { teacherId } = req.query;
+
+    if (!teacherId || !(typeof teacherId === 'string' && teacherId.match(/^[0-9a-fA-F]{24}$/))) {
+      return res.status(400).json({ error: 'teacherId query parameter is required and must be a valid id' });
+    }
+
+    const teacherObjectId = new mongoose.Types.ObjectId(teacherId);
+
+    // Find classes for this teacher
+    const classes = await Class.find({ teacherId: teacherObjectId }).lean();
+    const classIds = classes.map(c => c._id);
+
+    // Aggregate payments by class
+    const paymentsAgg = await Payment.aggregate([
+      { $match: { classId: { $in: classIds } } },
+      {
+        $group: {
+          _id: '$classId',
+          totalAmount: { $sum: '$amount' },
+          uniqueStudentsPaid: { $addToSet: '$studentId' },
+          paymentsCount: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Map results to class list
+    const results = [];
+    for (const cls of classes) {
+      const agg = paymentsAgg.find(a => String(a._id) === String(cls._id));
+
+      // Count total students in class
+      const totalStudents = await Student.countDocuments({ classId: cls._id });
+
+      results.push({
+        classId: cls._id,
+        className: cls.name,
+        totalStudents,
+        totalAmount: agg ? agg.totalAmount : 0,
+        studentsPaidCount: agg ? agg.uniqueStudentsPaid.length : 0,
+        paymentsCount: agg ? agg.paymentsCount : 0
+      });
+    }
+
+    res.json(results);
+  } catch (error) {
+    console.error('Error fetching class payments:', error);
+    res.status(500).json({ error: 'Failed to fetch class payments' });
   }
 });
 
@@ -427,16 +509,47 @@ app.delete('/api/teachers/:id', async (req, res) => {
 // Reports
 app.get('/api/reports/attendance-summary', async (req, res) => {
   try {
+    const { teacherId, classId } = req.query;
+
     const today = new Date();
     // Use UTC dates for consistent date filtering across timezones
     const startOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
     const endOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
 
-    // Total students
-    const totalStudents = await Student.countDocuments();
+    // Determine student set based on teacherId or classId
+    let studentFilter = {};
+    if (classId) {
+      if (typeof classId === 'string' && classId.match(/^[0-9a-fA-F]{24}$/)) {
+        studentFilter.classId = new mongoose.Types.ObjectId(classId);
+      } else {
+        return res.status(400).json({ error: 'Invalid classId format' });
+      }
+    } else if (teacherId) {
+      if (typeof teacherId === 'string' && teacherId.match(/^[0-9a-fA-F]{24}$/)) {
+        const teacherObjectId = new mongoose.Types.ObjectId(teacherId);
+        const classes = await Class.find({ teacherId: teacherObjectId }).select('_id').lean();
+        const classIds = classes.map(c => c._id);
+        studentFilter.classId = { $in: classIds };
+      } else {
+        return res.status(400).json({ error: 'Invalid teacherId format' });
+      }
+    }
 
-    // Today's attendance
+    // Total students (restricted)
+    const totalStudents = await Student.countDocuments(studentFilter);
+
+    // If no students, return zeros
+    if (totalStudents === 0) {
+      return res.json({ totalStudents: 0, presentToday: 0, absentToday: 0, lateToday: 0 });
+    }
+
+    // Fetch student ids to filter attendance
+    const students = await Student.find(studentFilter).select('_id').lean();
+    const studentIds = students.map(s => s._id);
+
+    // Today's attendance for these students
     const todayAttendance = await Attendance.find({
+      studentId: { $in: studentIds },
       date: { $gte: startOfDay, $lt: endOfDay }
     });
 
@@ -444,12 +557,7 @@ app.get('/api/reports/attendance-summary', async (req, res) => {
     const absentToday = todayAttendance.filter(a => a.status === 'absent').length;
     const lateToday = todayAttendance.filter(a => a.status === 'late').length;
 
-    res.json({
-      totalStudents,
-      presentToday,
-      absentToday,
-      lateToday
-    });
+    res.json({ totalStudents, presentToday, absentToday, lateToday });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch attendance summary' });
   }
@@ -457,7 +565,27 @@ app.get('/api/reports/attendance-summary', async (req, res) => {
 
 app.get('/api/reports/student-reports', async (req, res) => {
   try {
-    const students = await Student.find({});
+    const { teacherId, classId } = req.query;
+
+    let studentQuery = {};
+    if (classId) {
+      if (typeof classId === 'string' && classId.match(/^[0-9a-fA-F]{24}$/)) {
+        studentQuery.classId = new mongoose.Types.ObjectId(classId);
+      } else {
+        return res.status(400).json({ error: 'Invalid classId format' });
+      }
+    } else if (teacherId) {
+      if (typeof teacherId === 'string' && teacherId.match(/^[0-9a-fA-F]{24}$/)) {
+        const teacherObjectId = new mongoose.Types.ObjectId(teacherId);
+        const classes = await Class.find({ teacherId: teacherObjectId }).select('_id').lean();
+        const classIds = classes.map(c => c._id);
+        studentQuery.classId = { $in: classIds };
+      } else {
+        return res.status(400).json({ error: 'Invalid teacherId format' });
+      }
+    }
+
+    const students = await Student.find(studentQuery);
     const reports = [];
 
     for (const student of students) {
