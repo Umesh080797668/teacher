@@ -1095,14 +1095,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 16),
-              const Text(
-                'Last Updated: December 2024',
-                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              Text(
+                'Last Updated: December 2025',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'For the complete privacy policy, visit:',
-                style: TextStyle(fontSize: 12),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 4),
               Text(

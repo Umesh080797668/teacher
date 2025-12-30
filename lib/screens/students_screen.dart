@@ -68,7 +68,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
         await provider.addStudent(
           _nameController.text,
           _emailController.text.isEmpty ? null : _emailController.text,
-          _studentIdController.text.isEmpty ? null : _studentIdController.text, // Allow empty for auto-generation
+          _studentIdController.text, // Use the auto-generated ID
           _selectedClassId,
         );
         _nameController.clear();
@@ -105,6 +105,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
         }
       }
     }
+  }
+
+  String _generateStudentId() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
+    final random = (DateTime.now().microsecondsSinceEpoch % 1000).toString().padLeft(3, '0');
+    return 'STU${timestamp}${random}';
   }
 
   @override
@@ -196,6 +202,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       onPressed: () {
                         setState(() {
                           _showForm = true;
+                          // Generate student ID when form is opened
+                          _studentIdController.text = _generateStudentId();
                         });
                       },
                       icon: const Icon(Icons.add),
@@ -234,6 +242,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                     onPressed: () {
                                       setState(() {
                                         _showForm = false;
+                                        _studentIdController.clear(); // Clear the generated ID when closing
                                       });
                                     },
                                   ),
@@ -284,10 +293,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               TextFormField(
                                 controller: _studentIdController,
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface,
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                 ),
                                 decoration: InputDecoration(
-                                  labelText: 'Student ID (optional - auto-generated)',
+                                  labelText: 'Student ID (Auto-generated)',
                                   prefixIcon: Icon(
                                     Icons.badge,
                                     color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -295,11 +304,14 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                   labelStyle: TextStyle(
                                     color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                   ),
-                                  helperText: 'Leave empty to auto-generate',
+                                  filled: true,
+                                  fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                                  helperText: 'This ID is automatically generated',
                                   helperStyle: TextStyle(
                                     color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                                   ),
                                 ),
+                                enabled: false, // Make the field disabled
                               ),
                               const SizedBox(height: 12),
                               Consumer<ClassesProvider>(

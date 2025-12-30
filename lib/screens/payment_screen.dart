@@ -24,6 +24,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String _selectedMonth = DateTime.now().month.toString();
   final TextEditingController _amountController = TextEditingController();
   bool _showForm = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = '';
 
   final List<Map<String, dynamic>> _months = [
     {'value': '1', 'label': 'January'},
@@ -204,10 +206,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               child: Consumer<PaymentProvider>(
                 builder: (context, provider, child) {
-                  final totalRevenue = provider.payments.fold<double>(0, (sum, payment) => sum + payment.amount);
-                  final fullPayments = provider.payments.where((p) => p.type == 'full').length;
-                  final halfPayments = provider.payments.where((p) => p.type == 'half').length;
-                  final freePayments = provider.payments.where((p) => p.type == 'free').length;
+                  final currentMonth = DateTime.now().month;
+                  final currentYear = DateTime.now().year;
+                  final monthlyPayments = provider.payments.where((p) => 
+                    p.date.month == currentMonth && p.date.year == currentYear
+                  ).toList();
+                  
+                  final totalRevenue = monthlyPayments.fold<double>(0, (sum, payment) => sum + payment.amount);
+                  final fullPayments = monthlyPayments.where((p) => p.type == 'full').length;
+                  final halfPayments = monthlyPayments.where((p) => p.type == 'half').length;
+                  final freePayments = monthlyPayments.where((p) => p.type == 'free').length;
 
                   return Column(
                     children: [
@@ -227,7 +235,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           Flexible(
                             child: _StatCard(
                               title: 'Total Payments',
-                              value: '${provider.payments.length}',
+                              value: '${monthlyPayments.length}',
                               icon: Icons.receipt,
                               color: Colors.green,
                             ),
@@ -566,17 +574,74 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
             ),
 
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchText = value.toLowerCase();
+                  });
+                },
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Search payments by student name...',
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                  suffixIcon: _searchText.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(
+                            Icons.clear,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchText = '';
+                            });
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surface,
+                ),
+              ),
+            ),
+
             // Payments List
-            Consumer<PaymentProvider>(
-              builder: (context, provider, child) {
-                if (provider.isLoading) {
+            Consumer3<PaymentProvider, StudentsProvider, ClassesProvider>(
+              builder: (context, paymentProvider, studentsProvider, classesProvider, child) {
+                if (paymentProvider.isLoading) {
                   return ListSkeleton(
                     itemCount: 5,
                     itemBuilder: (context) => const PaymentCardSkeleton(),
                   );
                 }
 
-                if (provider.payments.isEmpty) {
+                // Filter payments by search text
+                final filteredPayments = _searchText.isEmpty
+                    ? paymentProvider.payments
+                    : paymentProvider.payments.where((payment) {
+                        final student = studentsProvider.students.firstWhere(
+                          (s) => s.id == payment.studentId,
+                          orElse: () => Student(id: '', name: '', studentId: ''),
+                        );
+                        return student.name.toLowerCase().contains(_searchText) ||
+                               (student.studentId?.toLowerCase().contains(_searchText) ?? false);
+                      }).toList();
+
+                if (filteredPayments.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -588,14 +653,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No payments yet',
+                          _searchText.isNotEmpty ? 'No payments found matching "${_searchText}"' : 'No payments yet',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Theme.of(context).colorScheme.outline,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Record your first payment',
+                          _searchText.isNotEmpty 
+                              ? 'Try a different search term'
+                              : 'Record your first payment',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Theme.of(context).colorScheme.outline,
                           ),
@@ -609,9 +676,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: provider.payments.length,
+                  itemCount: filteredPayments.length,
                   itemBuilder: (context, index) {
-                    final payment = provider.payments[index];
+                    final payment = filteredPayments[index];
                     return Slidable(
                       endActionPane: ActionPane(
                         motion: const ScrollMotion(),

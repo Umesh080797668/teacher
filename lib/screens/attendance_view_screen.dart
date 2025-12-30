@@ -67,6 +67,8 @@ class _DailyViewTab extends StatefulWidget {
 
 class _DailyViewTabState extends State<_DailyViewTab> {
   DateTime _selectedDate = DateTime.now();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = '';
 
   @override
   void initState() {
@@ -256,6 +258,52 @@ class _DailyViewTabState extends State<_DailyViewTab> {
               ),
               const SizedBox(height: 16),
               
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchText = value.toLowerCase();
+                    });
+                  },
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Search students by name...',
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                    suffixIcon: _searchText.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.clear,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchText = '';
+                              });
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(context).colorScheme.surface,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
               if (studentsByClass.isEmpty)
                 Card(
                   child: Padding(
@@ -284,7 +332,18 @@ class _DailyViewTabState extends State<_DailyViewTab> {
               else
                 ...studentsByClass.entries.map((entry) {
                   final className = entry.key;
-                  final students = entry.value;
+                  final allStudents = entry.value;
+                  
+                  // Filter students by search text
+                  final filteredStudents = _searchText.isEmpty
+                      ? allStudents
+                      : allStudents.where((student) => 
+                          (student['name'] as String).toLowerCase().contains(_searchText) ||
+                          ((student['studentId'] as String?)?.toLowerCase().contains(_searchText) ?? false)
+                        ).toList();
+
+                  // Skip class if no students match the search
+                  if (filteredStudents.isEmpty) return const SizedBox.shrink();
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 16),
@@ -298,7 +357,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                         ),
                       ),
                       subtitle: Text(
-                        '${students.length} Students',
+                        '${filteredStudents.length} Students',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -309,7 +368,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                         Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
-                            children: students.map((student) {
+                            children: filteredStudents.map((student) {
                               final status = student['status'] as String;
                               Color statusColor;
                               IconData statusIcon;

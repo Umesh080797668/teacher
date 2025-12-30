@@ -20,6 +20,8 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   String? _selectedClassId;
   final Map<String, String> _attendanceStatus = {};
   bool _isSaving = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = '';
 
   @override
   void initState() {
@@ -237,6 +239,51 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
             ),
           ),
           
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchText = value.toLowerCase();
+                });
+              },
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Search students by name...',
+                hintStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
+                suffixIcon: _searchText.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchText = '';
+                          });
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+              ),
+            ),
+          ),
+          
           // Summary
           if (_attendanceStatus.isNotEmpty)
             Padding(
@@ -280,10 +327,17 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                   );
                 }
 
-                // Filter students by selected class
-                final filteredStudents = _selectedClassId == null
+                // Filter students by selected class and search text
+                final classFilteredStudents = _selectedClassId == null
                     ? studentsProvider.students
                     : studentsProvider.students.where((student) => student.classId == _selectedClassId).toList();
+                
+                final filteredStudents = _searchText.isEmpty
+                    ? classFilteredStudents
+                    : classFilteredStudents.where((student) => 
+                        student.name.toLowerCase().contains(_searchText) ||
+                        (student.studentId?.toLowerCase().contains(_searchText) ?? false)
+                      ).toList();
 
                 if (filteredStudents.isEmpty) {
                   return Center(
@@ -297,16 +351,20 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          _selectedClassId == null ? 'No students found' : 'No students in selected class',
+                          _searchText.isNotEmpty 
+                              ? 'No students found matching "${_searchText}"'
+                              : (_selectedClassId == null ? 'No students found' : 'No students in selected class'),
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Theme.of(context).colorScheme.outline,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _selectedClassId == null
-                              ? 'Add students first to mark attendance'
-                              : 'Select a different class or add students to this class',
+                          _searchText.isNotEmpty
+                              ? 'Try a different search term'
+                              : (_selectedClassId == null
+                                  ? 'Add students first to mark attendance'
+                                  : 'Select a different class or add students to this class'),
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Theme.of(context).colorScheme.outline,

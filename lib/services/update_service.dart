@@ -53,8 +53,14 @@ class UpdateService {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
+    const LinuxInitializationSettings initializationSettingsLinux =
+        LinuxInitializationSettings(defaultActionName: 'Open notification');
+
     const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          linux: initializationSettingsLinux,
+        );
 
     await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
 

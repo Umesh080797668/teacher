@@ -18,14 +18,17 @@ class Payment {
   });
 
   factory Payment.fromJson(Map<String, dynamic> json) {
+    final date = DateTime.parse(json['date']);
+    final month = json['month'] ?? date.month; // Derive from date if not provided
+    
     return Payment(
       id: json['_id'] ?? json['id'],
       studentId: json['studentId'],
       classId: json['classId'],
       amount: (json['amount'] as num).toDouble(),
       type: json['type'],
-      date: DateTime.parse(json['date']),
-      month: json['month'],
+      date: date,
+      month: month,
     );
   }
 
