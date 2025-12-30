@@ -48,6 +48,7 @@ dependencies:
   url_launcher: ^6.2.5
   package_info_plus: ^8.0.2
   dio: ^5.4.1
+  shimmer: ^3.0.0
   mobile_scanner: ^5.2.3
   socket_io_client: ^2.0.3+1
   install_plugin: ^2.1.0

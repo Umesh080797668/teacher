@@ -21,6 +21,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
   final _studentIdController = TextEditingController();
   String? _selectedClassId;
   bool _showForm = false;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -35,6 +37,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _studentIdController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -116,6 +119,30 @@ class _StudentsScreenState extends State<StudentsScreen> {
       body: SingleChildScrollView(
         child: Column(
         children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.trim().toLowerCase();
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Search students...',
+                prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.outline),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surfaceVariant,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            ),
+          ),
           // Header with stats
           Container(
             width: double.infinity,
@@ -353,7 +380,13 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 );
               }
               
-              if (provider.students.isEmpty) {
+              final filteredStudents = provider.students.where((student) {
+                if (_searchQuery.isEmpty) return true;
+                return student.name.toLowerCase().contains(_searchQuery) ||
+                  (student.email?.toLowerCase().contains(_searchQuery) ?? false) ||
+                  (student.studentId?.toLowerCase().contains(_searchQuery) ?? false);
+              }).toList();
+              if (filteredStudents.isEmpty) {
                 return SizedBox(
                   height: 200,
                   child: Center(
@@ -367,14 +400,16 @@ class _StudentsScreenState extends State<StudentsScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No students yet',
+                          'No students found',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Theme.of(context).colorScheme.outline,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Add your first student to get started',
+                          _searchQuery.isEmpty
+                              ? 'Add your first student to get started'
+                              : 'Try a different search term',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Theme.of(context).colorScheme.outline,
                           ),
@@ -383,11 +418,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     ),
                   ),
                 );
-              }                return ListView.builder(
+              }
+              return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: provider.students.length,
+                  itemCount: filteredStudents.length,
                   itemBuilder: (context, index) {
-                    final student = provider.students[index];
+                    final student = filteredStudents[index];
                     return Slidable(
                       endActionPane: ActionPane(
                         motion: const ScrollMotion(),

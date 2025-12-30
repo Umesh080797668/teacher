@@ -80,6 +80,9 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final teacherId = auth.teacherId;
+
       // Search through features
       final features = [
         {
@@ -132,9 +135,9 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ];
 
-      // Search through students and classes
-      final students = await ApiService.getStudents();
-      final classes = await ApiService.getClasses();
+      // Search through students and classes for the current teacher
+      final students = await ApiService.getStudents(teacherId: teacherId);
+      final classes = await ApiService.getClasses(teacherId: teacherId);
 
       final results = <Map<String, dynamic>>[];
       final searchLower = query.toLowerCase();

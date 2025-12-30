@@ -7,6 +7,7 @@ import '../models/attendance.dart';
 import '../models/class.dart';
 import '../models/payment.dart';
 import '../models/home_stats.dart';
+import 'cache_service.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -20,8 +21,18 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  // For production (hosted backend), use the Vercel URL
-  static const String baseUrl = 'https://teacher-eight-chi.vercel.app';
+  // For production (hosted backend), use multiple URLs for load balancing
+  static const List<String> baseUrls = [
+    'https://teacher-eight-chi.vercel.app',
+    // Add more URLs if available for load balancing
+  ];
+  static int _currentUrlIndex = 0;
+
+  static String get baseUrl {
+    // Round-robin load balancing
+    _currentUrlIndex = (_currentUrlIndex + 1) % baseUrls.length;
+    return baseUrls[_currentUrlIndex];
+  }
 
   // Timeout duration for all requests
   static const Duration timeout = Duration(seconds: 30);
@@ -37,8 +48,18 @@ class ApiService {
     Map<String, String>? headers,
     dynamic body,
     int retryCount = 0,
+    bool useCache = false,
   }) async {
     final url = '$baseUrl$endpoint';
+
+    // Check cache for GET requests
+    if (method.toUpperCase() == 'GET' && useCache) {
+      final cachedResponse = await CacheService.getCachedResponse(endpoint);
+      if (cachedResponse != null) {
+        return http.Response(cachedResponse, 200);
+      }
+    }
+
     final requestHeaders = {'Content-Type': 'application/json', ...?headers};
 
     try {
@@ -104,6 +125,11 @@ class ApiService {
         );
       }
 
+      // Cache successful GET responses
+      if (method.toUpperCase() == 'GET' && useCache) {
+        await CacheService.cacheResponse(endpoint, response.body);
+      }
+
       return response;
     } on TimeoutException {
       if (retryCount < maxRetries) {
@@ -114,6 +140,7 @@ class ApiService {
           headers: headers,
           body: body,
           retryCount: retryCount + 1,
+          useCache: useCache,
         );
       }
       throw ApiException(
@@ -128,6 +155,7 @@ class ApiService {
           headers: headers,
           body: body,
           retryCount: retryCount + 1,
+          useCache: useCache,
         );
       }
       // Handle SSL/TLS errors specifically
@@ -155,6 +183,7 @@ class ApiService {
           headers: headers,
           body: body,
           retryCount: retryCount + 1,
+          useCache: useCache,
         );
       }
       // Don't expose internal error details to avoid console errors
@@ -483,7 +512,7 @@ class ApiService {
       path: '/api/payments',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
-    final response = await _makeRequest('GET', endpoint);
+    final response = await _makeRequest('GET', endpoint, useCache: true);
     return List<Map<String, dynamic>>.from(json.decode(response.body));
   }
 
@@ -496,7 +525,7 @@ class ApiService {
       path: '/api/reports/attendance-summary',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
-    final response = await _makeRequest('GET', endpoint);
+    final response = await _makeRequest('GET', endpoint, useCache: true);
     return json.decode(response.body);
   }
 
@@ -508,7 +537,7 @@ class ApiService {
       path: '/api/reports/student-reports',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
-    final response = await _makeRequest('GET', endpoint);
+    final response = await _makeRequest('GET', endpoint, useCache: true);
     return List<Map<String, dynamic>>.from(json.decode(response.body));
   }
 
@@ -520,7 +549,7 @@ class ApiService {
       path: '/api/reports/monthly-stats',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
-    final response = await _makeRequest('GET', endpoint);
+    final response = await _makeRequest('GET', endpoint, useCache: true);
     return List<Map<String, dynamic>>.from(json.decode(response.body));
   }
 
@@ -533,7 +562,7 @@ class ApiService {
       path: '/api/reports/daily-by-class',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
-    final response = await _makeRequest('GET', endpoint);
+    final response = await _makeRequest('GET', endpoint, useCache: true);
     return List<Map<String, dynamic>>.from(json.decode(response.body));
   }
 
@@ -545,7 +574,7 @@ class ApiService {
       path: '/api/reports/monthly-by-class',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
-    final response = await _makeRequest('GET', endpoint);
+    final response = await _makeRequest('GET', endpoint, useCache: true);
     return List<Map<String, dynamic>>.from(json.decode(response.body));
   }
 
@@ -582,7 +611,7 @@ class ApiService {
       path: '/api/reports/monthly-earnings-by-class',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
-    final response = await _makeRequest('GET', endpoint);
+    final response = await _makeRequest('GET', endpoint, useCache: true);
     return List<Map<String, dynamic>>.from(json.decode(response.body));
   }
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 import '../providers/reports_provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/cache_service.dart';
 
 
 class ReportsScreen extends StatefulWidget {
@@ -22,6 +24,12 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       final auth = Provider.of<AuthProvider>(context, listen: false);
       context.read<ReportsProvider>().loadReports(teacherId: auth.teacherId);
     });
+  }
+
+  Future<void> _refreshReports() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    await CacheService.clearCache(); // Clear cache on refresh
+    await context.read<ReportsProvider>().loadReports(teacherId: auth.teacherId);
   }
 
   @override
@@ -47,14 +55,17 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _AttendanceSummaryTab(reportsProvider: reportsProvider),
-          _StudentReportsTab(reportsProvider: reportsProvider),
-          _PaymentsTab(reportsProvider: reportsProvider),
-          _MonthlyEarningsTab(reportsProvider: reportsProvider),
-        ],
+      body: RefreshIndicator(
+        onRefresh: _refreshReports,
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            _AttendanceSummaryTab(reportsProvider: reportsProvider),
+            _StudentReportsTab(reportsProvider: reportsProvider),
+            _PaymentsTab(reportsProvider: reportsProvider),
+            _MonthlyEarningsTab(reportsProvider: reportsProvider),
+          ],
+        ),
       ),
     );
   }
@@ -70,7 +81,7 @@ class _AttendanceSummaryTab extends StatelessWidget {
     return Consumer<ReportsProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return _buildShimmerLoading();
         }
 
         final summary = provider.attendanceSummary;
@@ -291,13 +302,13 @@ class _StudentReportsTabState extends State<_StudentReportsTab> {
                   prefixIcon: const Icon(Icons.class_),
                 ),
                 items: [
-                  const DropdownMenuItem<String>(
+                  DropdownMenuItem<String>(
                     value: null,
-                    child: Text('All Classes'),
+                    child: Text('All Classes', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                   ),
                   ...allClasses.map((cls) => DropdownMenuItem<String>(
                     value: cls.id,
-                    child: Text(cls.name),
+                    child: Text(cls.name, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                   )),
                 ],
                 onChanged: (value) {
@@ -645,13 +656,13 @@ class _PaymentsTabState extends State<_PaymentsTab> {
                       prefixIcon: const Icon(Icons.class_),
                     ),
                     items: [
-                      const DropdownMenuItem<String>(
+                      DropdownMenuItem<String>(
                         value: null,
-                        child: Text('All Classes'),
+                        child: Text('All Classes', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                       ),
                       ...allClasses.map((cls) => DropdownMenuItem<String>(
                         value: cls.id,
-                        child: Text(cls.name),
+                        child: Text(cls.name, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                       )),
                     ],
                     onChanged: (value) {
@@ -678,7 +689,7 @@ class _PaymentsTabState extends State<_PaymentsTab> {
                           items: List.generate(12, (index) => index + 1)
                               .map((month) => DropdownMenuItem<int>(
                                     value: month,
-                                    child: Text(_getMonthName(month)),
+                                    child: Text(_getMonthName(month), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                                   ))
                               .toList(),
                           onChanged: (value) {
@@ -704,7 +715,7 @@ class _PaymentsTabState extends State<_PaymentsTab> {
                           items: List.generate(5, (index) => DateTime.now().year - index)
                               .map((year) => DropdownMenuItem<int>(
                                     value: year,
-                                    child: Text(year.toString()),
+                                    child: Text(year.toString(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                                   ))
                               .toList(),
                           onChanged: (value) {
@@ -900,13 +911,13 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                         prefixIcon: const Icon(Icons.class_),
                       ),
                       items: [
-                        const DropdownMenuItem<String>(
+                        DropdownMenuItem<String>(
                           value: null,
-                          child: Text('All Classes'),
+                          child: Text('All Classes', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                         ),
                         ...allClasses.map((cls) => DropdownMenuItem<String>(
                           value: cls.id,
-                          child: Text(cls.name),
+                          child: Text(cls.name, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                         )),
                       ],
                       onChanged: (value) {
@@ -1092,4 +1103,90 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
     ];
     return months[month - 1];
   }
+}
+
+Widget _buildShimmerLoading() {
+  return Shimmer.fromColors(
+    baseColor: Colors.grey[300]!,
+    highlightColor: Colors.grey[100]!,
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 20,
+            width: 200,
+            color: Colors.white,
+            margin: const EdgeInsets.only(bottom: 16),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  margin: const EdgeInsets.only(right: 8),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  margin: const EdgeInsets.only(left: 8),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  margin: const EdgeInsets.only(right: 8),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  margin: const EdgeInsets.only(left: 8),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Container(
+            height: 18,
+            width: 150,
+            color: Colors.white,
+            margin: const EdgeInsets.only(bottom: 16),
+          ),
+          ...List.generate(3, (index) => Container(
+            height: 60,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            margin: const EdgeInsets.only(bottom: 12),
+          )),
+        ],
+      ),
+    ),
+  );
 }

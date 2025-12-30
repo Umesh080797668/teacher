@@ -18,6 +18,8 @@ class ClassDetailsScreen extends StatefulWidget {
 }
 
 class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
   @override
   void initState() {
     super.initState();
@@ -304,6 +306,12 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -323,6 +331,30 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
       ),
       body: Column(
         children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.trim().toLowerCase();
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Search students in class...',
+                prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.outline),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surfaceVariant,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            ),
+          ),
           // Header with class info and stats
           Container(
             width: double.infinity,
@@ -411,12 +443,18 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
             child: Consumer<StudentsProvider>(
               builder: (context, studentsProvider, child) {
                 final studentsInClass = _getStudentsInClass();
+                final filteredStudents = studentsInClass.where((student) {
+                  if (_searchQuery.isEmpty) return true;
+                  return student.name.toLowerCase().contains(_searchQuery) ||
+                    (student.email?.toLowerCase().contains(_searchQuery) ?? false) ||
+                    (student.studentId?.toLowerCase().contains(_searchQuery) ?? false);
+                }).toList();
 
                 if (studentsProvider.isLoading) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (studentsInClass.isEmpty) {
+                if (filteredStudents.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -428,14 +466,16 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No students in this class',
+                          'No students found',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Theme.of(context).colorScheme.outline,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Add students to get started',
+                          _searchQuery.isEmpty
+                              ? 'Add students to get started'
+                              : 'Try a different search term',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Theme.of(context).colorScheme.outline,
                           ),
@@ -447,9 +487,9 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: studentsInClass.length,
+                  itemCount: filteredStudents.length,
                   itemBuilder: (context, index) {
-                    final student = studentsInClass[index];
+                    final student = filteredStudents[index];
                     return Slidable(
                       endActionPane: ActionPane(
                         motion: const ScrollMotion(),
