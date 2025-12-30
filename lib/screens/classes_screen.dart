@@ -4,6 +4,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../providers/classes_provider.dart';
 import '../providers/auth_provider.dart';
 import 'class_details_screen.dart';
+import '../widgets/custom_widgets.dart';
 
 class ClassesScreen extends StatefulWidget {
   const ClassesScreen({super.key});
@@ -20,7 +21,9 @@ class _ClassesScreenState extends State<ClassesScreen> {
   @override
   void initState() {
     super.initState();
-    _loadClasses();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadClasses();
+    });
   }
 
   @override
@@ -271,9 +274,9 @@ class _ClassesScreenState extends State<ClassesScreen> {
             Consumer<ClassesProvider>(
               builder: (context, provider, child) {
                 if (provider.isLoading) {
-                  return const SizedBox(
-                    height: 200,
-                    child: Center(child: CircularProgressIndicator()),
+                  return ListSkeleton(
+                    itemCount: 5,
+                    itemBuilder: (context) => const ClassCardSkeleton(),
                   );
                 }
 

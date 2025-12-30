@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 
 /// Reusable custom button with consistent styling
 class CustomButton extends StatelessWidget {
@@ -294,4 +295,430 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+}
+
+/// Skeleton loading widget for student cards
+class StudentCardSkeleton extends StatelessWidget {
+  const StudentCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      color: Theme.of(context).colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Shimmer.fromColors(
+              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              highlightColor: Theme.of(context).colorScheme.surface,
+              child: CircleAvatar(
+                backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                radius: 28,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Shimmer.fromColors(
+                    baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                    highlightColor: Theme.of(context).colorScheme.surface,
+                    child: Container(
+                      height: 16,
+                      width: 120,
+                      color: Theme.of(context).colorScheme.surfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Shimmer.fromColors(
+                    baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                    highlightColor: Theme.of(context).colorScheme.surface,
+                    child: Container(
+                      height: 12,
+                      width: 80,
+                      color: Theme.of(context).colorScheme.surfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Wrap(
+              spacing: 8,
+              children: List.generate(
+                3,
+                (index) => Shimmer.fromColors(
+                  baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                  highlightColor: Theme.of(context).colorScheme.surface,
+                  child: Container(
+                    width: 44,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Skeleton loading widget for class cards
+class ClassCardSkeleton extends StatelessWidget {
+  const ClassCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      color: Theme.of(context).colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Shimmer.fromColors(
+              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              highlightColor: Theme.of(context).colorScheme.surface,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Shimmer.fromColors(
+                    baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                    highlightColor: Theme.of(context).colorScheme.surface,
+                    child: Container(
+                      height: 18,
+                      width: 140,
+                      color: Theme.of(context).colorScheme.surfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Shimmer.fromColors(
+                    baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                    highlightColor: Theme.of(context).colorScheme.surface,
+                    child: Container(
+                      height: 14,
+                      width: 100,
+                      color: Theme.of(context).colorScheme.surfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Shimmer.fromColors(
+              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              highlightColor: Theme.of(context).colorScheme.surface,
+              child: Container(
+                width: 80,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Skeleton loading widget for list views
+class ListSkeleton extends StatelessWidget {
+  final int itemCount;
+  final Widget Function(BuildContext) itemBuilder;
+
+  const ListSkeleton({
+    super.key,
+    this.itemCount = 5,
+    required this.itemBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: itemCount,
+      itemBuilder: (context, index) => itemBuilder(context),
+    );
+  }
+}
+
+/// Skeleton loading widget for dashboard cards
+class DashboardCardSkeleton extends StatelessWidget {
+  const DashboardCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      color: Theme.of(context).colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Shimmer.fromColors(
+                  baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                  highlightColor: Theme.of(context).colorScheme.surface,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Shimmer.fromColors(
+                        baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                        highlightColor: Theme.of(context).colorScheme.surface,
+                        child: Container(
+                          height: 16,
+                          width: 100,
+                          color: Theme.of(context).colorScheme.surfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Shimmer.fromColors(
+                        baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                        highlightColor: Theme.of(context).colorScheme.surface,
+                        child: Container(
+                          height: 20,
+                          width: 60,
+                          color: Theme.of(context).colorScheme.surfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Skeleton loading widget for attendance statistics
+class AttendanceStatsSkeleton extends StatelessWidget {
+  const AttendanceStatsSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildStatCardSkeleton(context)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildStatCardSkeleton(context)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _buildStatCardSkeleton(context)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildStatCardSkeleton(context)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCardSkeleton(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Shimmer.fromColors(
+              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              highlightColor: Theme.of(context).colorScheme.surface,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Shimmer.fromColors(
+              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              highlightColor: Theme.of(context).colorScheme.surface,
+              child: Container(
+                height: 20,
+                width: 40,
+                color: Theme.of(context).colorScheme.surfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Shimmer.fromColors(
+              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              highlightColor: Theme.of(context).colorScheme.surface,
+              child: Container(
+                height: 14,
+                width: 50,
+                color: Theme.of(context).colorScheme.surfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Skeleton loading widget for attendance cards
+class AttendanceCardSkeleton extends StatelessWidget {
+  const AttendanceCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Shimmer.fromColors(
+          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          highlightColor: Theme.of(context).colorScheme.surface,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceVariant,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        title: Shimmer.fromColors(
+          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          highlightColor: Theme.of(context).colorScheme.surface,
+          child: Container(
+            height: 16,
+            width: 80,
+            color: Theme.of(context).colorScheme.surfaceVariant,
+          ),
+        ),
+        subtitle: Shimmer.fromColors(
+          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          highlightColor: Theme.of(context).colorScheme.surface,
+          child: Container(
+            height: 14,
+            width: 100,
+            color: Theme.of(context).colorScheme.surfaceVariant,
+          ),
+        ),
+        trailing: Shimmer.fromColors(
+          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          highlightColor: Theme.of(context).colorScheme.surface,
+          child: Container(
+            height: 14,
+            width: 40,
+            color: Theme.of(context).colorScheme.surfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Skeleton loading widget for payment cards
+class PaymentCardSkeleton extends StatelessWidget {
+  const PaymentCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Shimmer.fromColors(
+          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          highlightColor: Theme.of(context).colorScheme.surface,
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceVariant,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Shimmer.fromColors(
+              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              highlightColor: Theme.of(context).colorScheme.surface,
+              child: Container(
+                height: 16,
+                width: 120,
+                color: Theme.of(context).colorScheme.surfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Shimmer.fromColors(
+              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              highlightColor: Theme.of(context).colorScheme.surface,
+              child: Container(
+                height: 14,
+                width: 80,
+                color: Theme.of(context).colorScheme.surfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        subtitle: Shimmer.fromColors(
+          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          highlightColor: Theme.of(context).colorScheme.surface,
+          child: Container(
+            height: 14,
+            width: 60,
+            color: Theme.of(context).colorScheme.surfaceVariant,
+          ),
+        ),
+        trailing: Shimmer.fromColors(
+          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          highlightColor: Theme.of(context).colorScheme.surface,
+          child: Container(
+            height: 16,
+            width: 70,
+            color: Theme.of(context).colorScheme.surfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
 }

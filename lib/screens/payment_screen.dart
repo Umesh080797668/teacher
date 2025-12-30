@@ -7,6 +7,7 @@ import '../providers/classes_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/student.dart';
 import '../models/class.dart' as class_model;
+import '../widgets/custom_widgets.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -42,7 +43,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   Future<void> _loadData() async {
@@ -567,7 +570,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Consumer<PaymentProvider>(
               builder: (context, provider, child) {
                 if (provider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return ListSkeleton(
+                    itemCount: 5,
+                    itemBuilder: (context) => const PaymentCardSkeleton(),
+                  );
                 }
 
                 if (provider.payments.isEmpty) {

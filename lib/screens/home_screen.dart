@@ -16,6 +16,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../services/update_service.dart';
 import '../models/home_stats.dart';
+import '../widgets/custom_widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String? _error;
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   bool _isSearching = false;
   List<Map<String, dynamic>> _searchResults = [];
   Timer? _refreshTimer;
@@ -40,7 +42,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    // Ensure search field doesn't have focus when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _searchFocusNode.unfocus();
+      _loadData();
+    });
     // Refresh data every 30 seconds for real-time updates
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       _loadData(silent: true);
@@ -60,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _refreshTimer?.cancel();
     _timeUpdateTimer?.cancel();
     _updateCheckTimer?.cancel();
@@ -466,6 +473,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _loadData,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).colorScheme.primary,
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -738,6 +747,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           child: TextField(
                             controller: _searchController,
+                            focusNode: _searchFocusNode,
+                            autofocus: false,
                             onChanged: (value) {
                               _performSearch(value);
                             },
@@ -897,7 +908,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               horizontal: 24.0,
                               vertical: 32,
                             ),
-                            child: Center(child: CircularProgressIndicator()),
+                            child: Column(
+                              children: List.generate(
+                                4,
+                                (index) => const Padding(
+                                  padding: EdgeInsets.only(bottom: 16.0),
+                                  child: DashboardCardSkeleton(),
+                                ),
+                              ),
+                            ),
                           );
                         }
 

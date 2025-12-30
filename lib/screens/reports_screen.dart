@@ -4,7 +4,7 @@ import 'package:shimmer/shimmer.dart';
 import '../providers/reports_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/cache_service.dart';
-
+import '../widgets/custom_widgets.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -57,6 +57,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       ),
       body: RefreshIndicator(
         onRefresh: _refreshReports,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).colorScheme.primary,
         child: TabBarView(
           controller: _tabController,
           children: [
@@ -81,7 +83,7 @@ class _AttendanceSummaryTab extends StatelessWidget {
     return Consumer<ReportsProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
-          return _buildShimmerLoading();
+          return _buildShimmerLoading(context);
         }
 
         final summary = provider.attendanceSummary;
@@ -272,7 +274,10 @@ class _StudentReportsTabState extends State<_StudentReportsTab> {
     return Consumer<ReportsProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return ListSkeleton(
+            itemCount: 8,
+            itemBuilder: (context) => const StudentCardSkeleton(),
+          );
         }
 
         final allStudentReports = provider.studentReports;
@@ -602,7 +607,10 @@ class _PaymentsTabState extends State<_PaymentsTab> {
     return Consumer<ReportsProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return ListSkeleton(
+            itemCount: 6,
+            itemBuilder: (context) => const DashboardCardSkeleton(),
+          );
         }
 
         // Get payment data from provider
@@ -870,7 +878,10 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
     return Consumer<ReportsProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return ListSkeleton(
+            itemCount: 5,
+            itemBuilder: (context) => const DashboardCardSkeleton(),
+          );
         }
 
         final allEarnings = provider.monthlyEarningsByClass;
@@ -1105,10 +1116,10 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
   }
 }
 
-Widget _buildShimmerLoading() {
+Widget _buildShimmerLoading(BuildContext context) {
   return Shimmer.fromColors(
-    baseColor: Colors.grey[300]!,
-    highlightColor: Colors.grey[100]!,
+    baseColor: Theme.of(context).colorScheme.surfaceVariant,
+    highlightColor: Theme.of(context).colorScheme.surface,
     child: SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -1117,7 +1128,7 @@ Widget _buildShimmerLoading() {
           Container(
             height: 20,
             width: 200,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surfaceVariant,
             margin: const EdgeInsets.only(bottom: 16),
           ),
           Row(
@@ -1126,7 +1137,7 @@ Widget _buildShimmerLoading() {
                 child: Container(
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surfaceVariant,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   margin: const EdgeInsets.only(right: 8),
@@ -1136,7 +1147,7 @@ Widget _buildShimmerLoading() {
                 child: Container(
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surfaceVariant,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   margin: const EdgeInsets.only(left: 8),
@@ -1151,7 +1162,7 @@ Widget _buildShimmerLoading() {
                 child: Container(
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surfaceVariant,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   margin: const EdgeInsets.only(right: 8),
@@ -1161,7 +1172,7 @@ Widget _buildShimmerLoading() {
                 child: Container(
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surfaceVariant,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   margin: const EdgeInsets.only(left: 8),
@@ -1173,14 +1184,14 @@ Widget _buildShimmerLoading() {
           Container(
             height: 18,
             width: 150,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surfaceVariant,
             margin: const EdgeInsets.only(bottom: 16),
           ),
           ...List.generate(3, (index) => Container(
             height: 60,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surfaceVariant,
               borderRadius: BorderRadius.circular(8),
             ),
             margin: const EdgeInsets.only(bottom: 12),

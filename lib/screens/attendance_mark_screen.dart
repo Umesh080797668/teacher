@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../providers/classes_provider.dart';
 import '../providers/students_provider.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/custom_widgets.dart';
 
 class AttendanceMarkScreen extends StatefulWidget {
   const AttendanceMarkScreen({super.key});
@@ -273,7 +274,10 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
             child: Consumer2<StudentsProvider, ClassesProvider>(
               builder: (context, studentsProvider, classesProvider, child) {
                 if (studentsProvider.isLoading || classesProvider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return ListSkeleton(
+                    itemCount: 8,
+                    itemBuilder: (context) => const StudentCardSkeleton(),
+                  );
                 }
 
                 // Filter students by selected class
@@ -324,7 +328,11 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                       session: 'daily', // Changed from _selectedSession to 'daily'
                       onStatusChanged: (status) {
                         setState(() {
-                          _attendanceStatus[student.id] = status;
+                          if (status.isEmpty) {
+                            _attendanceStatus.remove(student.id);
+                          } else {
+                            _attendanceStatus[student.id] = status;
+                          }
                         });
                       },
                       currentStatus: _attendanceStatus[student.id],
@@ -401,19 +409,19 @@ class AttendanceStudentCard extends StatefulWidget {
 }
 
 class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
-  late String _status;
+  String? _status;
 
   @override
   void initState() {
     super.initState();
-    _status = widget.currentStatus ?? 'present';
+    _status = widget.currentStatus;
   }
 
   @override
   void didUpdateWidget(AttendanceStudentCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.currentStatus != null && widget.currentStatus != _status) {
-      _status = widget.currentStatus!;
+    if (widget.currentStatus != _status) {
+      _status = widget.currentStatus;
     }
   }
 
@@ -473,9 +481,13 @@ class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
                   isSelected: _status == 'present',
                   onTap: () {
                     setState(() {
-                      _status = 'present';
+                      if (_status == 'present') {
+                        _status = null;
+                      } else {
+                        _status = 'present';
+                      }
                     });
-                    widget.onStatusChanged('present');
+                    widget.onStatusChanged(_status ?? '');
                   },
                 ),
                 _StatusChip(
@@ -485,9 +497,13 @@ class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
                   isSelected: _status == 'absent',
                   onTap: () {
                     setState(() {
-                      _status = 'absent';
+                      if (_status == 'absent') {
+                        _status = null;
+                      } else {
+                        _status = 'absent';
+                      }
                     });
-                    widget.onStatusChanged('absent');
+                    widget.onStatusChanged(_status ?? '');
                   },
                 ),
                 _StatusChip(
@@ -497,9 +513,13 @@ class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
                   isSelected: _status == 'late',
                   onTap: () {
                     setState(() {
-                      _status = 'late';
+                      if (_status == 'late') {
+                        _status = null;
+                      } else {
+                        _status = 'late';
+                      }
                     });
-                    widget.onStatusChanged('late');
+                    widget.onStatusChanged(_status ?? '');
                   },
                 ),
               ],

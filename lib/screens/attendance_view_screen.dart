@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/reports_provider.dart';
+import '../widgets/custom_widgets.dart';
 
 class AttendanceViewScreen extends StatefulWidget {
   const AttendanceViewScreen({super.key});
@@ -106,7 +107,10 @@ class _DailyViewTabState extends State<_DailyViewTab> {
         final dayOfYear = _selectedDate.difference(firstDayOfYear).inDays + 1;
 
         if (provider.isDailyLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return ListSkeleton(
+            itemCount: 4,
+            itemBuilder: (context) => const DashboardCardSkeleton(),
+          );
         }
 
         final dailyStats = provider.getDailyStats();
@@ -449,7 +453,10 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
     return Consumer<ReportsProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return ListSkeleton(
+            itemCount: 6,
+            itemBuilder: (context) => const DashboardCardSkeleton(),
+          );
         }
 
         final monthlyByClass = provider.monthlyByClass;

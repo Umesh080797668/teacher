@@ -6,6 +6,7 @@ import '../providers/students_provider.dart';
 import '../providers/classes_provider.dart';
 import '../providers/auth_provider.dart';
 import 'student_details_screen.dart';
+import '../widgets/custom_widgets.dart';
 
 class StudentsScreen extends StatefulWidget {
   const StudentsScreen({super.key});
@@ -374,9 +375,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
             child: Consumer<StudentsProvider>(
               builder: (context, provider, child) {
               if (provider.isLoading) {
-                return const SizedBox(
-                  height: 200,
-                  child: Center(child: CircularProgressIndicator()),
+                return ListSkeleton(
+                  itemCount: 6,
+                  itemBuilder: (context) => const StudentCardSkeleton(),
                 );
               }
               

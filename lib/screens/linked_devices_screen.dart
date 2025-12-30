@@ -357,6 +357,8 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                     )
                   : RefreshIndicator(
                       onRefresh: _loadSessions,
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      color: Theme.of(context).colorScheme.primary,
                       child: ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: _sessions.length,

@@ -3,6 +3,7 @@ import '../models/student.dart';
 import '../models/attendance.dart';
 import '../models/payment.dart';
 import '../services/api_service.dart';
+import '../widgets/custom_widgets.dart';
 
 class StudentDetailsScreen extends StatefulWidget {
   final Student student;
@@ -138,6 +139,8 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
   Widget _buildAttendanceTab(bool isDark) {
     return RefreshIndicator(
       onRefresh: _loadStudentAttendance,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      color: Theme.of(context).colorScheme.primary,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,7 +232,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                   ),
                   const SizedBox(height: 16),
                   if (_isLoadingAttendance)
-                    const Center(child: CircularProgressIndicator())
+                    const AttendanceStatsSkeleton()
                   else
                     Column(
                       children: [
@@ -290,7 +293,10 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                   ),
                   const SizedBox(height: 16),
                   if (_isLoadingAttendance)
-                    const Center(child: CircularProgressIndicator())
+                    ListSkeleton(
+                      itemCount: 5,
+                      itemBuilder: (context) => const AttendanceCardSkeleton(),
+                    )
                   else if (_studentAttendance.isEmpty)
                     Center(
                       child: Padding(
@@ -378,6 +384,8 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
 
     return RefreshIndicator(
       onRefresh: _loadStudentPayments,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      color: Theme.of(context).colorScheme.primary,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -449,7 +457,10 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                   ),
                   const SizedBox(height: 16),
                   if (_isLoadingPayments)
-                    const Center(child: CircularProgressIndicator())
+                    ListSkeleton(
+                      itemCount: 3,
+                      itemBuilder: (context) => const PaymentCardSkeleton(),
+                    )
                   else if (_studentPayments.isEmpty)
                     Center(
                       child: Padding(

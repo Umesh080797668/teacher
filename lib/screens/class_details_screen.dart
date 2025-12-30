@@ -7,6 +7,7 @@ import '../providers/students_provider.dart';
 import '../providers/attendance_provider.dart';
 import '../providers/classes_provider.dart';
 import '../screens/student_details_screen.dart';
+import '../widgets/custom_widgets.dart';
 
 class ClassDetailsScreen extends StatefulWidget {
   final Class classObj;
@@ -451,7 +452,10 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                 }).toList();
 
                 if (studentsProvider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return ListSkeleton(
+                    itemCount: 6,
+                    itemBuilder: (context) => const StudentCardSkeleton(),
+                  );
                 }
 
                 if (filteredStudents.isEmpty) {
