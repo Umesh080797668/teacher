@@ -218,6 +218,7 @@ const PaymentSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   type: { type: String, enum: ['full', 'half', 'free'], required: true },
   date: { type: Date, default: Date.now },
+  month: { type: Number, min: 1, max: 12 }, // Month field (1-12)
   companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin association
 }, { timestamps: true });
 
@@ -1054,7 +1055,7 @@ app.get('/api/payments', async (req, res) => {
 
 app.post('/api/payments', async (req, res) => {
   try {
-    const { studentId, classId, amount, type } = req.body;
+    const { studentId, classId, amount, type, month } = req.body;
     
     // Convert IDs to ObjectId if they're strings
     let studentObjectId = studentId;
@@ -1067,7 +1068,10 @@ app.post('/api/payments', async (req, res) => {
       classObjectId = new mongoose.Types.ObjectId(classId);
     }
     
-    const payment = new Payment({ studentId: studentObjectId, classId: classObjectId, amount, type });
+    // Ensure month is set - derive from current date if not provided
+    const paymentMonth = month !== undefined ? month : new Date().getMonth() + 1;
+    
+    const payment = new Payment({ studentId: studentObjectId, classId: classObjectId, amount, type, month: paymentMonth });
     await payment.save();
     res.status(201).json(payment);
   } catch (error) {
