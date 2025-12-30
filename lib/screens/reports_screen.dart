@@ -1100,7 +1100,6 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                       itemCount: filteredEarnings.length,
                       itemBuilder: (context, index) {
                         final earning = filteredEarnings[index];
-                        final monthlyBreakdown = earning['monthlyBreakdown'] as List? ?? [];
                         
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
