@@ -7,6 +7,7 @@ import 'home_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'forgot_password_screen.dart';
+import '../widgets/activation_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? initialEmail;
@@ -118,9 +119,27 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
 
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
+        // Check if account is activated
+        if (!auth.isActivated) {
+          // Show activation dialog
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => ActivationDialog(
+              auth: auth,
+              onContinue: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                );
+              },
+            ),
+          );
+        } else {
+          // Navigate to home screen if activated
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        }
       }
     } on ApiException catch (e) {
       if (!mounted) return;

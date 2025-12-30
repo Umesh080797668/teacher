@@ -340,6 +340,57 @@ class ApiService {
     return json.decode(response.body);
   }
 
+  static Future<Map<String, dynamic>> getTeacherStatus(String teacherId) async {
+    final response = await _makeRequest('GET', '/api/teachers/$teacherId/status');
+
+    if (response.statusCode != 200) {
+      throw ApiException('Failed to fetch teacher status', statusCode: response.statusCode);
+    }
+
+    return json.decode(response.body);
+  }
+
+  // Admin endpoint to activate teacher
+  static Future<Map<String, dynamic>> activateTeacher(String teacherId) async {
+    final response = await _makeRequest(
+      'PUT',
+      '/api/teachers/$teacherId/activate',
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException('Failed to activate teacher', statusCode: response.statusCode);
+    }
+
+    return json.decode(response.body);
+  }
+
+  // Submit problem report
+  static Future<Map<String, dynamic>> submitProblemReport({
+    required String userEmail,
+    required String issueDescription,
+    String? appVersion,
+    String? device,
+    String? teacherId,
+  }) async {
+    final response = await _makeRequest(
+      'POST',
+      '/api/reports/problem',
+      body: {
+        'userEmail': userEmail,
+        'issueDescription': issueDescription,
+        'appVersion': appVersion,
+        'device': device,
+        'teacherId': teacherId,
+      },
+    );
+
+    if (response.statusCode != 201) {
+      throw ApiException('Failed to submit problem report', statusCode: response.statusCode);
+    }
+
+    return json.decode(response.body);
+  }
+
   // Students
   static Future<List<Student>> getStudents({String? teacherId}) async {
     final queryParams = <String, String>{};

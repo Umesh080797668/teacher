@@ -61,6 +61,7 @@ class AuthProvider extends ChangeNotifier {
   String? _userName;
   String? _teacherId;
   Map<String, dynamic>? _teacherData;
+  bool _isActivated = false; // New field for account activation
   bool _isLoading = true;
   List<UserAccount> _accountHistory = [];
 
@@ -71,6 +72,7 @@ class AuthProvider extends ChangeNotifier {
   String? get userName => _userName;
   String? get teacherId => _teacherId;
   Map<String, dynamic>? get teacherData => _teacherData;
+  bool get isActivated => _isActivated; // Getter for activation status
   bool get isLoading => _isLoading;
   List<UserAccount> get accountHistory => _accountHistory;
 
@@ -86,6 +88,7 @@ class AuthProvider extends ChangeNotifier {
       _userEmail = prefs.getString('user_email');
       _userName = prefs.getString('user_name');
       _teacherId = prefs.getString('teacher_id');
+      _isActivated = prefs.getBool('is_activated') ?? false; // Load activation status
       final teacherDataJson = prefs.getString('teacher_data');
       if (teacherDataJson != null) {
         _teacherData = Map<String, dynamic>.from(json.decode(teacherDataJson));
@@ -105,12 +108,21 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> login(String email, String name, {String? teacherId, Map<String, dynamic>? teacherData}) async {
+  Future<void> login(String email, String name, {String? teacherId, Map<String, dynamic>? teacherData, bool? isActivated}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_logged_in', true);
     await prefs.setBool('is_guest', false);
     await prefs.setString('user_email', email);
     await prefs.setString('user_name', name);
+    
+    // Determine activation status from teacherData or parameter
+    bool activationStatus = isActivated ?? false;
+    if (teacherData != null && teacherData['status'] != null) {
+      activationStatus = teacherData['status'] == 'active';
+    }
+    
+    await prefs.setBool('is_activated', activationStatus);
+    
     if (teacherId != null) {
       await prefs.setString('teacher_id', teacherId);
     }
@@ -124,6 +136,7 @@ class AuthProvider extends ChangeNotifier {
     _userName = name;
     _teacherId = teacherId;
     _teacherData = teacherData;
+    _isActivated = activationStatus;
 
     // Add to account history
     final newAccount = UserAccount(
@@ -170,6 +183,7 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('user_name');
     await prefs.remove('teacher_id');
     await prefs.remove('teacher_data');
+    await prefs.remove('is_activated'); // Remove activation status
     
     _isLoggedIn = false;
     _isGuest = false;
@@ -177,6 +191,14 @@ class AuthProvider extends ChangeNotifier {
     _userName = null;
     _teacherId = null;
     _teacherData = null;
+    _isActivated = false; // Reset activation status
+    notifyListeners();
+  }
+
+  Future<void> updateActivationStatus(bool isActivated) async {
+    _isActivated = isActivated;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_activated', isActivated);
     notifyListeners();
   }
 
