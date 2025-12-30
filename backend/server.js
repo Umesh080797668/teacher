@@ -1608,12 +1608,13 @@ app.get('/api/reports/monthly-earnings-by-class', async (req, res) => {
       payments.forEach(payment => {
         if (payment.date) {
           const paymentDate = new Date(payment.date);
-          const monthKey = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
+          const paymentMonth = payment.month || (paymentDate.getMonth() + 1);
+          const monthKey = `${paymentDate.getFullYear()}-${String(paymentMonth).padStart(2, '0')}`;
           
           if (!monthlyBreakdown[monthKey]) {
             monthlyBreakdown[monthKey] = {
               year: paymentDate.getFullYear(),
-              month: paymentDate.getMonth() + 1,
+              month: paymentMonth,
               amount: 0,
               paymentCount: 0
             };

@@ -872,6 +872,8 @@ class _MonthlyEarningsTab extends StatefulWidget {
 
 class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
   String? _selectedClassId;
+  int _selectedMonth = DateTime.now().month;
+  int _selectedYear = DateTime.now().year;
 
   @override
   Widget build(BuildContext context) {
@@ -887,19 +889,42 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
         final allEarnings = provider.monthlyEarningsByClass;
         final allClasses = provider.allClasses;
         
-        // Filter earnings by selected class
-        final filteredEarnings = _selectedClassId == null
-            ? allEarnings
-            : allEarnings.where((earning) {
-                final earningClassId = earning['classId']?.toString();
-                return earningClassId == _selectedClassId;
-              }).toList();
+        // Flatten the earnings data to have one entry per class per month
+        final flattenedEarnings = <Map<String, dynamic>>[];
+        for (final earning in allEarnings) {
+          final classId = earning['classId'];
+          final className = earning['className'];
+          final breakdown = earning['monthlyBreakdown'] as List? ?? [];
+          for (final monthData in breakdown) {
+            flattenedEarnings.add({
+              'classId': classId,
+              'className': className,
+              'month': monthData['month'],
+              'year': monthData['year'],
+              'amount': monthData['amount'],
+              'paymentCount': monthData['paymentCount'],
+            });
+          }
+        }
+        
+        // Filter flattened earnings by selected class, month, and year
+        final filteredEarnings = flattenedEarnings.where((earning) {
+          final earningClassId = earning['classId']?.toString();
+          final earningMonth = earning['month'] as int?;
+          final earningYear = earning['year'] as int?;
+          
+          final classMatch = _selectedClassId == null || earningClassId == _selectedClassId;
+          final monthMatch = earningMonth == _selectedMonth;
+          final yearMatch = earningYear == _selectedYear;
+          
+          return classMatch && monthMatch && yearMatch;
+        }).toList();
 
         // Calculate total earnings
         double totalEarnings = 0;
         int totalPayments = 0;
         for (var earning in filteredEarnings) {
-          totalEarnings += (earning['totalEarnings'] as num?)?.toDouble() ?? 0.0;
+          totalEarnings += (earning['amount'] as num?)?.toDouble() ?? 0.0;
           totalPayments += (earning['paymentCount'] as int?) ?? 0;
         }
 
@@ -908,35 +933,89 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
             // Filters
             Container(
               padding: const EdgeInsets.all(16),
-              child: Row(
+              child: Column(
                 children: [
-                  // Class filter
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedClassId,
-                      decoration: InputDecoration(
-                        labelText: 'Filter by Class',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  Row(
+                    children: [
+                      // Month filter
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          value: _selectedMonth,
+                          decoration: InputDecoration(
+                            labelText: 'Month',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            prefixIcon: const Icon(Icons.calendar_month),
+                          ),
+                          items: List.generate(12, (index) {
+                            final month = index + 1;
+                            return DropdownMenuItem<int>(
+                              value: month,
+                              child: Text(_getMonthName(month), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                            );
+                          }),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedMonth = value!;
+                            });
+                          },
                         ),
-                        prefixIcon: const Icon(Icons.class_),
                       ),
-                      items: [
-                        DropdownMenuItem<String>(
-                          value: null,
-                          child: Text('All Classes', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                      const SizedBox(width: 16),
+                      // Year filter
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          value: _selectedYear,
+                          decoration: InputDecoration(
+                            labelText: 'Year',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            prefixIcon: const Icon(Icons.calendar_today),
+                          ),
+                          items: List.generate(5, (index) {
+                            final year = DateTime.now().year - 2 + index;
+                            return DropdownMenuItem<int>(
+                              value: year,
+                              child: Text(year.toString(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                            );
+                          }),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedYear = value!;
+                            });
+                          },
                         ),
-                        ...allClasses.map((cls) => DropdownMenuItem<String>(
-                          value: cls.id,
-                          child: Text(cls.name, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-                        )),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedClassId = value;
-                        });
-                      },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Class filter
+                  DropdownButtonFormField<String>(
+                    value: _selectedClassId,
+                    decoration: InputDecoration(
+                      labelText: 'Filter by Class',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.class_),
                     ),
+                    items: [
+                      DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('All Classes', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                      ),
+                      ...allClasses.map((cls) => DropdownMenuItem<String>(
+                        value: cls.id,
+                        child: Text(cls.name, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                      )),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedClassId = value;
+                      });
+                    },
                   ),
                 ],
               ),
@@ -1007,7 +1086,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No earnings data found',
+                            'No earnings for ${_getMonthName(_selectedMonth)} $_selectedYear',
                             style: TextStyle(
                               fontSize: 16,
                               color: Theme.of(context).colorScheme.outline,
@@ -1025,7 +1104,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                         
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
-                          child: ExpansionTile(
+                          child: ListTile(
                             leading: Container(
                               width: 48,
                               height: 48,
@@ -1043,7 +1122,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                               ),
                             ),
                             subtitle: Text(
-                              '${earning['studentCount'] ?? 0} student${(earning['studentCount'] ?? 0) != 1 ? 's' : ''}',
+                              '${_getMonthName(earning['month'])} ${earning['year']} - ${earning['paymentCount']} payment${earning['paymentCount'] != 1 ? 's' : ''}',
                             ),
                             trailing: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1053,49 +1132,13 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                                 border: Border.all(color: Colors.green.withOpacity(0.3)),
                               ),
                               child: Text(
-                                'Rs. ${((earning['totalEarnings'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}',
+                                'Rs. ${(earning['amount'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'}',
                                 style: const TextStyle(
                                   color: Colors.green,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                            children: [
-                              if (monthlyBreakdown.isEmpty)
-                                const Padding(
-                                  padding: EdgeInsets.all(16.0),
-                                  child: Text('No monthly data available'),
-                                )
-                              else
-                                ...monthlyBreakdown.map<Widget>((monthData) {
-                                  final month = monthData['month'] as int;
-                                  final year = monthData['year'] as int;
-                                  final amount = (monthData['amount'] as num?)?.toDouble() ?? 0.0;
-                                  final paymentCount = monthData['paymentCount'] as int? ?? 0;
-                                  
-                                  return ListTile(
-                                    leading: Icon(
-                                      Icons.calendar_month,
-                                      color: Colors.green.shade700,
-                                    ),
-                                    title: Text(
-                                      '${_getMonthName(month)} $year',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    subtitle: Text('$paymentCount payment${paymentCount != 1 ? 's' : ''}'),
-                                    trailing: Text(
-                                      'Rs. ${amount.toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.green.shade700,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                            ],
                           ),
                         );
                       },
