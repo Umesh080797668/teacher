@@ -279,6 +279,15 @@ const AdminSchema = new mongoose.Schema({
   role: { type: String, default: 'admin' },
 }, { timestamps: true });
 
+// Problem Report Schema for user-submitted issues
+const ProblemReportSchema = new mongoose.Schema({
+  userEmail: { type: String, required: true },
+  issueDescription: { type: String, required: true },
+  appVersion: { type: String },
+  device: { type: String },
+  teacherId: { type: String },
+}, { timestamps: true });
+
 AttendanceSchema.index({ studentId: 1, year: 1, month: 1 });
 
 const Student = mongoose.model('Student', StudentSchema);
@@ -290,6 +299,7 @@ const EmailVerification = mongoose.model('EmailVerification', EmailVerificationS
 const PasswordReset = mongoose.model('PasswordReset', PasswordResetSchema);
 const WebSession = mongoose.model('WebSession', WebSessionSchema);
 const Admin = mongoose.model('Admin', AdminSchema);
+const ProblemReport = mongoose.model('ProblemReport', ProblemReportSchema);
 
 // Store for pending QR sessions and connected sockets
 const pendingQRSessions = new Map(); // sessionId -> { timestamp, userType }
@@ -1345,6 +1355,55 @@ app.delete('/api/teachers/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting teacher:', error);
     res.status(500).json({ error: 'Failed to delete teacher', details: error.message });
+  }
+});
+
+// GET teacher status
+app.get('/api/teachers/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const teacher = await Teacher.findById(id);
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    res.json({ status: teacher.status });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch teacher status' });
+  }
+});
+
+// PUT activate teacher
+app.put('/api/teachers/:id/activate', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedTeacher = await Teacher.findByIdAndUpdate(id, { status: 'active' }, { new: true });
+    if (!updatedTeacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    res.json(updatedTeacher);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to activate teacher' });
+  }
+});
+
+// POST submit problem report
+app.post('/api/reports/problem', async (req, res) => {
+  try {
+    const { userEmail, issueDescription, appVersion, device, teacherId } = req.body;
+    if (!userEmail || !issueDescription) {
+      return res.status(400).json({ error: 'userEmail and issueDescription are required' });
+    }
+    const report = new ProblemReport({
+      userEmail,
+      issueDescription,
+      appVersion,
+      device,
+      teacherId
+    });
+    await report.save();
+    res.status(201).json({ message: 'Problem report submitted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to submit problem report' });
   }
 });
 
