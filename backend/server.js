@@ -3175,6 +3175,7 @@ const verifyToken = (req, res, next) => {
       return res.status(401).json({ error: 'Invalid token' });
     }
     res.status(401).json({ error: 'Invalid token' });
+  }
 };
 
 const verifySuperAdmin = async (req, res, next) => {
@@ -4624,4 +4625,4 @@ if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
-}};
+}
