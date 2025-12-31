@@ -1401,6 +1401,41 @@ app.post('/api/reports/problem', async (req, res) => {
       teacherId
     });
     await report.save();
+
+    // Send email notification to admin
+    try {
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: 'umeshbnadara08@gmail.com',
+        subject: `Problem Report from ${userEmail}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Problem Report Received</h2>
+            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>From User:</strong> ${userEmail}</p>
+              <p><strong>Teacher ID:</strong> ${teacherId || 'Not provided'}</p>
+              <p><strong>App Version:</strong> ${appVersion || 'Not provided'}</p>
+              <p><strong>Device:</strong> ${device || 'Not provided'}</p>
+              <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+            </div>
+            <div style="background-color: #fff; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+              <h3 style="color: #333; margin-top: 0;">Issue Description:</h3>
+              <p style="white-space: pre-wrap; line-height: 1.5;">${issueDescription}</p>
+            </div>
+            <p style="color: #666; font-size: 12px; margin-top: 20px;">
+              This email was sent from the Teacher Attendance App problem reporting system.
+            </p>
+          </div>
+        `
+      };
+
+      await transporter.sendMail(mailOptions);
+      console.log('Problem report email sent successfully');
+    } catch (emailError) {
+      console.error('Failed to send problem report email:', emailError);
+      // Don't fail the request if email fails, just log it
+    }
+
     res.status(201).json({ message: 'Problem report submitted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to submit problem report' });
