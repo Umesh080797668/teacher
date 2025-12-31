@@ -2684,6 +2684,33 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Check teacher status (for periodic validation)
+app.get('/api/auth/status', async (req, res) => {
+  try {
+    // Get teacher email from query parameter or authorization header
+    const email = req.query.email;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email parameter is required' });
+    }
+    
+    const normalizedEmail = email.toLowerCase().trim();
+    const teacher = await Teacher.findOne({ email: normalizedEmail });
+    
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    
+    res.json({
+      status: teacher.status,
+      isActive: teacher.status === 'active'
+    });
+  } catch (error) {
+    console.error('Error checking teacher status:', error);
+    res.status(500).json({ error: 'Failed to check teacher status' });
+  }
+});
+
 // Forgot Password Routes
 app.post('/api/auth/forgot-password', async (req, res) => {
   try {

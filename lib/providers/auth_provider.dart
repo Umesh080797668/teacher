@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:async';
+import 'package:teacher_attendance/services/api_service.dart';
 
 class UserAccount {
   final String email;
@@ -64,6 +66,7 @@ class AuthProvider extends ChangeNotifier {
   bool _isActivated = false; // New field for account activation
   bool _isLoading = true;
   List<UserAccount> _accountHistory = [];
+  Timer? _statusCheckTimer;
 
   bool get isLoggedIn => _isLoggedIn;
   bool get isGuest => _isGuest;
@@ -99,6 +102,11 @@ class AuthProvider extends ChangeNotifier {
       if (accountHistoryJson != null) {
         final List<dynamic> historyList = json.decode(accountHistoryJson);
         _accountHistory = historyList.map((item) => UserAccount.fromJson(item)).toList();
+      }
+
+      // Start status checking if user is logged in
+      if (_isLoggedIn && _userEmail != null) {
+        _startStatusChecking();
       }
     } catch (e) {
       debugPrint('Error loading auth state: $e');
@@ -158,6 +166,9 @@ class AuthProvider extends ChangeNotifier {
     // Save account history
     await prefs.setString('account_history', json.encode(_accountHistory.map((a) => a.toJson()).toList()));
 
+    // Start status checking
+    _startStatusChecking();
+
     notifyListeners();
   }
 
@@ -176,6 +187,9 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Stop status checking
+    _stopStatusChecking();
+    
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('is_logged_in');
     await prefs.remove('is_guest');
@@ -216,5 +230,48 @@ class AuthProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('account_history', json.encode(_accountHistory.map((a) => a.toJson()).toList()));
     notifyListeners();
+  }
+
+  void _startStatusChecking() {
+    // Stop existing timer if any
+    _stopStatusChecking();
+    
+    // Check status every 5 minutes
+    _statusCheckTimer = Timer.periodic(const Duration(minutes: 5), (timer) async {
+      await _checkTeacherStatus();
+    });
+  }
+
+  void _stopStatusChecking() {
+    _statusCheckTimer?.cancel();
+    _statusCheckTimer = null;
+  }
+
+  Future<void> _checkTeacherStatus() async {
+    if (_userEmail == null || !_isLoggedIn) {
+      return;
+    }
+
+    try {
+      final response = await ApiService.checkTeacherStatus(_userEmail!);
+      final isActive = response['isActive'] as bool;
+      
+      if (!isActive) {
+        debugPrint('Teacher account is inactive, logging out...');
+        await logout();
+        
+        // You might want to show a dialog here, but since this is in a provider,
+        // we'll just log out silently. The UI will update accordingly.
+      }
+    } catch (e) {
+      debugPrint('Error checking teacher status: $e');
+      // Don't logout on network errors, just log the error
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopStatusChecking();
+    super.dispose();
   }
 }

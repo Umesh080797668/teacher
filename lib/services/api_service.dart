@@ -243,6 +243,15 @@ class ApiService {
     return json.decode(response.body);
   }
 
+  static Future<Map<String, dynamic>> checkTeacherStatus(String email) async {
+    final response = await _makeRequest(
+      'GET',
+      '/api/auth/status?email=$email',
+    );
+
+    return json.decode(response.body);
+  }
+
   static Future<Map<String, dynamic>> sendVerificationCode(String email) async {
     final response = await _makeRequest(
       'POST',
