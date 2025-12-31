@@ -1393,6 +1393,8 @@ app.post('/api/reports/problem', async (req, res) => {
     if (!userEmail || !issueDescription) {
       return res.status(400).json({ error: 'userEmail and issueDescription are required' });
     }
+
+    // Save the report to database
     const report = new ProblemReport({
       userEmail,
       issueDescription,
@@ -1403,41 +1405,75 @@ app.post('/api/reports/problem', async (req, res) => {
     await report.save();
 
     // Send email notification to admin
-    try {
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: 'umeshbnadara08@gmail.com',
-        subject: `Problem Report from ${userEmail}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">Problem Report Received</h2>
-            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <p><strong>From User:</strong> ${userEmail}</p>
-              <p><strong>Teacher ID:</strong> ${teacherId || 'Not provided'}</p>
-              <p><strong>App Version:</strong> ${appVersion || 'Not provided'}</p>
-              <p><strong>Device:</strong> ${device || 'Not provided'}</p>
-              <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: 'umeshbandara08@gmail.com',
+      subject: 'New Problem Report - Teacher Attendance App',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Problem Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+            .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+            .content { padding: 30px; }
+            .report-details { background: #f8f9fa; border-radius: 6px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea; }
+            .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }
+            .app-name { font-weight: bold; color: #667eea; }
+            .label { font-weight: bold; color: #333; margin-bottom: 5px; }
+            .value { margin-bottom: 15px; color: #555; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🚨 New Problem Report</h1>
+              <p>Teacher Attendance App</p>
             </div>
-            <div style="background-color: #fff; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
-              <h3 style="color: #333; margin-top: 0;">Issue Description:</h3>
-              <p style="white-space: pre-wrap; line-height: 1.5;">${issueDescription}</p>
-            </div>
-            <p style="color: #666; font-size: 12px; margin-top: 20px;">
-              This email was sent from the Teacher Attendance App problem reporting system.
-            </p>
-          </div>
-        `
-      };
 
-      await transporter.sendMail(mailOptions);
-      console.log('Problem report email sent successfully');
-    } catch (emailError) {
-      console.error('Failed to send problem report email:', emailError);
-      // Don't fail the request if email fails, just log it
-    }
+            <div class="content">
+              <h2>Report Details</h2>
+
+              <div class="report-details">
+                <div class="label">User Email:</div>
+                <div class="value">${userEmail}</div>
+
+                <div class="label">Issue Description:</div>
+                <div class="value">${issueDescription.replace(/\n/g, '<br>')}</div>
+
+                ${appVersion ? `<div class="label">App Version:</div><div class="value">${appVersion}</div>` : ''}
+                ${device ? `<div class="label">Device:</div><div class="value">${device}</div>` : ''}
+                ${teacherId ? `<div class="label">Teacher ID:</div><div class="value">${teacherId}</div>` : ''}
+              </div>
+
+              <p>Please review this problem report and take appropriate action.</p>
+            </div>
+
+            <div class="footer">
+              <p>
+                <span class="app-name">Teacher Attendance App</span><br>
+                Problem Report System<br>
+                © 2025 Teacher Attendance. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    // Send email asynchronously (don't wait for it to complete)
+    transporter.sendMail(mailOptions).catch(error => {
+      console.error('Error sending problem report email:', error);
+    });
 
     res.status(201).json({ message: 'Problem report submitted successfully' });
   } catch (error) {
+    console.error('Error submitting problem report:', error);
     res.status(500).json({ error: 'Failed to submit problem report' });
   }
 });
