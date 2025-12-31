@@ -9,10 +9,15 @@ A simple Express.js backend for the Teacher Attendance mobile app.
    npm install
    ```
 
-2. Create a `.env` file with your MongoDB URI:
+2. Create a `.env` file with your configuration:
    ```
    PORT=3001
    MONGODB_URI=mongodb://localhost:27017/teacher_attendance_mobile
+   EMAIL_USER=your-email@gmail.com
+   EMAIL_PASS=your-app-password
+   CLOUDINARY_CLOUD_NAME=your-cloud-name
+   CLOUDINARY_API_KEY=your-api-key
+   CLOUDINARY_API_SECRET=your-api-secret
    ```
 
 3. Start the server:

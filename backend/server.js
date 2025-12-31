@@ -8,7 +8,15 @@ const socketIo = require('socket.io');
 const QRCode = require('qrcode');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
 require('dotenv').config();
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -308,6 +316,19 @@ const ProblemReportSchema = new mongoose.Schema({
   teacherId: { type: String },
 }, { timestamps: true });
 
+// Payment Proof Schema for subscription payment proofs
+const PaymentProofSchema = new mongoose.Schema({
+  userEmail: { type: String, required: true },
+  subscriptionType: { type: String, enum: ['monthly', 'yearly'], required: true },
+  amount: { type: String, required: true },
+  paymentProofUrl: { type: String, required: true }, // Cloudinary URL
+  paymentProofPublicId: { type: String, required: true }, // Cloudinary public ID for deletion
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  reviewedBy: { type: String }, // Admin email who reviewed it
+  reviewedAt: { type: Date },
+  reviewNotes: { type: String },
+}, { timestamps: true });
+
 AttendanceSchema.index({ studentId: 1, year: 1, month: 1 });
 
 const Student = mongoose.model('Student', StudentSchema);
@@ -320,6 +341,7 @@ const PasswordReset = mongoose.model('PasswordReset', PasswordResetSchema);
 const WebSession = mongoose.model('WebSession', WebSessionSchema);
 const Admin = mongoose.model('Admin', AdminSchema);
 const ProblemReport = mongoose.model('ProblemReport', ProblemReportSchema);
+const PaymentProof = mongoose.model('PaymentProof', PaymentProofSchema);
 
 // Store for pending QR sessions and connected sockets
 const pendingQRSessions = new Map(); // sessionId -> { timestamp, userType }
@@ -695,6 +717,9 @@ app.get('/api/debug/env', (req, res) => {
     hasMongoUri: !!process.env.MONGODB_URI,
     hasEmailUser: !!process.env.EMAIL_USER,
     hasEmailPass: !!process.env.EMAIL_PASS,
+    hasCloudinaryCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+    hasCloudinaryApiKey: !!process.env.CLOUDINARY_API_KEY,
+    hasCloudinaryApiSecret: !!process.env.CLOUDINARY_API_SECRET,
     nodeEnv: process.env.NODE_ENV,
     mongoUriLength: process.env.MONGODB_URI ? process.env.MONGODB_URI.length : 0,
     mongoUriStartsWith: process.env.MONGODB_URI ? process.env.MONGODB_URI.substring(0, 20) + '...' : null
@@ -1192,36 +1217,36 @@ app.post('/api/auth/submit-payment-proof', upload.single('paymentProof'), async 
     // Get subscription amount
     const amount = subscriptionType === 'monthly' ? 'LKR 1,000' : 'LKR 8,000';
 
-    // Send email to admin with payment proof
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: 'umeshbnadara08@gmail.com', // Admin email
-      subject: `Payment Proof Submission - ${subscriptionType.toUpperCase()} Subscription - ${userEmail}`,
-      html: `
-        <h2>Payment Proof Submission</h2>
-        <p><strong>User Email:</strong> ${userEmail}</p>
-        <p><strong>Subscription Type:</strong> ${subscriptionType}</p>
-        <p><strong>Payment Amount:</strong> ${amount}</p>
-        <p><strong>Submission Date:</strong> ${new Date().toLocaleString()}</p>
-        <p>Please review the attached payment proof and activate the subscription if valid.</p>
-        <br>
-        <p><em>This email was sent automatically from the Teacher Attendance App.</em></p>
-      `,
-      attachments: [
+    // Upload image to Cloudinary
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
         {
-          filename: `payment_proof_${userEmail}_${Date.now()}.${req.file.mimetype.split('/')[1]}`,
-          content: req.file.buffer,
-          contentType: req.file.mimetype
+          folder: 'payment-proofs',
+          public_id: `payment_proof_${userEmail}_${Date.now()}`,
+          resource_type: 'image'
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
         }
-      ]
-    };
+      );
+      uploadStream.end(req.file.buffer);
+    });
 
-    await transporter.sendMail(mailOptions);
+    // Save payment proof to database with Cloudinary URL
+    const paymentProof = new PaymentProof({
+      userEmail,
+      subscriptionType,
+      amount,
+      paymentProofUrl: uploadResult.secure_url,
+      paymentProofPublicId: uploadResult.public_id
+    });
+    await paymentProof.save();
 
-    console.log(`Payment proof submitted successfully for ${userEmail} (${subscriptionType})`);
+    console.log(`Payment proof submitted successfully for ${userEmail} (${subscriptionType}) - Cloudinary URL: ${uploadResult.secure_url}`);
 
     res.json({
-      message: 'Payment proof submitted successfully! You will receive a confirmation email and your account will be activated within 24 hours.',
+      message: 'Payment proof submitted successfully! Your payment will be reviewed and your account will be activated within 24 hours.',
       subscriptionType,
       amount
     });
@@ -1229,6 +1254,141 @@ app.post('/api/auth/submit-payment-proof', upload.single('paymentProof'), async 
   } catch (error) {
     console.error('Error submitting payment proof:', error);
     res.status(500).json({ error: 'Failed to submit payment proof' });
+  }
+});
+
+// GET payment proofs for admin review
+app.get('/api/admin/payment-proofs', verifySuperAdmin, async (req, res) => {
+  try {
+    const paymentProofs = await PaymentProof.find().sort({ createdAt: -1 });
+    res.json(paymentProofs);
+  } catch (error) {
+    console.error('Error fetching payment proofs:', error);
+    res.status(500).json({ error: 'Failed to fetch payment proofs' });
+  }
+});
+
+// GET payment proof image
+app.get('/api/admin/payment-proofs/:id/image', verifySuperAdmin, async (req, res) => {
+  try {
+    const paymentProof = await PaymentProof.findById(req.params.id);
+    if (!paymentProof) {
+      return res.status(404).json({ error: 'Payment proof not found' });
+    }
+
+    // Redirect to Cloudinary URL
+    res.redirect(paymentProof.paymentProofUrl);
+  } catch (error) {
+    console.error('Error fetching payment proof image:', error);
+    res.status(500).json({ error: 'Failed to fetch payment proof image' });
+  }
+});
+
+// POST approve/reject payment proof
+app.post('/api/admin/payment-proofs/:id/review', verifySuperAdmin, async (req, res) => {
+  try {
+    const { action, notes, adminEmail } = req.body; // action: 'approve' or 'reject'
+
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action. Must be approve or reject' });
+    }
+
+    const paymentProof = await PaymentProof.findById(req.params.id);
+    if (!paymentProof) {
+      return res.status(404).json({ error: 'Payment proof not found' });
+    }
+
+    if (paymentProof.status !== 'pending') {
+      return res.status(400).json({ error: 'Payment proof has already been reviewed' });
+    }
+
+    // Update payment proof status
+    paymentProof.status = action === 'approve' ? 'approved' : 'rejected';
+    paymentProof.reviewedBy = adminEmail;
+    paymentProof.reviewedAt = new Date();
+    paymentProof.reviewNotes = notes || '';
+    await paymentProof.save();
+
+    // If approved, activate the teacher's account
+    if (action === 'approve') {
+      const teacher = await Teacher.findOne({ email: paymentProof.userEmail });
+      if (teacher) {
+        teacher.status = 'active';
+        await teacher.save();
+
+        // Send confirmation email to teacher
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: paymentProof.userEmail,
+          subject: 'Subscription Activated - Teacher Attendance App',
+          html: `
+            <h2>Subscription Activated!</h2>
+            <p>Dear Teacher,</p>
+            <p>Your payment proof has been reviewed and approved. Your account has been activated successfully.</p>
+            <p><strong>Subscription Details:</strong></p>
+            <ul>
+              <li>Type: ${paymentProof.subscriptionType}</li>
+              <li>Amount: ${paymentProof.amount}</li>
+            </ul>
+            <p>You can now start using the Teacher Attendance App with full features.</p>
+            <br>
+            <p>Best regards,<br>Teacher Attendance App Team</p>
+          `
+        };
+
+        transporter.sendMail(mailOptions).catch(error => {
+          console.error('Error sending activation email:', error);
+        });
+      }
+    } else {
+      // If rejected, delete the image from Cloudinary
+      try {
+        await cloudinary.uploader.destroy(paymentProof.paymentProofPublicId);
+        console.log(`Deleted rejected payment proof from Cloudinary: ${paymentProof.paymentProofPublicId}`);
+      } catch (cloudinaryError) {
+        console.error('Error deleting image from Cloudinary:', cloudinaryError);
+      }
+
+      // Send rejection email
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: paymentProof.userEmail,
+        subject: 'Payment Proof Rejected - Teacher Attendance App',
+        html: `
+          <h2>Payment Proof Review</h2>
+          <p>Dear Teacher,</p>
+          <p>Your payment proof has been reviewed but was not approved. Please check the following notes and resubmit:</p>
+          <p><strong>Review Notes:</strong> ${notes || 'No specific notes provided'}</p>
+          <p><strong>Subscription Details:</strong></p>
+          <ul>
+            <li>Type: ${paymentProof.subscriptionType}</li>
+            <li>Amount: ${paymentProof.amount}</li>
+          </ul>
+          <p>Please submit a new payment proof if you believe this was an error.</p>
+          <br>
+          <p>Best regards,<br>Teacher Attendance App Team</p>
+        `
+      };
+
+      transporter.sendMail(mailOptions).catch(error => {
+        console.error('Error sending rejection email:', error);
+      });
+    }
+
+    res.json({
+      message: `Payment proof ${action}d successfully`,
+      paymentProof: {
+        id: paymentProof._id,
+        status: paymentProof.status,
+        reviewedBy: paymentProof.reviewedBy,
+        reviewedAt: paymentProof.reviewedAt,
+        reviewNotes: paymentProof.reviewNotes
+      }
+    });
+
+  } catch (error) {
+    console.error('Error reviewing payment proof:', error);
+    res.status(500).json({ error: 'Failed to review payment proof' });
   }
 });
 
@@ -1537,77 +1697,88 @@ app.post('/api/reports/problem', async (req, res) => {
     });
     await report.save();
 
-    // Send email notification to admin
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: 'umeshbandara08@gmail.com',
-      subject: 'New Problem Report - Teacher Attendance App',
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>New Problem Report</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
-            .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
-            .content { padding: 30px; }
-            .report-details { background: #f8f9fa; border-radius: 6px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea; }
-            .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }
-            .app-name { font-weight: bold; color: #667eea; }
-            .label { font-weight: bold; color: #333; margin-bottom: 5px; }
-            .value { margin-bottom: 15px; color: #555; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🚨 New Problem Report</h1>
-              <p>Teacher Attendance App</p>
-            </div>
+    // Email sending removed - reports are now accessible via admin app
+    // const mailOptions = {
+    //   from: process.env.EMAIL_USER,
+    //   to: 'umeshbandara08@gmail.com',
+    //   subject: 'New Problem Report - Teacher Attendance App',
+    //   html: `
+    //     <!DOCTYPE html>
+    //     <html>
+    //     <head>
+    //       <meta charset="utf-8">
+    //       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    //       <title>New Problem Report</title>
+    //       <style>
+    //         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+    //         .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    //         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+    //         .content { padding: 30px; }
+    //         .report-details { background: #f8f9fa; border-radius: 6px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea; }
+    //         .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }
+    //         .app-name { font-weight: bold; color: #667eea; }
+    //         .label { font-weight: bold; color: #333; margin-bottom: 5px; }
+    //         .value { margin-bottom: 15px; color: #555; }
+    //       </style>
+    //     </head>
+    //     <body>
+    //       <div class="container">
+    //         <div class="header">
+    //           <h1>🚨 New Problem Report</h1>
+    //           <p>Teacher Attendance App</p>
+    //         </div>
 
-            <div class="content">
-              <h2>Report Details</h2>
+    //         <div class="content">
+    //           <h2>Report Details</h2>
 
-              <div class="report-details">
-                <div class="label">User Email:</div>
-                <div class="value">${userEmail}</div>
+    //           <div class="report-details">
+    //             <div class="label">User Email:</div>
+    //             <div class="value">${userEmail}</div>
 
-                <div class="label">Issue Description:</div>
-                <div class="value">${issueDescription.replace(/\n/g, '<br>')}</div>
+    //             <div class="label">Issue Description:</div>
+    //             <div class="value">${issueDescription.replace(/\n/g, '<br>')}</div>
 
-                ${appVersion ? `<div class="label">App Version:</div><div class="value">${appVersion}</div>` : ''}
-                ${device ? `<div class="label">Device:</div><div class="value">${device}</div>` : ''}
-                ${teacherId ? `<div class="label">Teacher ID:</div><div class="value">${teacherId}</div>` : ''}
-              </div>
+    //             ${appVersion ? `<div class="label">App Version:</div><div class="value">${appVersion}</div>` : ''}
+    //             ${device ? `<div class="label">Device:</div><div class="value">${device}</div>` : ''}
+    //             ${teacherId ? `<div class="label">Teacher ID:</div><div class="value">${teacherId}</div>` : ''}
+    //           </div>
 
-              <p>Please review this problem report and take appropriate action.</p>
-            </div>
+    //           <p>Please review this problem report and take appropriate action.</p>
+    //         </div>
 
-            <div class="footer">
-              <p>
-                <span class="app-name">Teacher Attendance App</span><br>
-                Problem Report System<br>
-                © 2025 Teacher Attendance. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `
-    };
+    //         <div class="footer">
+    //           <p>
+    //             <span class="app-name">Teacher Attendance App</span><br>
+    //             Problem Report System<br>
+    //             © 2025 Teacher Attendance. All rights reserved.
+    //           </p>
+    //         </div>
+    //       </div>
+    //     </body>
+    //     </html>
+    //   `
+    // };
 
-    // Send email asynchronously (don't wait for it to complete)
-    transporter.sendMail(mailOptions).catch(error => {
-      console.error('Error sending problem report email:', error);
-    });
+    // // Send email asynchronously (don't wait for it to complete)
+    // transporter.sendMail(mailOptions).catch(error => {
+    //   console.error('Error sending problem report email:', error);
+    // });
 
     res.status(201).json({ message: 'Problem report submitted successfully' });
   } catch (error) {
     console.error('Error submitting problem report:', error);
     res.status(500).json({ error: 'Failed to submit problem report' });
+  }
+});
+
+// GET problem reports
+app.get('/api/reports/problems', verifySuperAdmin, async (req, res) => {
+  try {
+    const reports = await ProblemReport.find().sort({ createdAt: -1 });
+    res.json(reports);
+  } catch (error) {
+    console.error('Error fetching problem reports:', error);
+    res.status(500).json({ error: 'Failed to fetch problem reports' });
   }
 });
 
