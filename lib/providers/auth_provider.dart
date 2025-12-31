@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:teacher_attendance/services/api_service.dart';
+import 'package:teacher_attendance/services/notification_service.dart';
 
 class UserAccount {
   final String email;
@@ -70,6 +71,8 @@ class AuthProvider extends ChangeNotifier {
   bool _subscriptionExpiringSoon = false; // New field for subscription expiring soon
   DateTime? _lastSubscriptionWarningDate; // Track when warning was last shown
   bool _isWarningScreenShown = false; // Track if warning screen is currently shown
+  bool _hasCompletedSubscriptionSetup = false; // Track if user has completed subscription setup
+  bool _wasActivationNotified = false; // Track if activation notification was shown
   List<UserAccount> _accountHistory = [];
   Timer? _statusCheckTimer;
 
@@ -90,6 +93,7 @@ class AuthProvider extends ChangeNotifier {
     !_isWarningScreenShown;
   bool get isWarningScreenShown => _isWarningScreenShown;
   bool get isLoading => _isLoading;
+  bool get hasCompletedSubscriptionSetup => _hasCompletedSubscriptionSetup;
   List<UserAccount> get accountHistory => _accountHistory;
 
   AuthProvider() {
@@ -112,6 +116,8 @@ class AuthProvider extends ChangeNotifier {
       if (lastWarningDateStr != null) {
         _lastSubscriptionWarningDate = DateTime.parse(lastWarningDateStr);
       }
+      _hasCompletedSubscriptionSetup = prefs.getBool('has_completed_subscription_setup') ?? false; // Load subscription setup completion
+      _wasActivationNotified = prefs.getBool('was_activation_notified') ?? false; // Load activation notification status
       final teacherDataJson = prefs.getString('teacher_data');
       if (teacherDataJson != null) {
         _teacherData = Map<String, dynamic>.from(json.decode(teacherDataJson));
@@ -222,6 +228,8 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('subscription_expired'); // Remove subscription expiry
     await prefs.remove('subscription_expiring_soon'); // Remove subscription expiring soon
     await prefs.remove('last_subscription_warning_date'); // Remove last warning date
+    await prefs.remove('has_completed_subscription_setup'); // Remove subscription setup completion
+    await prefs.remove('was_activation_notified'); // Remove activation notification status
     
     _isLoggedIn = false;
     _isGuest = false;
@@ -235,6 +243,8 @@ class AuthProvider extends ChangeNotifier {
     _subscriptionExpiringSoon = false; // Reset subscription expiring soon
     _lastSubscriptionWarningDate = null; // Reset last warning date
     _isWarningScreenShown = false; // Reset warning screen shown
+    _hasCompletedSubscriptionSetup = false; // Reset subscription setup completion
+    _wasActivationNotified = false; // Reset activation notification status
     notifyListeners();
   }
 
@@ -268,6 +278,19 @@ class AuthProvider extends ChangeNotifier {
   void setWarningScreenShown(bool shown) {
     _isWarningScreenShown = shown;
     notifyListeners();
+  }
+
+  Future<void> markSubscriptionSetupCompleted() async {
+    _hasCompletedSubscriptionSetup = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_completed_subscription_setup', true);
+    notifyListeners();
+  }
+
+  Future<void> markActivationNotified() async {
+    _wasActivationNotified = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('was_activation_notified', true);
   }
 
   Future<void> switchToAccount(UserAccount account) async {
@@ -316,9 +339,25 @@ class AuthProvider extends ChangeNotifier {
       // Update activation status based on teacher status
       final isActivated = teacherStatus == 'active';
       if (_isActivated != isActivated) {
+        final wasInactive = !_isActivated;
         _isActivated = isActivated;
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('is_activated', _isActivated);
+        
+        // Show notification if account just got activated and we haven't notified yet
+        if (isActivated && wasInactive && !_wasActivationNotified) {
+          try {
+            final notificationService = NotificationService();
+            await notificationService.initialize();
+            await notificationService.showNotification(
+              title: 'Account Activated!',
+              body: 'Your account has been successfully activated. You can now use all features.',
+            );
+            await markActivationNotified();
+          } catch (e) {
+            debugPrint('Failed to show activation notification: $e');
+          }
+        }
       }
 
       // Update subscription expired status
@@ -352,7 +391,13 @@ class AuthProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error checking teacher status: $e');
-      // Don't change status on network errors
+      // Check if teacher not found (account deleted)
+      if (e is ApiException && e.statusCode == 404) {
+        debugPrint('Teacher account not found, logging out...');
+        await logout();
+        notifyListeners();
+      }
+      // Don't change status on other network errors
     }
   }
 

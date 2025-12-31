@@ -26,8 +26,48 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // Check user status when app comes back to foreground
+    if (state == AppLifecycleState.resumed) {
+      _checkUserStatusOnResume();
+    }
+  }
+
+  Future<void> _checkUserStatusOnResume() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Only check if user is logged in
+    if (authProvider.isAuthenticated && authProvider.isLoggedIn) {
+      try {
+        await authProvider.checkStatusNow();
+      } catch (e) {
+        debugPrint('Error checking user status on resume: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

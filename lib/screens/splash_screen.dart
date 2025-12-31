@@ -6,6 +6,7 @@ import '../services/update_service.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 import 'forced_update_screen.dart';
+import 'subscription_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -105,10 +106,24 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
+    // Validate logged-in user status to check if account still exists
+    if (auth.isAuthenticated && auth.isLoggedIn) {
+      try {
+        await auth.checkStatusNow();
+      } catch (e) {
+        debugPrint('Error validating user status: $e');
+      }
+    }
+
     // Check auth state and navigate accordingly
-    final target = auth.isAuthenticated
-        ? const HomeScreen()
-        : const LoginScreen();
+    Widget target;
+    if (!auth.isAuthenticated) {
+      target = const LoginScreen();
+    } else if (!auth.hasCompletedSubscriptionSetup) {
+      target = const SubscriptionScreen();
+    } else {
+      target = const HomeScreen();
+    }
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(

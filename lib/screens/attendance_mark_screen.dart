@@ -7,6 +7,7 @@ import '../providers/classes_provider.dart';
 import '../providers/students_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/custom_widgets.dart';
+import 'login_screen.dart';
 
 class AttendanceMarkScreen extends StatefulWidget {
   const AttendanceMarkScreen({super.key});
@@ -35,6 +36,33 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
 
   Future<void> _markAllAttendance() async {
     if (_isSaving) return;
+
+    // Check user authentication status before proceeding
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.isAuthenticated && auth.isLoggedIn) {
+      try {
+        await auth.checkStatusNow();
+        // If account was invalidated, auth.isAuthenticated will be false now
+        if (!auth.isAuthenticated) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Your account has been deactivated. Please login again.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            // Navigate to login screen
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
+          }
+          return;
+        }
+      } catch (e) {
+        debugPrint('Error checking user status: $e');
+        // Continue with operation if status check fails
+      }
+    }
 
     if (_attendanceStatus.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

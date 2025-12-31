@@ -53,12 +53,20 @@ class _SubscriptionWarningScreenState extends State<SubscriptionWarningScreen> {
             Center(
               child: Column(
                 children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 64,
-                    color: Colors.orange,
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.warning_amber_rounded,
+                      size: 40,
+                      color: Colors.orange,
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Text(
                     'Subscription Expiring Soon',
                     style: TextStyle(
@@ -67,40 +75,22 @@ class _SubscriptionWarningScreenState extends State<SubscriptionWarningScreen> {
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Your subscription will expire in $daysLeft day${daysLeft == 1 ? '' : 's'}. Please renew to continue using all features.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Warning message
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.orange),
-                  const SizedBox(width: 12),
-                  Expanded(
                     child: Text(
-                      'Your account will be suspended once the subscription expires. Renew now to avoid interruption.',
+                      'Your subscription will expire in $daysLeft day${daysLeft == 1 ? '' : 's'}. Please renew now to avoid service interruption.',
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontSize: 14,
+                        fontSize: 16,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                        height: 1.4,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ],
@@ -118,32 +108,43 @@ class _SubscriptionWarningScreenState extends State<SubscriptionWarningScreen> {
                       Navigator.of(context).pop();
                     },
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: Text(
                       'Remind Me Later',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: ElevatedButton(
+                  child: FilledButton(
                     onPressed: () {
                       // Navigate to activation screen for renewal
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (context) => const ActivationScreen()),
                       );
                     },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text('Renew Now'),
+                    child: const Text(
+                      'Renew Now',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],

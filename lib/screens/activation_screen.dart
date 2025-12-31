@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_email_sender/flutter_email_sender.dart';
+import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 
 class ActivationScreen extends StatefulWidget {
-  const ActivationScreen({super.key});
+  final String? selectedPlan;
+
+  const ActivationScreen({super.key, this.selectedPlan});
 
   @override
   State<ActivationScreen> createState() => _ActivationScreenState();
@@ -14,6 +19,85 @@ class _ActivationScreenState extends State<ActivationScreen> {
   bool _isWaiting = false;
   String? _selectedPlan;
   bool _shouldContinuePolling = true;
+  File? _paymentProof;
+  bool _isSendingEmail = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPlan = widget.selectedPlan;
+  }
+
+  Future<void> _pickPaymentProof() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      setState(() {
+        _paymentProof = File(image.path);
+      });
+    }
+  }
+
+  Future<void> _sendPaymentProofEmail() async {
+    if (_paymentProof == null || _selectedPlan == null) return;
+
+    setState(() {
+      _isSendingEmail = true;
+    });
+
+    try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final userEmail = auth.userEmail;
+
+      final Email email = Email(
+        body: '''
+Payment Proof Submission
+
+User Email: $userEmail
+Selected Plan: $_selectedPlan
+Payment Amount: ${_selectedPlan == 'monthly' ? 'LKR 1,000' : 'LKR 8,000'}
+
+Please review the attached payment proof and activate the subscription.
+
+This email was sent automatically from the Teacher Attendance App.
+        ''',
+        subject: 'Payment Proof - Subscription Activation - $userEmail',
+        recipients: ['umeshbnadara08@gmail.com'],
+        attachmentPaths: [_paymentProof!.path],
+        isHTML: false,
+      );
+
+      await FlutterEmailSender.send(email);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment proof sent successfully! We will review and activate your account within 24 hours.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Failed to send email: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send payment proof: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSendingEmail = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,73 +198,105 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
             // Subscription Plans
             Text(
-              'Choose a Subscription Plan',
+              'Choose Your Plan',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+
+            Text(
+              'Select the plan that best fits your needs',
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+
+            const SizedBox(height: 24),
 
             // Monthly Plan
-            Card(
-              color: _selectedPlan == 'monthly'
-                  ? Theme.of(context).colorScheme.primaryContainer
-                  : Theme.of(context).colorScheme.surfaceVariant,
-              child: InkWell(
-                onTap: () {
-                  setState(() {
-                    _selectedPlan = 'monthly';
-                  });
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Radio<String>(
-                        value: 'monthly',
-                        groupValue: _selectedPlan,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedPlan = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Monthly Plan',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                            Text(
-                              'LKR 1,000 per month',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Access to all features for one month',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedPlan = 'monthly';
+                });
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: _selectedPlan == 'monthly'
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _selectedPlan == 'monthly'
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                    width: _selectedPlan == 'monthly' ? 2 : 1,
                   ),
+                  boxShadow: _selectedPlan == 'monthly'
+                      ? [
+                          BoxShadow(
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          )
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Monthly Plan',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                              if (_selectedPlan == 'monthly') ...[
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'LKR 1,000 per month',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Perfect for trying out our features. Access to all features for one month.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -188,76 +304,115 @@ class _ActivationScreenState extends State<ActivationScreen> {
             const SizedBox(height: 12),
 
             // Yearly Plan
-            Card(
-              color: _selectedPlan == 'yearly'
-                  ? Theme.of(context).colorScheme.primaryContainer
-                  : Theme.of(context).colorScheme.surfaceVariant,
-              child: InkWell(
-                onTap: () {
-                  setState(() {
-                    _selectedPlan = 'yearly';
-                  });
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Radio<String>(
-                        value: 'yearly',
-                        groupValue: _selectedPlan,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedPlan = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Yearly Plan',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                            Text(
-                              'LKR 8,000 per year',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Access to all features for one year (Save LKR 4,000)',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedPlan = 'yearly';
+                });
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: _selectedPlan == 'yearly'
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _selectedPlan == 'yearly'
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                    width: _selectedPlan == 'yearly' ? 2 : 1,
                   ),
+                  boxShadow: _selectedPlan == 'yearly'
+                      ? [
+                          BoxShadow(
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          )
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Yearly Plan',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                              if (_selectedPlan == 'yearly') ...[
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                ),
+                              ],
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                                ),
+                                child: const Text(
+                                  'SAVE 25%',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'LKR 8,000 per year',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Best value for long-term users. Access to all features for one year with significant savings.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
 
             const SizedBox(height: 32),
 
-            // Instructions
+            // Payment Instructions
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(12),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
                 ),
               ),
               child: Column(
@@ -265,41 +420,185 @@ class _ActivationScreenState extends State<ActivationScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: Theme.of(context).colorScheme.primary,
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.payment,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       Text(
-                        'Payment Instructions',
+                        'Payment Process',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
+                          fontSize: 16,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  _buildPaymentStep(
+                    context,
+                    '1',
+                    'Make the payment using the selected plan amount to our bank account',
+                  ),
                   const SizedBox(height: 12),
+                  _buildPaymentStep(
+                    context,
+                    '2',
+                    'Take a screenshot or note the transaction reference',
+                  ),
+                  const SizedBox(height: 12),
+                  _buildPaymentStep(
+                    context,
+                    '3',
+                    'Attach payment proof (optional) and send via email, or click "I\'ve Made Payment" below',
+                  ),
+                  const SizedBox(height: 12),
+                  _buildPaymentStep(
+                    context,
+                    '4',
+                    'Your account will be activated within 24 hours after verification',
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // Payment Proof Section
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.attach_file,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Payment Proof (Optional)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   Text(
-                    '1. Make the payment using the selected plan amount.',
+                    'Attach a screenshot or photo of your payment confirmation to speed up the activation process.',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                      height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '2. Click "Payment Done" below to activate your account.',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                  const SizedBox(height: 16),
+                  if (_paymentProof != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.image,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Payment proof attached',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              setState(() {
+                                _paymentProof = null;
+                              });
+                            },
+                            icon: Icon(
+                              Icons.close,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '3. Your account will be activated automatically after payment verification.',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _isSendingEmail ? null : _sendPaymentProofEmail,
+                        icon: _isSendingEmail
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.send),
+                        label: Text(_isSendingEmail ? 'Sending...' : 'Send Payment Proof via Email'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: Theme.of(context).colorScheme.secondary,
+                          foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                        ),
+                      ),
                     ),
-                  ),
+                  ] else ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _pickPaymentProof,
+                        icon: const Icon(Icons.photo_library),
+                        label: const Text('Attach Payment Proof'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -316,10 +615,19 @@ class _ActivationScreenState extends State<ActivationScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  backgroundColor: _selectedPlan != null
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
                 ),
-                child: const Text(
-                  'Payment Done',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                child: Text(
+                  'I\'ve Made Payment',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _selectedPlan != null
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                  ),
                 ),
               ),
             ),
@@ -372,6 +680,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
       // Update the auth provider to reflect the activated subscription
       await auth.updateActivationStatus(true);
       await auth.updateSubscriptionExpiredStatus(false);
+      await auth.markSubscriptionSetupCompleted(); // Mark subscription setup as completed
 
       if (mounted) {
         Navigator.of(context).pop(); // Go back to home screen
@@ -444,4 +753,40 @@ class _ActivationScreenState extends State<ActivationScreen> {
     _shouldContinuePolling = false;
     super.dispose();
   }
+}
+
+Widget _buildPaymentStep(BuildContext context, String number, String text) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary,
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            number,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimary,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Text(
+          text,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+            height: 1.4,
+          ),
+        ),
+      ),
+    ],
+  );
 }

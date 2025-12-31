@@ -58,6 +58,7 @@ dependencies:
   workmanager: ^0.7.0
   file_picker: ^8.1.4
   share_plus: ^10.1.2
+  flutter_email_sender: ^6.0.3
 
 dev_dependencies:
   flutter_test:

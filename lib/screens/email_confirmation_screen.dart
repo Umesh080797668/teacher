@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../widgets/activation_dialog.dart';
+import 'subscription_screen.dart';
 
 class EmailConfirmationScreen extends StatefulWidget {
   final String email;
@@ -211,18 +212,9 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
         ),
       );
 
-      // Show activation dialog instead of going to home screen
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => ActivationDialog(
-          auth: auth,
-          onContinue: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-            );
-          },
-        ),
+      // Navigate to subscription screen for new users
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
       );
     } on ApiException catch (e) {
       if (!mounted) return;

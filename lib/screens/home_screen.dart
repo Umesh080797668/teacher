@@ -12,6 +12,7 @@ import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'account_selection_screen.dart';
 import 'qr_scanner_screen.dart';
+import 'login_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../services/update_service.dart';
@@ -247,8 +248,34 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
 
+    // Check user authentication status before loading data
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.isAuthenticated && auth.isLoggedIn) {
+      try {
+        await auth.checkStatusNow();
+        // If account was invalidated, auth.isAuthenticated will be false now
+        if (!auth.isAuthenticated) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Your account has been deactivated. Please login again.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            // Navigate to login screen
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
+          }
+          return;
+        }
+      } catch (e) {
+        debugPrint('Error checking user status: $e');
+        // Continue with operation if status check fails
+      }
+    }
+
     try {
-      final auth = Provider.of<AuthProvider>(context, listen: false);
       final teacherId = auth.teacherId;
 
       final stats = await ApiService.getHomeStats(teacherId: teacherId);

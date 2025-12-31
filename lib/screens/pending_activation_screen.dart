@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../services/api_service.dart';
+import 'home_screen.dart';
 
 class PendingActivationScreen extends StatefulWidget {
   const PendingActivationScreen({super.key});
@@ -12,17 +12,31 @@ class PendingActivationScreen extends StatefulWidget {
 
 class _PendingActivationScreenState extends State<PendingActivationScreen> {
   bool _isCheckingStatus = false;
+  late AuthProvider _auth;
 
   @override
   void initState() {
     super.initState();
+    _auth = Provider.of<AuthProvider>(context, listen: false);
+    _auth.addListener(_onAuthChanged);
     // Start checking status periodically
     _startStatusChecking();
   }
 
   @override
   void dispose() {
+    _auth.removeListener(_onAuthChanged);
     super.dispose();
+  }
+
+  void _onAuthChanged() {
+    if (_auth.isActivated && mounted) {
+      // Account has been activated, navigate to home screen
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        (route) => false,
+      );
+    }
   }
 
   void _startStatusChecking() {
@@ -82,6 +96,13 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primaryContainer,
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: Icon(
                   Icons.hourglass_empty,
@@ -118,27 +139,42 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
 
               // Status Card
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(16),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Theme.of(context).colorScheme.primary,
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.info_outline,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             'What happens next?',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
@@ -146,23 +182,23 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     _buildStep(
                       context,
                       '1',
-                      'An administrator will review your account',
+                      'An administrator will review your account details',
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     _buildStep(
                       context,
                       '2',
-                      'Your account will be activated',
+                      'Your account will be activated for full access',
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     _buildStep(
                       context,
                       '3',
-                      'You will receive access to the application',
+                      'You will receive immediate access to all features',
                     ),
                   ],
                 ),
@@ -173,30 +209,37 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
               // Checking Status Indicator
               if (_isCheckingStatus)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SizedBox(
-                        width: 16,
-                        height: 16,
+                        width: 18,
+                        height: 18,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                          strokeWidth: 2.5,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Text(
-                        'Checking status...',
+                        'Checking activation status...',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -236,6 +279,9 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     side: BorderSide(
                       color: Theme.of(context).colorScheme.outline,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: Text(
