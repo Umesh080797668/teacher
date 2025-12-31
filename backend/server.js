@@ -4617,6 +4617,136 @@ app.get('/api/super-admin/stats', verifySuperAdmin, async (req, res) => {
   }
 });
 
+// Get earnings for a specific teacher
+app.get('/api/teachers/:teacherId/earnings', verifyToken, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    
+    // Find teacher by ID
+    const teacher = await Teacher.findById(teacherId);
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    
+    // Find all classes for this teacher
+    const classes = await Class.find({ teacherId: teacher._id });
+    const classIds = classes.map(c => c._id);
+    
+    // Find all payments for students in these classes
+    const payments = await Payment.find({ classId: { $in: classIds } });
+    const totalEarnings = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    
+    // Count students
+    const studentCount = await Student.countDocuments({ classId: { $in: classIds } });
+    
+    res.json({
+      teacherId: teacher.teacherId,
+      teacherName: teacher.name,
+      totalEarnings,
+      studentCount,
+      classCount: classes.length,
+      paymentCount: payments.length
+    });
+  } catch (error) {
+    console.error('Error fetching teacher earnings:', error);
+    res.status(500).json({ error: 'Failed to fetch teacher earnings' });
+  }
+});
+
+// Super admin monthly earnings by class report
+app.get('/api/super-admin/reports/monthly-earnings-by-class', verifySuperAdmin, async (req, res) => {
+  try {
+    const { teacherId, year, month } = req.query;
+
+    if (!teacherId) {
+      return res.status(400).json({ error: 'teacherId is required' });
+    }
+
+    // Find teacher by teacherId string
+    const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+    if (!teacher) {
+      console.log('Teacher not found for teacherId:', teacherId);
+      return res.json([]);
+    }
+
+    // Get all classes for this teacher
+    const classes = await Class.find({ teacherId: teacher._id });
+    
+    const earningsReports = [];
+
+    for (const classDoc of classes) {
+      // Get all students in this class
+      const students = await Student.find({ classId: classDoc._id });
+      const studentIds = students.map(s => s._id);
+
+      // Build payment query for this class
+      let paymentQuery = { 
+        classId: classDoc._id,
+        studentId: { $in: studentIds }
+      };
+
+      // Add date filters if provided
+      if (year && month) {
+        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+        const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+        paymentQuery.date = { $gte: startDate, $lte: endDate };
+      } else if (year) {
+        const startDate = new Date(parseInt(year), 0, 1);
+        const endDate = new Date(parseInt(year), 11, 31, 23, 59, 59);
+        paymentQuery.date = { $gte: startDate, $lte: endDate };
+      }
+
+      // Get all payments for this class
+      const payments = await Payment.find(paymentQuery);
+
+      // Calculate total earnings
+      const totalEarnings = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+      // Group by month if no specific month provided
+      const monthlyBreakdown = {};
+      payments.forEach(payment => {
+        if (payment.date) {
+          const paymentDate = new Date(payment.date);
+          const paymentMonth = payment.month || (paymentDate.getMonth() + 1);
+          const monthKey = `${paymentDate.getFullYear()}-${String(paymentMonth).padStart(2, '0')}`;
+          
+          if (!monthlyBreakdown[monthKey]) {
+            monthlyBreakdown[monthKey] = {
+              year: paymentDate.getFullYear(),
+              month: paymentMonth,
+              amount: 0,
+              paymentCount: 0
+            };
+          }
+          
+          monthlyBreakdown[monthKey].amount += payment.amount || 0;
+          monthlyBreakdown[monthKey].paymentCount += 1;
+        }
+      });
+
+      earningsReports.push({
+        classId: classDoc._id.toString(),
+        className: classDoc.name,
+        studentCount: students.length,
+        totalEarnings: totalEarnings,
+        paymentCount: payments.length,
+        monthlyBreakdown: Object.values(monthlyBreakdown).sort((a, b) => {
+          if (a.year !== b.year) return b.year - a.year;
+          return b.month - a.month;
+        })
+      });
+    }
+
+    // Sort by total earnings descending
+    earningsReports.sort((a, b) => b.totalEarnings - a.totalEarnings);
+
+    res.json(earningsReports);
+  } catch (error) {
+    console.error('Error in super-admin monthly-earnings-by-class:', error);
+    res.status(500).json({ error: 'Failed to fetch monthly earnings by class' });
+  }
+});
+
 // Export the app for Vercel
 module.exports = app;
 
