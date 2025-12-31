@@ -296,7 +296,7 @@ const AdminSchema = new mongoose.Schema({
   password: { type: String, required: true },
   name: { type: String, required: true },
   companyName: { type: String, required: true },
-  role: { type: String, default: 'admin' },
+  role: { type: String, enum: ['admin', 'super-admin'], default: 'admin' },
 }, { timestamps: true });
 
 // Problem Report Schema for user-submitted issues
@@ -3175,6 +3175,31 @@ const verifyToken = (req, res, next) => {
       return res.status(401).json({ error: 'Invalid token' });
     }
     res.status(401).json({ error: 'Invalid token' });
+};
+
+const verifySuperAdmin = async (req, res, next) => {
+  try {
+    // First verify the token
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, jwtSecret);
+    req.user = decoded;
+    
+    // Check if user is super-admin
+    const admin = await Admin.findById(decoded.userId);
+    if (!admin || admin.role !== 'super-admin') {
+      return res.status(403).json({ error: 'Super admin access required' });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Super admin verification error:', error.message);
+    res.status(401).json({ error: 'Invalid token' });
   }
 };
 
@@ -4431,6 +4456,166 @@ app.put('/api/admin/change-password', verifyToken, async (req, res) => {
   }
 });
 
+// ============================================
+// Super Admin Routes
+// ============================================
+
+// Get all teachers with earnings
+app.get('/api/super-admin/teachers', verifySuperAdmin, async (req, res) => {
+  try {
+    const teachers = await Teacher.find({}).populate('companyIds', 'companyName');
+    
+    // Calculate earnings for each teacher
+    const teachersWithEarnings = await Promise.all(teachers.map(async (teacher) => {
+      // Find all classes for this teacher
+      const classes = await Class.find({ teacherId: teacher._id });
+      const classIds = classes.map(c => c._id);
+      
+      // Find all payments for students in these classes
+      const payments = await Payment.find({ classId: { $in: classIds } });
+      const totalEarnings = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+      
+      // Count students
+      const studentCount = await Student.countDocuments({ classId: { $in: classIds } });
+      
+      return {
+        _id: teacher._id,
+        teacherId: teacher.teacherId,
+        name: teacher.name,
+        email: teacher.email,
+        phone: teacher.phone,
+        status: teacher.status,
+        profilePicture: teacher.profilePicture,
+        companyIds: teacher.companyIds,
+        subscriptionType: teacher.subscriptionType,
+        subscriptionStartDate: teacher.subscriptionStartDate,
+        subscriptionExpiryDate: teacher.subscriptionExpiryDate,
+        totalEarnings,
+        studentCount,
+        classCount: classes.length,
+        createdAt: teacher.createdAt,
+        updatedAt: teacher.updatedAt
+      };
+    }));
+    
+    res.json({ teachers: teachersWithEarnings });
+  } catch (error) {
+    console.error('Error fetching teachers for super admin:', error);
+    res.status(500).json({ error: 'Failed to fetch teachers' });
+  }
+});
+
+// Get students for a specific teacher
+app.get('/api/super-admin/teachers/:teacherId/students', verifySuperAdmin, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    
+    // Find all classes for this teacher
+    const classes = await Class.find({ teacherId }).populate('companyId', 'companyName');
+    const classIds = classes.map(c => c._id);
+    
+    // Find all students in these classes
+    const students = await Student.find({ classId: { $in: classIds } })
+      .populate('classId', 'name')
+      .populate('companyId', 'companyName');
+    
+    // Calculate payments per student
+    const studentsWithPayments = await Promise.all(students.map(async (student) => {
+      const payments = await Payment.find({ studentId: student._id });
+      const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+      
+      return {
+        _id: student._id,
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
+        classId: student.classId,
+        companyId: student.companyId,
+        totalPaid,
+        paymentCount: payments.length,
+        createdAt: student.createdAt,
+        updatedAt: student.updatedAt
+      };
+    }));
+    
+    res.json({ 
+      teacherId,
+      classes,
+      students: studentsWithPayments 
+    });
+  } catch (error) {
+    console.error('Error fetching students for teacher:', error);
+    res.status(500).json({ error: 'Failed to fetch students' });
+  }
+});
+
+// Toggle teacher status (activate/deactivate)
+app.put('/api/super-admin/teachers/:teacherId/status', verifySuperAdmin, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    const { status } = req.body;
+    
+    if (!['active', 'inactive'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be active or inactive' });
+    }
+    
+    const teacher = await Teacher.findById(teacherId);
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    
+    teacher.status = status;
+    teacher.updatedAt = new Date();
+    await teacher.save();
+    
+    res.json({ 
+      message: `Teacher ${status === 'active' ? 'activated' : 'deactivated'} successfully`,
+      teacher: {
+        _id: teacher._id,
+        teacherId: teacher.teacherId,
+        name: teacher.name,
+        status: teacher.status
+      }
+    });
+  } catch (error) {
+    console.error('Error updating teacher status:', error);
+    res.status(500).json({ error: 'Failed to update teacher status' });
+  }
+});
+
+// Get super admin stats
+app.get('/api/super-admin/stats', verifySuperAdmin, async (req, res) => {
+  try {
+    const totalTeachers = await Teacher.countDocuments({});
+    const activeTeachers = await Teacher.countDocuments({ status: 'active' });
+    const inactiveTeachers = await Teacher.countDocuments({ status: 'inactive' });
+    
+    const totalStudents = await Student.countDocuments({});
+    const totalClasses = await Class.countDocuments({});
+    
+    // Calculate total earnings
+    const allPayments = await Payment.find({});
+    const totalEarnings = allPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    
+    const totalAdmins = await Admin.countDocuments({});
+    const superAdmins = await Admin.countDocuments({ role: 'super-admin' });
+    
+    res.json({
+      totalTeachers,
+      activeTeachers,
+      inactiveTeachers,
+      totalStudents,
+      totalClasses,
+      totalEarnings,
+      totalAdmins,
+      superAdmins
+    });
+  } catch (error) {
+    console.error('Error fetching super admin stats:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
 // Export the app for Vercel
 module.exports = app;
 
@@ -4439,4 +4624,4 @@ if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
-}
+}};
