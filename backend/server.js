@@ -331,17 +331,17 @@ const PaymentProofSchema = new mongoose.Schema({
 
 AttendanceSchema.index({ studentId: 1, year: 1, month: 1 });
 
-const Student = mongoose.model('Student', StudentSchema);
-const Attendance = mongoose.model('Attendance', AttendanceSchema);
-const Class = mongoose.model('Class', ClassSchema);
-const Payment = mongoose.model('Payment', PaymentSchema);
-const Teacher = mongoose.model('Teacher', TeacherSchema);
-const EmailVerification = mongoose.model('EmailVerification', EmailVerificationSchema);
-const PasswordReset = mongoose.model('PasswordReset', PasswordResetSchema);
-const WebSession = mongoose.model('WebSession', WebSessionSchema);
-const Admin = mongoose.model('Admin', AdminSchema);
-const ProblemReport = mongoose.model('ProblemReport', ProblemReportSchema);
-const PaymentProof = mongoose.model('PaymentProof', PaymentProofSchema);
+const Student = mongoose.models.Student || mongoose.model('Student', StudentSchema);
+const Attendance = mongoose.models.Attendance || mongoose.model('Attendance', AttendanceSchema);
+const Class = mongoose.models.Class || mongoose.model('Class', ClassSchema);
+const Payment = mongoose.models.Payment || mongoose.model('Payment', PaymentSchema);
+const Teacher = mongoose.models.Teacher || mongoose.model('Teacher', TeacherSchema);
+const EmailVerification = mongoose.models.EmailVerification || mongoose.model('EmailVerification', EmailVerificationSchema);
+const PasswordReset = mongoose.models.PasswordReset || mongoose.model('PasswordReset', PasswordResetSchema);
+const WebSession = mongoose.models.WebSession || mongoose.model('WebSession', WebSessionSchema);
+const Admin = mongoose.models.Admin || mongoose.model('Admin', AdminSchema);
+const ProblemReport = mongoose.models.ProblemReport || mongoose.model('ProblemReport', ProblemReportSchema);
+const PaymentProof = mongoose.models.PaymentProof || mongoose.model('PaymentProof', PaymentProofSchema);
 
 // Store for pending QR sessions and connected sockets
 const pendingQRSessions = new Map(); // sessionId -> { timestamp, userType }
