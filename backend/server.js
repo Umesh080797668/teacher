@@ -1257,6 +1257,33 @@ app.post('/api/auth/submit-payment-proof', upload.single('paymentProof'), async 
   }
 });
 
+// Super admin verification middleware
+const verifySuperAdmin = async (req, res, next) => {
+  try {
+    // First verify the token
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, jwtSecret);
+    req.user = decoded;
+    
+    // Check if user is super-admin
+    const admin = await Admin.findById(decoded.userId);
+    if (!admin || admin.role !== 'super-admin') {
+      return res.status(403).json({ error: 'Super admin access required' });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Super admin verification error:', error.message);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
 // GET payment proofs for admin review
 app.get('/api/admin/payment-proofs', verifySuperAdmin, async (req, res) => {
   try {
@@ -3349,35 +3376,9 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-const verifySuperAdmin = async (req, res, next) => {
-  try {
-    // First verify the token
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
-    
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const decoded = jwt.verify(token, jwtSecret);
-    req.user = decoded;
-    
-    // Check if user is super-admin
-    const admin = await Admin.findById(decoded.userId);
-    if (!admin || admin.role !== 'super-admin') {
-      return res.status(403).json({ error: 'Super admin access required' });
-    }
-    
-    next();
-  } catch (error) {
-    console.error('Super admin verification error:', error.message);
-    res.status(401).json({ error: 'Invalid token' });
-  }
-};
-
 // Get active web sessions
-app.get('/api/web-session/active', verifyToken, async (req, res) => {
-  try {
+app.get('/api/web-session/active', verifyToken, async (req, res) => {  
+try {
     console.log('=== GET Active Web Sessions Request ===');
     console.log('Authenticated user:', req.user);
     console.log('Request timestamp:', new Date().toISOString());
