@@ -72,6 +72,8 @@ class AuthProvider extends ChangeNotifier {
   DateTime? _lastSubscriptionWarningDate; // Track when warning was last shown
   bool _isWarningScreenShown = false; // Track if warning screen is currently shown
   bool _hasCompletedSubscriptionSetup = false; // Track if user has completed subscription setup
+  bool _hasSelectedSubscriptionPlan = false; // Track if user has selected a subscription plan
+  String? _selectedSubscriptionPlan; // Track the selected subscription plan
   bool _wasActivationNotified = false; // Track if activation notification was shown
   List<UserAccount> _accountHistory = [];
   Timer? _statusCheckTimer;
@@ -94,6 +96,8 @@ class AuthProvider extends ChangeNotifier {
   bool get isWarningScreenShown => _isWarningScreenShown;
   bool get isLoading => _isLoading;
   bool get hasCompletedSubscriptionSetup => _hasCompletedSubscriptionSetup;
+  bool get hasSelectedSubscriptionPlan => _hasSelectedSubscriptionPlan;
+  String? get selectedSubscriptionPlan => _selectedSubscriptionPlan;
   List<UserAccount> get accountHistory => _accountHistory;
 
   AuthProvider() {
@@ -117,6 +121,8 @@ class AuthProvider extends ChangeNotifier {
         _lastSubscriptionWarningDate = DateTime.parse(lastWarningDateStr);
       }
       _hasCompletedSubscriptionSetup = prefs.getBool('has_completed_subscription_setup') ?? false; // Load subscription setup completion
+      _hasSelectedSubscriptionPlan = prefs.getBool('has_selected_subscription_plan') ?? false; // Load subscription plan selection
+      _selectedSubscriptionPlan = prefs.getString('selected_subscription_plan'); // Load selected subscription plan
       _wasActivationNotified = prefs.getBool('was_activation_notified') ?? false; // Load activation notification status
       final teacherDataJson = prefs.getString('teacher_data');
       if (teacherDataJson != null) {
@@ -229,6 +235,8 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('subscription_expiring_soon'); // Remove subscription expiring soon
     await prefs.remove('last_subscription_warning_date'); // Remove last warning date
     await prefs.remove('has_completed_subscription_setup'); // Remove subscription setup completion
+    await prefs.remove('has_selected_subscription_plan'); // Remove subscription plan selection
+    await prefs.remove('selected_subscription_plan'); // Remove selected subscription plan
     await prefs.remove('was_activation_notified'); // Remove activation notification status
     
     _isLoggedIn = false;
@@ -244,6 +252,8 @@ class AuthProvider extends ChangeNotifier {
     _lastSubscriptionWarningDate = null; // Reset last warning date
     _isWarningScreenShown = false; // Reset warning screen shown
     _hasCompletedSubscriptionSetup = false; // Reset subscription setup completion
+    _hasSelectedSubscriptionPlan = false; // Reset subscription plan selection
+    _selectedSubscriptionPlan = null; // Reset selected subscription plan
     _wasActivationNotified = false; // Reset activation notification status
     notifyListeners();
   }
@@ -284,6 +294,24 @@ class AuthProvider extends ChangeNotifier {
     _hasCompletedSubscriptionSetup = true;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_completed_subscription_setup', true);
+    notifyListeners();
+  }
+
+  Future<void> setSelectedSubscriptionPlan(String plan) async {
+    _hasSelectedSubscriptionPlan = true;
+    _selectedSubscriptionPlan = plan;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_selected_subscription_plan', true);
+    await prefs.setString('selected_subscription_plan', plan);
+    notifyListeners();
+  }
+
+  Future<void> clearSelectedSubscriptionPlan() async {
+    _hasSelectedSubscriptionPlan = false;
+    _selectedSubscriptionPlan = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('has_selected_subscription_plan');
+    await prefs.remove('selected_subscription_plan');
     notifyListeners();
   }
 

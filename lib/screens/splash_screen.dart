@@ -7,6 +7,8 @@ import 'login_screen.dart';
 import 'home_screen.dart';
 import 'forced_update_screen.dart';
 import 'subscription_screen.dart';
+import 'activation_screen.dart';
+import 'pending_activation_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -119,8 +121,16 @@ class _SplashScreenState extends State<SplashScreen>
     Widget target;
     if (!auth.isAuthenticated) {
       target = const LoginScreen();
+    } else if (!auth.isActivated) {
+      target = const PendingActivationScreen();
     } else if (!auth.hasCompletedSubscriptionSetup) {
-      target = const SubscriptionScreen();
+      if (auth.hasSelectedSubscriptionPlan && auth.selectedSubscriptionPlan != null) {
+        // User has selected a plan but hasn't completed setup, go to activation screen
+        target = ActivationScreen(selectedPlan: auth.selectedSubscriptionPlan);
+      } else {
+        // User hasn't selected a plan yet, go to subscription screen
+        target = const SubscriptionScreen();
+      }
     } else {
       target = const HomeScreen();
     }

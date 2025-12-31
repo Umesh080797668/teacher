@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import 'subscription_screen.dart';
+import 'pending_activation_screen.dart';
 
 class ActivationScreen extends StatefulWidget {
   final String? selectedPlan;
@@ -39,8 +40,17 @@ class _ActivationScreenState extends State<ActivationScreen> {
     }
   }
 
-  Future<void> _sendPaymentProofEmail() async {
-    if (_paymentProof == null || _selectedPlan == null) return;
+  Future<void> _submitPaymentProof() async {
+    if (_paymentProof == null || _selectedPlan == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment proof is required. Please attach a payment proof image.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _isSendingEmail = true;
@@ -50,41 +60,28 @@ class _ActivationScreenState extends State<ActivationScreen> {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final userEmail = auth.userEmail;
 
-      final Email email = Email(
-        body: '''
-Payment Proof Submission
-
-User Email: $userEmail
-Selected Plan: $_selectedPlan
-Payment Amount: ${_selectedPlan == 'monthly' ? 'LKR 1,000' : 'LKR 8,000'}
-
-Please review the attached payment proof and activate the subscription.
-
-This email was sent automatically from the Teacher Attendance App.
-        ''',
-        subject: 'Payment Proof - Subscription Activation - $userEmail',
-        recipients: ['umeshbnadara08@gmail.com'],
-        attachmentPaths: [_paymentProof!.path],
-        isHTML: false,
+      // Submit payment proof via API
+      await ApiService.submitPaymentProof(
+        userEmail!,
+        _selectedPlan!,
+        _paymentProof!.path,
       );
-
-      await FlutterEmailSender.send(email);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Payment proof sent successfully! We will review and activate your account within 24 hours.'),
+            content: Text('Payment proof submitted successfully! You will receive a confirmation email and your account will be activated within 24 hours.'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 5),
           ),
         );
       }
     } catch (e) {
-      debugPrint('Failed to send email: $e');
+      debugPrint('Failed to submit payment proof: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send payment proof: $e'),
+            content: Text('Failed to submit payment proof: $e'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
           ),
@@ -157,6 +154,15 @@ This email was sent automatically from the Teacher Attendance App.
         title: const Text('Account Activation'),
         backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: Theme.of(context).colorScheme.onSurface,
+        leading: widget.selectedPlan != null ? IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+            );
+          },
+        ) : null,
+        automaticallyImplyLeading: widget.selectedPlan == null,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -168,13 +174,17 @@ This email was sent automatically from the Teacher Attendance App.
               child: Column(
                 children: [
                   Icon(
-                    Icons.verified_outlined,
+                    widget.selectedPlan != null
+                        ? Icons.payment
+                        : Icons.verified_outlined,
                     size: 64,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Subscription Expired',
+                    widget.selectedPlan != null
+                        ? 'Complete Your Subscription Setup'
+                        : 'Subscription Expired',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -183,7 +193,9 @@ This email was sent automatically from the Teacher Attendance App.
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Your subscription has ended. Please renew to continue using all features.',
+                    widget.selectedPlan != null
+                        ? 'Please complete the payment process to activate your subscription'
+                        : 'Your subscription has ended. Please renew to continue using all features.',
                     style: TextStyle(
                       fontSize: 16,
                       color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
@@ -459,7 +471,7 @@ This email was sent automatically from the Teacher Attendance App.
                   _buildPaymentStep(
                     context,
                     '3',
-                    'Attach payment proof (optional) and send via email, or click "I\'ve Made Payment" below',
+                    'Attach payment proof (required) and submit, or click "I\'ve Made Payment" below',
                   ),
                   const SizedBox(height: 12),
                   _buildPaymentStep(
@@ -502,7 +514,7 @@ This email was sent automatically from the Teacher Attendance App.
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Payment Proof (Optional)',
+                        'Payment Proof (Required)',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -564,7 +576,7 @@ This email was sent automatically from the Teacher Attendance App.
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: _isSendingEmail ? null : _sendPaymentProofEmail,
+                        onPressed: _isSendingEmail ? null : _submitPaymentProof,
                         icon: _isSendingEmail
                             ? const SizedBox(
                                 width: 20,
@@ -575,7 +587,7 @@ This email was sent automatically from the Teacher Attendance App.
                                 ),
                               )
                             : const Icon(Icons.send),
-                        label: Text(_isSendingEmail ? 'Sending...' : 'Send Payment Proof via Email'),
+                        label: Text(_isSendingEmail ? 'Submitting...' : 'Submit Payment Proof'),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           backgroundColor: Theme.of(context).colorScheme.secondary,
@@ -674,25 +686,56 @@ This email was sent automatically from the Teacher Attendance App.
         throw Exception('User email not found');
       }
 
-      // Call the subscription activation API
-      await ApiService.activateSubscription(email, _selectedPlan!);
+      // For first-time setup, don't activate subscription yet
+      // Just send payment proof if attached and show waiting message
+      if (widget.selectedPlan != null) {
+        // Send payment proof via API if attached
+        if (_paymentProof != null) {
+          await _submitPaymentProof();
+        }
 
-      // Update the auth provider to reflect the activated subscription
-      await auth.updateActivationStatus(true);
-      await auth.updateSubscriptionExpiredStatus(false);
-      await auth.markSubscriptionSetupCompleted(); // Mark subscription setup as completed
+        // Mark subscription setup as completed
+        await auth.markSubscriptionSetupCompleted();
 
-      if (mounted) {
-        Navigator.of(context).pop(); // Go back to home screen
+        // Clear the selected subscription plan since setup is complete
+        await auth.clearSelectedSubscriptionPlan();
+
+        // Show success message and navigate to pending activation screen
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment submitted successfully! Your account will be activated within 24 hours after verification.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 5),
+            ),
+          );
+
+          // Navigate to pending activation screen
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const PendingActivationScreen()),
+          );
+        }
+      } else {
+        // For renewal, activate subscription immediately
+        await ApiService.activateSubscription(email, _selectedPlan!);
+
+        // Update the auth provider to reflect the activated subscription
+        await auth.updateActivationStatus(true);
+        await auth.updateSubscriptionExpiredStatus(false);
+        await auth.markSubscriptionSetupCompleted();
+
+        if (mounted) {
+          Navigator.of(context).pop(); // Go back to home screen
+        }
       }
     } catch (e) {
-      debugPrint('Failed to activate subscription: $e');
+      debugPrint('Failed to process payment: $e');
       setState(() {
         _isWaiting = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to activate subscription: $e'),
+          content: Text('Failed to process payment: $e'),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 5),
         ),

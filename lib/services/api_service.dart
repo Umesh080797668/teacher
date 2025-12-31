@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/student.dart';
 import '../models/attendance.dart';
 import '../models/class.dart';
@@ -273,6 +274,48 @@ class ApiService {
     );
 
     return json.decode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> submitPaymentProof(
+    String userEmail,
+    String subscriptionType,
+    String? paymentProofPath,
+  ) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/api/auth/submit-payment-proof'),
+    );
+
+    request.fields['userEmail'] = userEmail;
+    request.fields['subscriptionType'] = subscriptionType;
+
+    if (paymentProofPath != null && File(paymentProofPath).existsSync()) {
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'paymentProof',
+          paymentProofPath,
+        ),
+      );
+    }
+
+    // Add authorization header if available
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    final streamedResponse = await request.send().timeout(timeout);
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return json.decode(response.body);
+    } else {
+      throw ApiException(
+        'Failed to submit payment proof: ${response.statusCode}',
+        statusCode: response.statusCode,
+      );
+    }
   }
 
   static Future<Map<String, dynamic>> verifyCode(

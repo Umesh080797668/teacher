@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'home_screen.dart';
+import 'login_screen.dart';
+import 'subscription_screen.dart';
 
 class PendingActivationScreen extends StatefulWidget {
   const PendingActivationScreen({super.key});
@@ -80,7 +82,14 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
         title: const Text('Account Pending Activation'),
         backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: Theme.of(context).colorScheme.onSurface,
-        automaticallyImplyLeading: false, // Prevent back button
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
+          },
+        ),
       ),
       body: SafeArea(
         child: Padding(

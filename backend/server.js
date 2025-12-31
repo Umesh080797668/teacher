@@ -7,6 +7,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const QRCode = require('qrcode');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 require('dotenv').config();
 
 const app = express();
@@ -44,6 +45,22 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+
+// Configure multer for file uploads (store in memory, don't save to disk)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  }
+});
 
 // Handle OPTIONS requests explicitly
 app.options('*', cors());
@@ -1151,6 +1168,67 @@ app.post('/api/auth/activate-subscription', async (req, res) => {
   } catch (error) {
     console.error('Error activating subscription:', error);
     res.status(500).json({ error: 'Failed to activate subscription' });
+  }
+});
+
+// Submit Payment Proof
+app.post('/api/auth/submit-payment-proof', upload.single('paymentProof'), async (req, res) => {
+  try {
+    const { userEmail, subscriptionType } = req.body;
+
+    if (!userEmail || !subscriptionType) {
+      return res.status(400).json({ error: 'User email and subscription type are required' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Payment proof image is required' });
+    }
+
+    // Validate subscription type
+    if (!['monthly', 'yearly'].includes(subscriptionType)) {
+      return res.status(400).json({ error: 'Invalid subscription type. Must be monthly or yearly' });
+    }
+
+    // Get subscription amount
+    const amount = subscriptionType === 'monthly' ? 'LKR 1,000' : 'LKR 8,000';
+
+    // Send email to admin with payment proof
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: 'umeshbnadara08@gmail.com', // Admin email
+      subject: `Payment Proof Submission - ${subscriptionType.toUpperCase()} Subscription - ${userEmail}`,
+      html: `
+        <h2>Payment Proof Submission</h2>
+        <p><strong>User Email:</strong> ${userEmail}</p>
+        <p><strong>Subscription Type:</strong> ${subscriptionType}</p>
+        <p><strong>Payment Amount:</strong> ${amount}</p>
+        <p><strong>Submission Date:</strong> ${new Date().toLocaleString()}</p>
+        <p>Please review the attached payment proof and activate the subscription if valid.</p>
+        <br>
+        <p><em>This email was sent automatically from the Teacher Attendance App.</em></p>
+      `,
+      attachments: [
+        {
+          filename: `payment_proof_${userEmail}_${Date.now()}.${req.file.mimetype.split('/')[1]}`,
+          content: req.file.buffer,
+          contentType: req.file.mimetype
+        }
+      ]
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    console.log(`Payment proof submitted successfully for ${userEmail} (${subscriptionType})`);
+
+    res.json({
+      message: 'Payment proof submitted successfully! You will receive a confirmation email and your account will be activated within 24 hours.',
+      subscriptionType,
+      amount
+    });
+
+  } catch (error) {
+    console.error('Error submitting payment proof:', error);
+    res.status(500).json({ error: 'Failed to submit payment proof' });
   }
 });
 

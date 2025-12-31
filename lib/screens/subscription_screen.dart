@@ -16,6 +16,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   String? _selectedPlan;
 
   @override
+  void initState() {
+    super.initState();
+    // Load previously selected plan if any
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (auth.hasSelectedSubscriptionPlan && auth.selectedSubscriptionPlan != null) {
+        setState(() {
+          _selectedPlan = auth.selectedSubscriptionPlan;
+        });
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
 
@@ -284,20 +298,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Bank: [Your Bank Name]',
+                            'Bank: Commercial Bank',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           Text(
-                            'Account Name: [Account Name]',
+                            'Account Name: A.G.I.U.L.B Aldeniya',
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           Text(
-                            'Account Number: [Account Number]',
+                            'Account Number: 123456789',
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
@@ -373,6 +387,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
+
+      // Save the selected subscription plan
+      await auth.setSelectedSubscriptionPlan(_selectedPlan!);
 
       // Navigate to activation screen with selected plan
       if (mounted) {
