@@ -1,0 +1,156 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import 'activation_screen.dart';
+
+class SubscriptionWarningScreen extends StatefulWidget {
+  const SubscriptionWarningScreen({super.key});
+
+  @override
+  State<SubscriptionWarningScreen> createState() => _SubscriptionWarningScreenState();
+}
+
+class _SubscriptionWarningScreenState extends State<SubscriptionWarningScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Mark warning as shown for today
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      auth.markSubscriptionWarningShown();
+      auth.setWarningScreenShown(true);
+    });
+  }
+
+  @override
+  void dispose() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    auth.setWarningScreenShown(false);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
+    final expiryDate = auth.teacherData?['subscriptionExpiryDate'];
+    final daysLeft = expiryDate != null 
+      ? DateTime.parse(expiryDate).difference(DateTime.now()).inDays + 1
+      : 0;
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      appBar: AppBar(
+        title: const Text('Subscription Warning'),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 64,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Subscription Expiring Soon',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your subscription will expire in $daysLeft day${daysLeft == 1 ? '' : 's'}. Please renew to continue using all features.',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // Warning message
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Your account will be suspended once the subscription expires. Renew now to avoid interruption.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                    ),
+                    child: Text(
+                      'Remind Me Later',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Navigate to activation screen for renewal
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (context) => const ActivationScreen()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                    child: const Text('Renew Now'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

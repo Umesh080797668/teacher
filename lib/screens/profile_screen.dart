@@ -52,6 +52,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _phoneController = TextEditingController();
       _profilePicturePath = null;
     }
+    // Load fresh teacher data from API
+    _loadTeacherData();
+  }
+
+  Future<void> _loadTeacherData() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.teacherId != null) {
+      try {
+        final teacherData = await ApiService.getTeacher(auth.teacherId!);
+        setState(() {
+          _teacher = Teacher.fromJson(teacherData);
+          _nameController.text = _teacher!.name;
+          _emailController.text = _teacher!.email;
+          _phoneController.text = _teacher!.phone ?? '';
+          _profilePicturePath = _teacher!.profilePicture;
+        });
+      } catch (e) {
+        debugPrint('Failed to load teacher data: $e');
+        // Keep existing data if API fails
+      }
+    }
   }
 
   @override

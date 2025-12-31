@@ -252,6 +252,19 @@ class ApiService {
     return json.decode(response.body);
   }
 
+  static Future<Map<String, dynamic>> activateSubscription(String email, String subscriptionType) async {
+    final response = await _makeRequest(
+      'POST',
+      '/api/auth/activate-subscription',
+      body: {
+        'email': email,
+        'subscriptionType': subscriptionType,
+      },
+    );
+
+    return json.decode(response.body);
+  }
+
   static Future<Map<String, dynamic>> sendVerificationCode(String email) async {
     final response = await _makeRequest(
       'POST',

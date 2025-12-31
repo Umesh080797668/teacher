@@ -65,6 +65,11 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? _teacherData;
   bool _isActivated = false; // New field for account activation
   bool _isLoading = true;
+  bool _accountInactive = false; // New field for account inactive status
+  bool _subscriptionExpired = false; // New field for subscription expiry
+  bool _subscriptionExpiringSoon = false; // New field for subscription expiring soon
+  DateTime? _lastSubscriptionWarningDate; // Track when warning was last shown
+  bool _isWarningScreenShown = false; // Track if warning screen is currently shown
   List<UserAccount> _accountHistory = [];
   Timer? _statusCheckTimer;
 
@@ -76,6 +81,14 @@ class AuthProvider extends ChangeNotifier {
   String? get teacherId => _teacherId;
   Map<String, dynamic>? get teacherData => _teacherData;
   bool get isActivated => _isActivated; // Getter for activation status
+  bool get accountInactive => _accountInactive; // Getter for account inactive status
+  bool get subscriptionExpired => _subscriptionExpired; // Getter for subscription expiry
+  bool get subscriptionExpiringSoon => _subscriptionExpiringSoon; // Getter for subscription expiring soon
+  bool get shouldShowSubscriptionWarning => _subscriptionExpiringSoon && 
+    (_lastSubscriptionWarningDate == null || 
+     !_isSameDay(_lastSubscriptionWarningDate!, DateTime.now())) &&
+    !_isWarningScreenShown;
+  bool get isWarningScreenShown => _isWarningScreenShown;
   bool get isLoading => _isLoading;
   List<UserAccount> get accountHistory => _accountHistory;
 
@@ -92,6 +105,13 @@ class AuthProvider extends ChangeNotifier {
       _userName = prefs.getString('user_name');
       _teacherId = prefs.getString('teacher_id');
       _isActivated = prefs.getBool('is_activated') ?? false; // Load activation status
+      _accountInactive = prefs.getBool('account_inactive') ?? false; // Load account inactive status
+      _subscriptionExpired = prefs.getBool('subscription_expired') ?? false; // Load subscription expiry
+      _subscriptionExpiringSoon = prefs.getBool('subscription_expiring_soon') ?? false; // Load subscription expiring soon
+      final lastWarningDateStr = prefs.getString('last_subscription_warning_date');
+      if (lastWarningDateStr != null) {
+        _lastSubscriptionWarningDate = DateTime.parse(lastWarningDateStr);
+      }
       final teacherDataJson = prefs.getString('teacher_data');
       if (teacherDataJson != null) {
         _teacherData = Map<String, dynamic>.from(json.decode(teacherDataJson));
@@ -198,6 +218,10 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('teacher_id');
     await prefs.remove('teacher_data');
     await prefs.remove('is_activated'); // Remove activation status
+    await prefs.remove('account_inactive'); // Remove account inactive status
+    await prefs.remove('subscription_expired'); // Remove subscription expiry
+    await prefs.remove('subscription_expiring_soon'); // Remove subscription expiring soon
+    await prefs.remove('last_subscription_warning_date'); // Remove last warning date
     
     _isLoggedIn = false;
     _isGuest = false;
@@ -206,6 +230,11 @@ class AuthProvider extends ChangeNotifier {
     _teacherId = null;
     _teacherData = null;
     _isActivated = false; // Reset activation status
+    _accountInactive = false; // Reset account inactive status
+    _subscriptionExpired = false; // Reset subscription expiry
+    _subscriptionExpiringSoon = false; // Reset subscription expiring soon
+    _lastSubscriptionWarningDate = null; // Reset last warning date
+    _isWarningScreenShown = false; // Reset warning screen shown
     notifyListeners();
   }
 
@@ -213,6 +242,31 @@ class AuthProvider extends ChangeNotifier {
     _isActivated = isActivated;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_activated', isActivated);
+    notifyListeners();
+  }
+
+  Future<void> updateAccountInactiveStatus(bool isInactive) async {
+    _accountInactive = isInactive;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('account_inactive', isInactive);
+    notifyListeners();
+  }
+
+  Future<void> updateSubscriptionExpiredStatus(bool isExpired) async {
+    _subscriptionExpired = isExpired;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('subscription_expired', isExpired);
+    notifyListeners();
+  }
+
+  Future<void> markSubscriptionWarningShown() async {
+    _lastSubscriptionWarningDate = DateTime.now();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('last_subscription_warning_date', _lastSubscriptionWarningDate!.toIso8601String());
+  }
+
+  void setWarningScreenShown(bool shown) {
+    _isWarningScreenShown = shown;
     notifyListeners();
   }
 
@@ -255,18 +309,59 @@ class AuthProvider extends ChangeNotifier {
     try {
       final response = await ApiService.checkTeacherStatus(_userEmail!);
       final isActive = response['isActive'] as bool;
-      
-      if (!isActive) {
-        debugPrint('Teacher account is inactive, logging out...');
+      final subscriptionExpired = response['subscriptionExpired'] as bool? ?? false;
+      final subscriptionExpiringSoon = response['subscriptionExpiringSoon'] as bool? ?? false;
+      final teacherStatus = response['status'] as String? ?? 'inactive';
+
+      // Update activation status based on teacher status
+      final isActivated = teacherStatus == 'active';
+      if (_isActivated != isActivated) {
+        _isActivated = isActivated;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_activated', _isActivated);
+      }
+
+      // Update subscription expired status
+      if (_subscriptionExpired != subscriptionExpired) {
+        _subscriptionExpired = subscriptionExpired;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('subscription_expired', _subscriptionExpired);
+      }
+
+      // Update subscription expiring soon status
+      if (_subscriptionExpiringSoon != subscriptionExpiringSoon) {
+        _subscriptionExpiringSoon = subscriptionExpiringSoon;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('subscription_expiring_soon', _subscriptionExpiringSoon);
+      }
+
+      if (!isActive && !_accountInactive) {
+        debugPrint('Teacher account became inactive, logging out...');
+        _accountInactive = true;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('account_inactive', true);
+        // Force logout for inactive accounts
         await logout();
-        
-        // You might want to show a dialog here, but since this is in a provider,
-        // we'll just log out silently. The UI will update accordingly.
+        notifyListeners();
+      } else if (isActive && _accountInactive) {
+        debugPrint('Teacher account became active again');
+        _accountInactive = false;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('account_inactive', false);
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('Error checking teacher status: $e');
-      // Don't logout on network errors, just log the error
+      // Don't change status on network errors
     }
+  }
+
+  Future<void> checkStatusNow() async {
+    await _checkTeacherStatus();
+  }
+
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year && date1.month == date2.month && date1.day == date2.day;
   }
 
   @override

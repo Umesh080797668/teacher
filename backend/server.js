@@ -228,9 +228,12 @@ const TeacherSchema = new mongoose.Schema({
   phone: { type: String },
   password: { type: String, required: true },
   teacherId: { type: String, unique: true },
-  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  status: { type: String, enum: ['active', 'inactive'], default: 'inactive' },
   profilePicture: { type: String }, // Profile picture path
   companyIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }], // Multiple companies - added when QR scanned
+  subscriptionType: { type: String, enum: ['monthly', 'yearly'], default: 'monthly' },
+  subscriptionStartDate: { type: Date, default: Date.now },
+  subscriptionExpiryDate: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }, // Default 30 days for monthly
 }, { timestamps: true });
 
 const EmailVerificationSchema = new mongoose.Schema({
@@ -1099,6 +1102,58 @@ app.delete('/api/payments/:id', async (req, res) => {
   }
 });
 
+// Subscription Activation
+app.post('/api/auth/activate-subscription', async (req, res) => {
+  try {
+    const { email, subscriptionType } = req.body;
+
+    if (!email || !subscriptionType) {
+      return res.status(400).json({ error: 'Email and subscription type are required' });
+    }
+
+    if (!['monthly', 'yearly'].includes(subscriptionType)) {
+      return res.status(400).json({ error: 'Invalid subscription type. Must be monthly or yearly' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const teacher = await Teacher.findOne({ email: normalizedEmail });
+
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    // Calculate new expiry date
+    const now = new Date();
+    let expiryDate;
+
+    if (subscriptionType === 'monthly') {
+      expiryDate = new Date(now);
+      expiryDate.setMonth(expiryDate.getMonth() + 1);
+    } else if (subscriptionType === 'yearly') {
+      expiryDate = new Date(now);
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+    }
+
+    // Update teacher subscription
+    teacher.subscriptionType = subscriptionType;
+    teacher.subscriptionStartDate = now;
+    teacher.subscriptionExpiryDate = expiryDate;
+    teacher.status = 'active'; // Reactivate if was inactive
+
+    await teacher.save();
+
+    res.json({
+      message: 'Subscription activated successfully',
+      subscriptionType: teacher.subscriptionType,
+      subscriptionExpiryDate: teacher.subscriptionExpiryDate,
+      status: teacher.status
+    });
+  } catch (error) {
+    console.error('Error activating subscription:', error);
+    res.status(500).json({ error: 'Failed to activate subscription' });
+  }
+});
+
 // Teachers
 app.get('/api/teachers', async (req, res) => {
   const debugLog = [];
@@ -1209,7 +1264,7 @@ app.get('/api/teachers/:id', async (req, res) => {
 
 app.post('/api/teachers', async (req, res) => {
   try {
-    const { name, email, phone, password, teacherId, status = 'active' } = req.body;
+    const { name, email, phone, password, teacherId, status = 'inactive' } = req.body;
     
     // Auto-generate teacherId if not provided
     let finalTeacherId = teacherId;
@@ -2689,21 +2744,36 @@ app.get('/api/auth/status', async (req, res) => {
   try {
     // Get teacher email from query parameter or authorization header
     const email = req.query.email;
-    
+
     if (!email) {
       return res.status(400).json({ error: 'Email parameter is required' });
     }
-    
+
     const normalizedEmail = email.toLowerCase().trim();
     const teacher = await Teacher.findOne({ email: normalizedEmail });
-    
+
     if (!teacher) {
       return res.status(404).json({ error: 'Teacher not found' });
     }
-    
+
+    // Check if subscription has expired
+    const now = new Date();
+    const isSubscriptionExpired = teacher.subscriptionExpiryDate && now > teacher.subscriptionExpiryDate;
+    const isActive = teacher.status === 'active' && !isSubscriptionExpired;
+
+    // Check if subscription is expiring within 3 days
+    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const isSubscriptionExpiringSoon = teacher.subscriptionExpiryDate && 
+      teacher.subscriptionExpiryDate <= threeDaysFromNow && 
+      !isSubscriptionExpired;
+
     res.json({
       status: teacher.status,
-      isActive: teacher.status === 'active'
+      isActive: isActive,
+      subscriptionExpired: isSubscriptionExpired,
+      subscriptionExpiringSoon: isSubscriptionExpiringSoon,
+      subscriptionType: teacher.subscriptionType,
+      subscriptionExpiryDate: teacher.subscriptionExpiryDate
     });
   } catch (error) {
     console.error('Error checking teacher status:', error);

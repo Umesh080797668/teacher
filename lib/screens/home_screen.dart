@@ -17,6 +17,9 @@ import '../services/api_service.dart';
 import '../services/update_service.dart';
 import '../models/home_stats.dart';
 import '../widgets/custom_widgets.dart';
+import 'activation_screen.dart';
+import 'subscription_warning_screen.dart';
+import 'pending_activation_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -61,6 +64,37 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     // Perform initial background update check
     _updateService.performBackgroundUpdateCheck();
+    
+    // Listen for auth provider changes to detect account inactive status
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    auth.addListener(_onAuthChanged);
+  }
+
+  void _onAuthChanged() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (!auth.isAuthenticated && mounted) {
+      // User logged out, navigate to account selection
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const AccountSelectionScreen()),
+        (route) => false,
+      );
+    } else if (!auth.isActivated && mounted) {
+      // User account not activated by admin yet
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const PendingActivationScreen()),
+        (route) => false,
+      );
+    } else if (auth.subscriptionExpired && mounted) {
+      // Navigate to activation screen
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const ActivationScreen()),
+      );
+    } else if (auth.shouldShowSubscriptionWarning && mounted) {
+      // Navigate to subscription warning screen
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const SubscriptionWarningScreen()),
+      );
+    }
   }
 
   @override
@@ -70,6 +104,11 @@ class _HomeScreenState extends State<HomeScreen> {
     _refreshTimer?.cancel();
     _timeUpdateTimer?.cancel();
     _updateCheckTimer?.cancel();
+    
+    // Remove auth listener
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    auth.removeListener(_onAuthChanged);
+    
     super.dispose();
   }
 
