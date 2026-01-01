@@ -1043,6 +1043,208 @@ app.delete('/api/classes/:id', async (req, res) => {
   }
 });
 
+// Student endpoints for mobile app
+app.post('/api/student/login', async (req, res) => {
+  try {
+    const { studentNumber, email } = req.body;
+
+    if (!studentNumber || !email) {
+      return res.status(400).json({ 
+        error: 'Student number and email are required',
+        success: false 
+      });
+    }
+
+    // Find student by studentId (studentNumber) and email
+    const student = await Student.findOne({ 
+      studentId: studentNumber.trim(),
+      email: email.trim().toLowerCase()
+    }).populate('classId', 'name');
+
+    if (!student) {
+      return res.status(404).json({ 
+        error: 'Student not found. Please check your student number and email.',
+        success: false 
+      });
+    }
+
+    // Return student info
+    res.json({
+      success: true,
+      student: {
+        id: student._id,
+        name: student.name,
+        email: student.email,
+        studentId: student.studentId,
+        classId: student.classId?._id,
+        className: student.classId?.name,
+        companyId: student.companyId
+      }
+    });
+  } catch (error) {
+    console.error('Error in student login:', error);
+    res.status(500).json({ 
+      error: 'Login failed. Please try again.',
+      success: false 
+    });
+  }
+});
+
+app.get('/api/student/attendance', async (req, res) => {
+  try {
+    const { studentId, month, year } = req.query;
+
+    if (!studentId) {
+      return res.status(400).json({ 
+        error: 'Student ID is required',
+        success: false 
+      });
+    }
+
+    // Verify student exists
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ 
+        error: 'Student not found',
+        success: false 
+      });
+    }
+
+    // Build query
+    let query = { studentId: studentId };
+    if (month) query.month = parseInt(month);
+    if (year) query.year = parseInt(year);
+
+    // Get attendance records
+    const attendance = await Attendance.find(query)
+      .populate('studentId', 'name studentId')
+      .sort({ date: -1, createdAt: -1 });
+
+    res.json({
+      success: true,
+      attendance: attendance
+    });
+  } catch (error) {
+    console.error('Error fetching student attendance:', error);
+    res.status(500).json({ 
+      error: 'Failed to load attendance records',
+      success: false 
+    });
+  }
+});
+
+app.get('/api/student/payments', async (req, res) => {
+  try {
+    const { studentId, month, year } = req.query;
+
+    if (!studentId) {
+      return res.status(400).json({ 
+        error: 'Student ID is required',
+        success: false 
+      });
+    }
+
+    // Verify student exists
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ 
+        error: 'Student not found',
+        success: false 
+      });
+    }
+
+    // Build query
+    let query = { studentId: studentId };
+    if (month) query.month = parseInt(month);
+    if (year) {
+      const yearNum = parseInt(year);
+      const startDate = new Date(yearNum, 0, 1);
+      const endDate = new Date(yearNum + 1, 0, 1);
+      query.date = { $gte: startDate, $lt: endDate };
+    }
+
+    // Get payment records
+    const payments = await Payment.find(query)
+      .populate('classId', 'name')
+      .sort({ date: -1, createdAt: -1 });
+
+    res.json({
+      success: true,
+      payments: payments
+    });
+  } catch (error) {
+    console.error('Error fetching student payments:', error);
+    res.status(500).json({ 
+      error: 'Failed to load payment records',
+      success: false 
+    });
+  }
+});
+
+app.get('/api/student/status', async (req, res) => {
+  try {
+    const { studentId } = req.query;
+
+    if (!studentId) {
+      return res.status(400).json({ 
+        error: 'Student ID is required',
+        success: false 
+      });
+    }
+
+    // Get student with class info
+    const student = await Student.findById(studentId)
+      .populate('classId', 'name')
+      .populate('companyId', 'name');
+
+    if (!student) {
+      return res.status(404).json({ 
+        error: 'Student not found',
+        success: false 
+      });
+    }
+
+    // Get recent attendance count (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const recentAttendance = await Attendance.find({
+      studentId: studentId,
+      date: { $gte: thirtyDaysAgo }
+    });
+
+    const presentCount = recentAttendance.filter(a => a.status === 'present').length;
+    const totalCount = recentAttendance.length;
+    const attendanceRate = totalCount > 0 ? (presentCount / totalCount * 100).toFixed(1) : 0;
+
+    res.json({
+      success: true,
+      student: {
+        id: student._id,
+        name: student.name,
+        email: student.email,
+        studentId: student.studentId,
+        classId: student.classId?._id,
+        className: student.classId?.name,
+        companyId: student.companyId?._id,
+        companyName: student.companyId?.name,
+        status: 'active', // Could be enhanced with more status logic
+        recentAttendance: {
+          total: totalCount,
+          present: presentCount,
+          rate: parseFloat(attendanceRate)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching student status:', error);
+    res.status(500).json({ 
+      error: 'Failed to load student status',
+      success: false 
+    });
+  }
+});
+
 // Payments
 app.get('/api/payments', async (req, res) => {
   try {
