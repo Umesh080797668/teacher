@@ -1101,8 +1101,14 @@ app.get('/api/student/attendance', async (req, res) => {
       });
     }
 
+    // Convert studentId to ObjectId if it's a string
+    let studentObjectId = studentId;
+    if (typeof studentId === 'string' && studentId.match(/^[0-9a-fA-F]{24}$/)) {
+      studentObjectId = new mongoose.Types.ObjectId(studentId);
+    }
+
     // Verify student exists
-    const student = await Student.findById(studentId);
+    const student = await Student.findById(studentObjectId);
     if (!student) {
       return res.status(404).json({ 
         error: 'Student not found',
@@ -1111,7 +1117,7 @@ app.get('/api/student/attendance', async (req, res) => {
     }
 
     // Build query
-    let query = { studentId: studentId };
+    let query = { studentId: studentObjectId };
     if (month) query.month = parseInt(month);
     if (year) query.year = parseInt(year);
 
@@ -1144,8 +1150,14 @@ app.get('/api/student/payments', async (req, res) => {
       });
     }
 
+    // Convert studentId to ObjectId if it's a string
+    let studentObjectId = studentId;
+    if (typeof studentId === 'string' && studentId.match(/^[0-9a-fA-F]{24}$/)) {
+      studentObjectId = new mongoose.Types.ObjectId(studentId);
+    }
+
     // Verify student exists
-    const student = await Student.findById(studentId);
+    const student = await Student.findById(studentObjectId);
     if (!student) {
       return res.status(404).json({ 
         error: 'Student not found',
@@ -1154,7 +1166,7 @@ app.get('/api/student/payments', async (req, res) => {
     }
 
     // Build query
-    let query = { studentId: studentId };
+    let query = { studentId: studentObjectId };
     if (month) query.month = parseInt(month);
     if (year) {
       const yearNum = parseInt(year);
