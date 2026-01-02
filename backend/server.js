@@ -1158,7 +1158,7 @@ app.post('/api/student/login', async (req, res) => {
   }
 });
 
-app.get('/api/student/attendance', async (req, res) => {
+app.get('/api/student/attendance', checkStudentRestriction, async (req, res) => {
   try {
     const { studentId, month, year } = req.query;
 
@@ -1207,7 +1207,7 @@ app.get('/api/student/attendance', async (req, res) => {
   }
 });
 
-app.get('/api/student/payments', async (req, res) => {
+app.get('/api/student/payments', checkStudentRestriction, async (req, res) => {
   try {
     const { studentId, month, year } = req.query;
 
@@ -1261,7 +1261,7 @@ app.get('/api/student/payments', async (req, res) => {
   }
 });
 
-app.get('/api/student/status', async (req, res) => {
+app.get('/api/student/status', checkStudentRestriction, async (req, res) => {
   try {
     const { studentId } = req.query;
 
@@ -1563,6 +1563,62 @@ const verifySuperAdmin = async (req, res, next) => {
   } catch (error) {
     console.error('Super admin verification error:', error.message);
     res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// Teacher verification middleware
+const verifyTeacher = async (req, res, next) => {
+  try {
+    // First verify the token
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, jwtSecret);
+    req.user = decoded;
+    
+    // Check if user is teacher
+    if (decoded.userType !== 'teacher') {
+      return res.status(403).json({ error: 'Teacher access required' });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Teacher verification error:', error.message);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// Student restriction check middleware
+const checkStudentRestriction = async (req, res, next) => {
+  try {
+    const { studentId } = req.body;
+    
+    if (!studentId) {
+      return res.status(400).json({ error: 'Student ID is required' });
+    }
+
+    // Find the student
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Check if student is restricted
+    if (student.isRestricted) {
+      return res.status(403).json({ 
+        error: 'Student access restricted',
+        message: 'This student has been restricted and cannot perform this action'
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Student restriction check error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -5473,6 +5529,126 @@ app.post('/api/super-admin/unrestrict-student', verifySuperAdmin, async (req, re
       success: true, 
       message: 'Student unrestricted successfully',
       student 
+    });
+  } catch (error) {
+    console.error('Error unrestricting student:', error);
+    res.status(500).json({ error: 'Failed to unrestrict student' });
+  }
+});
+
+// Teacher: Get students in their classes
+app.get('/api/teacher/students', verifyTeacher, async (req, res) => {
+  try {
+    const teacherId = req.user.userId;
+
+    // Find all classes taught by this teacher
+    const classes = await Class.find({ teacherId: teacherId });
+    const classIds = classes.map(c => c._id);
+
+    // Get all students in these classes
+    const students = await Student.find({ classId: { $in: classIds } })
+      .select('name email studentId isRestricted restrictedAt restrictionReason classId')
+      .populate('classId', 'name')
+      .sort({ name: 1 });
+
+    res.json(students);
+  } catch (error) {
+    console.error('Error fetching teacher students:', error);
+    res.status(500).json({ error: 'Failed to fetch students' });
+  }
+});
+
+// Teacher: Restrict a student
+app.post('/api/teacher/restrict-student', verifyTeacher, async (req, res) => {
+  try {
+    const { studentId, reason } = req.body;
+    const teacherId = req.user.userId;
+
+    if (!studentId) {
+      return res.status(400).json({ error: 'Student ID is required' });
+    }
+
+    // Verify the student is in one of the teacher's classes
+    const student = await Student.findById(studentId).populate('classId');
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Check if the teacher teaches this student's class
+    const teacherClass = await Class.findOne({ 
+      _id: student.classId._id, 
+      teacherId: teacherId 
+    });
+
+    if (!teacherClass) {
+      return res.status(403).json({ error: 'You can only restrict students in your classes' });
+    }
+
+    // Restrict the student
+    const updatedStudent = await Student.findByIdAndUpdate(
+      studentId,
+      {
+        isRestricted: true,
+        restrictedBy: teacherId,
+        restrictedAt: new Date(),
+        restrictionReason: reason || 'Restricted by teacher'
+      },
+      { new: true }
+    ).populate('classId', 'name');
+
+    res.json({ 
+      success: true, 
+      message: 'Student restricted successfully',
+      student: updatedStudent 
+    });
+  } catch (error) {
+    console.error('Error restricting student:', error);
+    res.status(500).json({ error: 'Failed to restrict student' });
+  }
+});
+
+// Teacher: Unrestrict a student
+app.post('/api/teacher/unrestrict-student', verifyTeacher, async (req, res) => {
+  try {
+    const { studentId } = req.body;
+    const teacherId = req.user.userId;
+
+    if (!studentId) {
+      return res.status(400).json({ error: 'Student ID is required' });
+    }
+
+    // Verify the student is in one of the teacher's classes
+    const student = await Student.findById(studentId).populate('classId');
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Check if the teacher teaches this student's class
+    const teacherClass = await Class.findOne({ 
+      _id: student.classId._id, 
+      teacherId: teacherId 
+    });
+
+    if (!teacherClass) {
+      return res.status(403).json({ error: 'You can only unrestrict students in your classes' });
+    }
+
+    // Unrestrict the student
+    const updatedStudent = await Student.findByIdAndUpdate(
+      studentId,
+      {
+        isRestricted: false,
+        restrictedBy: null,
+        restrictedAt: null,
+        restrictionReason: null
+      },
+      { new: true }
+    ).populate('classId', 'name');
+
+    res.json({ 
+      success: true, 
+      message: 'Student unrestricted successfully',
+      student: updatedStudent 
     });
   } catch (error) {
     console.error('Error unrestricting student:', error);

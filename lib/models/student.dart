@@ -5,6 +5,9 @@ class Student {
   final String studentId;
   final String? classId;
   final DateTime? createdAt;
+  final bool isRestricted;
+  final String? restrictionReason;
+  final DateTime? restrictedAt;
 
   Student({
     required this.id,
@@ -13,6 +16,9 @@ class Student {
     required this.studentId,
     this.classId,
     this.createdAt,
+    this.isRestricted = false,
+    this.restrictionReason,
+    this.restrictedAt,
   });
 
   factory Student.fromJson(Map<String, dynamic> json) {
@@ -23,6 +29,9 @@ class Student {
       studentId: json['studentId'],
       classId: json['classId'],
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      isRestricted: json['isRestricted'] ?? false,
+      restrictionReason: json['restrictionReason'],
+      restrictedAt: json['restrictedAt'] != null ? DateTime.parse(json['restrictedAt']) : null,
     );
   }
 

@@ -441,6 +441,66 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       endActionPane: ActionPane(
                         motion: const ScrollMotion(),
                         children: [
+                          // Restrict/Unrestrict action
+                          SlidableAction(
+                            onPressed: (context) async {
+                              final isCurrentlyRestricted = student.isRestricted;
+                              final action = isCurrentlyRestricted ? 'unrestrict' : 'restrict';
+                              final actionText = isCurrentlyRestricted ? 'Unrestrict' : 'Restrict';
+
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: Text('$actionText Student'),
+                                  content: Text('Are you sure you want to $action ${student.name}?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, true),
+                                      child: Text(actionText, style: TextStyle(color: isCurrentlyRestricted ? Colors.green : Colors.orange)),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirm == true && context.mounted) {
+                                try {
+                                  final provider = Provider.of<StudentsProvider>(context, listen: false);
+                                  if (isCurrentlyRestricted) {
+                                    await provider.unrestrictStudent(student.id);
+                                  } else {
+                                    await provider.restrictStudent(student.id);
+                                  }
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Student ${isCurrentlyRestricted ? 'unrestricted' : 'restricted'} successfully'),
+                                        backgroundColor: isCurrentlyRestricted ? Colors.green : Colors.orange,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Failed to ${action} student: $e'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                            backgroundColor: student.isRestricted ? Colors.green : Colors.orange,
+                            foregroundColor: Colors.white,
+                            icon: student.isRestricted ? Icons.lock_open : Icons.lock,
+                            label: student.isRestricted ? 'Unrestrict' : 'Restrict',
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          // Delete action
                           SlidableAction(
                             onPressed: (context) async {
                               final confirm = await showDialog<bool>(
@@ -509,12 +569,47 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               ),
                             ),
                           ),
-                          title: Text(
-                            student.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  student.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                              if (student.isRestricted) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.lock,
+                                        size: 14,
+                                        color: Colors.red.shade700,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Restricted',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.red.shade700,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

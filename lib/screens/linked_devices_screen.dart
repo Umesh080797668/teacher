@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
+import '../services/api_service.dart';
 
 class LinkedDevicesScreen extends StatefulWidget {
   const LinkedDevicesScreen({super.key});
@@ -41,10 +42,10 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
       }
 
       print('✓ Auth token found');
-      print('Making request to: https://teacher-eight-chi.vercel.app/api/web-session/active');
+      print('Making request to: ${ApiService.baseUrl}/api/web-session/active');
 
       final response = await http.get(
-        Uri.parse('https://teacher-eight-chi.vercel.app/api/web-session/active'),
+        Uri.parse('${ApiService.baseUrl}/api/web-session/active'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -166,7 +167,7 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
       print('✓ Auth token found, making disconnect request');
       
       final response = await http.post(
-        Uri.parse('https://teacher-eight-chi.vercel.app/api/web-session/disconnect'),
+        Uri.parse('${ApiService.baseUrl}/api/web-session/disconnect'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

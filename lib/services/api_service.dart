@@ -36,6 +36,17 @@ class ApiService {
     return baseUrls[_currentUrlIndex];
   }
 
+  // Get stored authentication token
+  static Future<String?> getToken() async {
+    try {
+      const FlutterSecureStorage storage = FlutterSecureStorage();
+      return await storage.read(key: 'auth_token');
+    } catch (e) {
+      print('Error getting token: $e');
+      return null;
+    }
+  }
+
   // Timeout duration for all requests
   static const Duration timeout = Duration(seconds: 30);
 
@@ -490,13 +501,8 @@ class ApiService {
 
   // Students
   static Future<List<Student>> getStudents({String? teacherId}) async {
-    final queryParams = <String, String>{};
-    if (teacherId != null) queryParams['teacherId'] = teacherId;
-
-    final endpoint = Uri(
-      path: '/api/students',
-      queryParameters: queryParams.isNotEmpty ? queryParams : null,
-    ).toString();
+    // Use the new teacher endpoint that includes restriction data
+    final endpoint = '/api/teacher/students';
     final response = await _makeRequest('GET', endpoint);
     List<dynamic> data = json.decode(response.body);
     return data.map((json) => Student.fromJson(json)).toList();
