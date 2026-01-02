@@ -716,6 +716,50 @@ app.use(async (req, res, next) => {
   }
 });
 
+// Middleware to verify JWT token
+const verifyToken = (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+    
+    console.log('=== Token Verification (server.js) ===');
+    console.log('Endpoint:', req.method, req.path);
+    console.log('Token present:', !!token);
+    console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+    console.log('JWT_SECRET length:', jwtSecret.length);
+    console.log('JWT_SECRET (first 10 chars):', jwtSecret.substring(0, 10) + '...');
+    
+    if (!token) {
+      console.log('❌ No token provided');
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, jwtSecret);
+    console.log('✓ Token verified successfully');
+    console.log('Decoded token:', {
+      userId: decoded.userId,
+      teacherId: decoded.teacherId,
+      email: decoded.email,
+      iat: new Date(decoded.iat * 1000).toISOString(),
+      exp: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : 'No expiration'
+    });
+    
+    req.user = decoded;
+    next();
+  } catch (error) {
+    console.error('❌ Token verification error:', error.message);
+    if (error.name === 'TokenExpiredError') {
+      console.log('Token expired at:', error.expiredAt);
+      return res.status(401).json({ error: 'Token expired', expired: true });
+    }
+    if (error.name === 'JsonWebTokenError') {
+      console.log('Invalid token signature or format');
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
 // Routes
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -3552,50 +3596,6 @@ app.post('/api/auth/reset-password', async (req, res) => {
 // ============================================
 // Web Session Management Routes
 // ============================================
-
-// Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
-  try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
-    
-    console.log('=== Token Verification (server.js) ===');
-    console.log('Endpoint:', req.method, req.path);
-    console.log('Token present:', !!token);
-    console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
-    console.log('JWT_SECRET length:', jwtSecret.length);
-    console.log('JWT_SECRET (first 10 chars):', jwtSecret.substring(0, 10) + '...');
-    
-    if (!token) {
-      console.log('❌ No token provided');
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const decoded = jwt.verify(token, jwtSecret);
-    console.log('✓ Token verified successfully');
-    console.log('Decoded token:', {
-      userId: decoded.userId,
-      teacherId: decoded.teacherId,
-      email: decoded.email,
-      iat: new Date(decoded.iat * 1000).toISOString(),
-      exp: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : 'No expiration'
-    });
-    
-    req.user = decoded;
-    next();
-  } catch (error) {
-    console.error('❌ Token verification error:', error.message);
-    if (error.name === 'TokenExpiredError') {
-      console.log('Token expired at:', error.expiredAt);
-      return res.status(401).json({ error: 'Token expired', expired: true });
-    }
-    if (error.name === 'JsonWebTokenError') {
-      console.log('Invalid token signature or format');
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-    res.status(401).json({ error: 'Invalid token' });
-  }
-};
 
 // Get active web sessions
 app.get('/api/web-session/active', verifyToken, async (req, res) => {  
