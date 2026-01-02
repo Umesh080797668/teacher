@@ -1158,6 +1158,37 @@ app.post('/api/student/login', async (req, res) => {
   }
 });
 
+
+// Student restriction check middleware
+const checkStudentRestriction = async (req, res, next) => {
+  try {
+    const { studentId } = req.body;
+    
+    if (!studentId) {
+      return res.status(400).json({ error: 'Student ID is required' });
+    }
+
+    // Find the student
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Check if student is restricted
+    if (student.isRestricted) {
+      return res.status(403).json({ 
+        error: 'Student access restricted',
+        message: 'This student has been restricted and cannot perform this action'
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Student restriction check error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 app.get('/api/student/attendance', checkStudentRestriction, async (req, res) => {
   try {
     const { studentId, month, year } = req.query;
@@ -1589,36 +1620,6 @@ const verifyTeacher = async (req, res, next) => {
   } catch (error) {
     console.error('Teacher verification error:', error.message);
     res.status(401).json({ error: 'Invalid token' });
-  }
-};
-
-// Student restriction check middleware
-const checkStudentRestriction = async (req, res, next) => {
-  try {
-    const { studentId } = req.body;
-    
-    if (!studentId) {
-      return res.status(400).json({ error: 'Student ID is required' });
-    }
-
-    // Find the student
-    const student = await Student.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-
-    // Check if student is restricted
-    if (student.isRestricted) {
-      return res.status(403).json({ 
-        error: 'Student access restricted',
-        message: 'This student has been restricted and cannot perform this action'
-      });
-    }
-
-    next();
-  } catch (error) {
-    console.error('Student restriction check error:', error.message);
-    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
