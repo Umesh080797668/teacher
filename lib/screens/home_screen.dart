@@ -16,6 +16,7 @@ import 'login_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../services/update_service.dart';
+import '../services/restriction_polling_service.dart';
 import '../models/home_stats.dart';
 import '../widgets/custom_widgets.dart';
 import 'activation_screen.dart';
@@ -50,6 +51,16 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _searchFocusNode.unfocus();
       _loadData();
+      
+      // Start restriction polling
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (auth.teacherId != null) {
+        RestrictionPollingService().startPolling(
+          context: context,
+          userId: auth.teacherId!,
+          userType: 'teacher',
+        );
+      }
     });
     // Refresh data every 30 seconds for real-time updates
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
@@ -105,6 +116,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _refreshTimer?.cancel();
     _timeUpdateTimer?.cancel();
     _updateCheckTimer?.cancel();
+    
+    // Stop restriction polling
+    RestrictionPollingService().stopPolling();
     
     // Remove auth listener
     final auth = Provider.of<AuthProvider>(context, listen: false);

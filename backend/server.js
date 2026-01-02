@@ -225,6 +225,10 @@ const StudentSchema = new mongoose.Schema({
   studentId: { type: String, unique: true },
   classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' },
   companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin association
+  isRestricted: { type: Boolean, default: false },
+  restrictedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+  restrictedAt: { type: Date },
+  restrictionReason: { type: String },
 }, { timestamps: true });
 
 const AttendanceSchema = new mongoose.Schema({
@@ -259,6 +263,10 @@ const TeacherSchema = new mongoose.Schema({
   subscriptionType: { type: String, enum: ['monthly', 'yearly'], default: 'monthly' },
   subscriptionStartDate: { type: Date, default: Date.now },
   subscriptionExpiryDate: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }, // Default 30 days for monthly
+  isRestricted: { type: Boolean, default: false },
+  restrictedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+  restrictedAt: { type: Date },
+  restrictionReason: { type: String },
 }, { timestamps: true });
 
 const EmailVerificationSchema = new mongoose.Schema({
@@ -5137,6 +5145,338 @@ app.get('/api/super-admin/reports/monthly-earnings-by-class', verifySuperAdmin, 
   } catch (error) {
     console.error('Error in super-admin monthly-earnings-by-class:', error);
     res.status(500).json({ error: 'Failed to fetch monthly earnings by class' });
+  }
+});
+
+// ==================== RESTRICTION MANAGEMENT ENDPOINTS ====================
+
+// Super Admin: Get all teachers with their restriction status
+app.get('/api/super-admin/teachers', verifySuperAdmin, async (req, res) => {
+  try {
+    const teachers = await Teacher.find({})
+      .select('name email teacherId isRestricted restrictedAt restrictionReason companyIds status')
+      .populate('companyIds', 'companyName');
+    
+    res.json(teachers);
+  } catch (error) {
+    console.error('Error fetching teachers:', error);
+    res.status(500).json({ error: 'Failed to fetch teachers' });
+  }
+});
+
+// Super Admin: Restrict a teacher
+app.post('/api/super-admin/restrict-teacher', verifySuperAdmin, async (req, res) => {
+  try {
+    const { teacherId, reason, adminId } = req.body;
+
+    if (!teacherId || !adminId) {
+      return res.status(400).json({ error: 'Teacher ID and Admin ID are required' });
+    }
+
+    // Update teacher restriction status
+    const teacher = await Teacher.findByIdAndUpdate(
+      teacherId,
+      {
+        isRestricted: true,
+        restrictedBy: adminId,
+        restrictedAt: new Date(),
+        restrictionReason: reason || 'No reason provided'
+      },
+      { new: true }
+    );
+
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    // Get all classes taught by this teacher
+    const classes = await Class.find({ teacherId: teacher._id });
+    const classIds = classes.map(c => c._id);
+
+    // Find all students in these classes
+    const students = await Student.find({ classId: { $in: classIds } });
+
+    // For each student, check if they have other non-restricted teachers
+    for (const student of students) {
+      // Get all classes this student is in
+      const studentClasses = await Class.find({ 
+        _id: { $in: [student.classId] }
+      }).populate('teacherId');
+
+      // Check if all teachers of this student are restricted
+      const allTeachersRestricted = studentClasses.every(cls => 
+        cls.teacherId && cls.teacherId.isRestricted
+      );
+
+      // Only restrict student if ALL their teachers are restricted
+      if (allTeachersRestricted) {
+        await Student.findByIdAndUpdate(
+          student._id,
+          {
+            isRestricted: true,
+            restrictedBy: adminId,
+            restrictedAt: new Date(),
+            restrictionReason: 'Teacher restricted'
+          }
+        );
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Teacher restricted successfully',
+      teacher 
+    });
+  } catch (error) {
+    console.error('Error restricting teacher:', error);
+    res.status(500).json({ error: 'Failed to restrict teacher' });
+  }
+});
+
+// Super Admin: Unrestrict a teacher
+app.post('/api/super-admin/unrestrict-teacher', verifySuperAdmin, async (req, res) => {
+  try {
+    const { teacherId } = req.body;
+
+    if (!teacherId) {
+      return res.status(400).json({ error: 'Teacher ID is required' });
+    }
+
+    // Update teacher restriction status
+    const teacher = await Teacher.findByIdAndUpdate(
+      teacherId,
+      {
+        isRestricted: false,
+        restrictedBy: null,
+        restrictedAt: null,
+        restrictionReason: null
+      },
+      { new: true }
+    );
+
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    // Get all classes taught by this teacher
+    const classes = await Class.find({ teacherId: teacher._id });
+    const classIds = classes.map(c => c._id);
+
+    // Find all students in these classes who were restricted due to teacher restriction
+    const students = await Student.find({ 
+      classId: { $in: classIds },
+      isRestricted: true,
+      restrictionReason: 'Teacher restricted'
+    });
+
+    // Unrestrict students who were only restricted because of this teacher
+    for (const student of students) {
+      // Get all classes this student is in
+      const studentClasses = await Class.find({ 
+        _id: { $in: [student.classId] }
+      }).populate('teacherId');
+
+      // Check if any teacher is still restricted
+      const hasRestrictedTeacher = studentClasses.some(cls => 
+        cls.teacherId && cls.teacherId.isRestricted && cls.teacherId._id.toString() !== teacherId
+      );
+
+      // Only unrestrict if no other teachers are restricted
+      if (!hasRestrictedTeacher) {
+        await Student.findByIdAndUpdate(
+          student._id,
+          {
+            isRestricted: false,
+            restrictedBy: null,
+            restrictedAt: null,
+            restrictionReason: null
+          }
+        );
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Teacher unrestricted successfully',
+      teacher 
+    });
+  } catch (error) {
+    console.error('Error unrestricting teacher:', error);
+    res.status(500).json({ error: 'Failed to unrestrict teacher' });
+  }
+});
+
+// Teacher: Check restriction status (polling endpoint)
+app.get('/api/teacher/restriction-status/:teacherId', async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    const teacher = await Teacher.findOne({ teacherId })
+      .select('isRestricted restrictedAt restrictionReason name email');
+
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    res.json({
+      isRestricted: teacher.isRestricted || false,
+      restrictedAt: teacher.restrictedAt,
+      restrictionReason: teacher.restrictionReason,
+      name: teacher.name,
+      email: teacher.email
+    });
+  } catch (error) {
+    console.error('Error checking teacher restriction:', error);
+    res.status(500).json({ error: 'Failed to check restriction status' });
+  }
+});
+
+// Student: Check restriction status (polling endpoint)
+app.get('/api/student/restriction-status/:studentId', async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    const student = await Student.findOne({ studentId })
+      .select('isRestricted restrictedAt restrictionReason name email classId')
+      .populate({
+        path: 'classId',
+        select: 'name teacherId',
+        populate: {
+          path: 'teacherId',
+          select: 'name isRestricted'
+        }
+      });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Get all classes for this student (in case they're in multiple)
+    const allClasses = await Class.find({ 
+      _id: { $in: [student.classId] } 
+    }).populate('teacherId', 'name isRestricted');
+
+    // Filter to get available (non-restricted) classes
+    const availableClasses = allClasses.filter(cls => 
+      cls.teacherId && !cls.teacherId.isRestricted
+    );
+
+    // Get restricted classes
+    const restrictedClasses = allClasses.filter(cls => 
+      cls.teacherId && cls.teacherId.isRestricted
+    );
+
+    res.json({
+      isRestricted: student.isRestricted || false,
+      restrictedAt: student.restrictedAt,
+      restrictionReason: student.restrictionReason,
+      name: student.name,
+      email: student.email,
+      availableClasses: availableClasses.map(cls => ({
+        id: cls._id,
+        name: cls.name,
+        teacherName: cls.teacherId.name
+      })),
+      restrictedClasses: restrictedClasses.map(cls => ({
+        id: cls._id,
+        name: cls.name,
+        teacherName: cls.teacherId.name
+      }))
+    });
+  } catch (error) {
+    console.error('Error checking student restriction:', error);
+    res.status(500).json({ error: 'Failed to check restriction status' });
+  }
+});
+
+// Super Admin: Get all students with restriction status
+app.get('/api/super-admin/students', verifySuperAdmin, async (req, res) => {
+  try {
+    const students = await Student.find({})
+      .select('name email studentId isRestricted restrictedAt restrictionReason classId')
+      .populate({
+        path: 'classId',
+        select: 'name teacherId',
+        populate: {
+          path: 'teacherId',
+          select: 'name isRestricted'
+        }
+      });
+    
+    res.json(students);
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    res.status(500).json({ error: 'Failed to fetch students' });
+  }
+});
+
+// Super Admin: Manually restrict a student
+app.post('/api/super-admin/restrict-student', verifySuperAdmin, async (req, res) => {
+  try {
+    const { studentId, reason, adminId } = req.body;
+
+    if (!studentId || !adminId) {
+      return res.status(400).json({ error: 'Student ID and Admin ID are required' });
+    }
+
+    const student = await Student.findByIdAndUpdate(
+      studentId,
+      {
+        isRestricted: true,
+        restrictedBy: adminId,
+        restrictedAt: new Date(),
+        restrictionReason: reason || 'No reason provided'
+      },
+      { new: true }
+    );
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Student restricted successfully',
+      student 
+    });
+  } catch (error) {
+    console.error('Error restricting student:', error);
+    res.status(500).json({ error: 'Failed to restrict student' });
+  }
+});
+
+// Super Admin: Manually unrestrict a student
+app.post('/api/super-admin/unrestrict-student', verifySuperAdmin, async (req, res) => {
+  try {
+    const { studentId } = req.body;
+
+    if (!studentId) {
+      return res.status(400).json({ error: 'Student ID is required' });
+    }
+
+    const student = await Student.findByIdAndUpdate(
+      studentId,
+      {
+        isRestricted: false,
+        restrictedBy: null,
+        restrictedAt: null,
+        restrictionReason: null
+      },
+      { new: true }
+    );
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Student unrestricted successfully',
+      student 
+    });
+  } catch (error) {
+    console.error('Error unrestricting student:', error);
+    res.status(500).json({ error: 'Failed to unrestrict student' });
   }
 });
 
