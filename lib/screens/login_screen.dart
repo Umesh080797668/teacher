@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'registration_screen.dart';
@@ -104,7 +105,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       
       // Store JWT token for authenticated API requests
       if (token != null) {
-        await prefs.setString('auth_token', token);
+        final FlutterSecureStorage storage = FlutterSecureStorage();
+        await storage.write(key: 'auth_token', value: token);
       }
 
       if (!mounted) return; // avoid using BuildContext across async gap
@@ -182,11 +184,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.white),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text('Unable to connect. Please check your internet connection and try again.'),
               ),
             ],
@@ -245,15 +247,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF6366F1), // Indigo
-              const Color(0xFF8B5CF6), // Purple
-              const Color(0xFFA855F7), // Medium Purple
-              const Color(0xFFEC4899), // Pink
+              Color(0xFF6366F1), // Indigo
+              Color(0xFF8B5CF6), // Purple
+              Color(0xFFA855F7), // Medium Purple
+              Color(0xFFEC4899), // Pink
             ],
             stops: [0.0, 0.4, 0.7, 1.0],
           ),
@@ -265,7 +267,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               child: Opacity(
                 opacity: 0.05,
                 child: Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: RadialGradient(
                       center: Alignment.center,
                       radius: 1.5,

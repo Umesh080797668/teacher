@@ -8,12 +8,12 @@ class ClassStudentDetailsModal extends StatefulWidget {
   final int year;
 
   const ClassStudentDetailsModal({
-    Key? key,
+    super.key,
     required this.classId,
     required this.className,
     required this.month,
     required this.year,
-  }) : super(key: key);
+  });
 
   @override
   State<ClassStudentDetailsModal> createState() => _ClassStudentDetailsModalState();
@@ -208,7 +208,7 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: Theme.of(context).colorScheme.outline.withOpacity(0.2),

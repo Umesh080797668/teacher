@@ -314,6 +314,21 @@ const ProblemReportSchema = new mongoose.Schema({
   appVersion: { type: String },
   device: { type: String },
   teacherId: { type: String },
+  studentId: { type: String },
+  userType: { type: String, enum: ['teacher', 'student'], required: true },
+}, { timestamps: true });
+
+// Feature Request Schema for user-submitted feature requests
+const FeatureRequestSchema = new mongoose.Schema({
+  userEmail: { type: String, required: true },
+  featureDescription: { type: String, required: true },
+  bidPrice: { type: Number, required: true },
+  appVersion: { type: String },
+  device: { type: String },
+  teacherId: { type: String },
+  studentId: { type: String },
+  userType: { type: String, enum: ['teacher', 'student'], required: true },
+  status: { type: String, enum: ['pending', 'reviewed', 'in-progress', 'completed', 'rejected'], default: 'pending' },
 }, { timestamps: true });
 
 // Payment Proof Schema for subscription payment proofs
@@ -342,6 +357,7 @@ const WebSession = mongoose.models.WebSession || mongoose.model('WebSession', We
 const Admin = mongoose.models.Admin || mongoose.model('Admin', AdminSchema);
 const ProblemReport = mongoose.models.ProblemReport || mongoose.model('ProblemReport', ProblemReportSchema);
 const PaymentProof = mongoose.models.PaymentProof || mongoose.model('PaymentProof', PaymentProofSchema);
+const FeatureRequest = mongoose.models.FeatureRequest || mongoose.model('FeatureRequest', FeatureRequestSchema);
 
 // Store for pending QR sessions and connected sockets
 const pendingQRSessions = new Map(); // sessionId -> { timestamp, userType }
@@ -741,7 +757,7 @@ app.get('/api/debug/mongodb', (req, res) => {
 });
 
 // Students
-app.get('/api/students', async (req, res) => {
+app.get('/api/students', verifyToken, async (req, res) => {
   try {
     console.log('GET /api/students called');
     console.log('MongoDB connection state:', mongoose.connection.readyState);
@@ -785,7 +801,7 @@ app.get('/api/students', async (req, res) => {
   }
 });
 
-app.post('/api/students', async (req, res) => {
+app.post('/api/students', verifyToken, async (req, res) => {
   try {
     const { name, email, studentId, classId } = req.body;
     
@@ -820,7 +836,7 @@ app.post('/api/students', async (req, res) => {
   }
 });
 
-app.get('/api/students/:id', async (req, res) => {
+app.get('/api/students/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     console.log('GET /api/students/:id called with id:', id);
@@ -843,7 +859,7 @@ app.get('/api/students/:id', async (req, res) => {
   }
 });
 
-app.put('/api/students/:id', async (req, res) => {
+app.put('/api/students/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -864,7 +880,7 @@ app.put('/api/students/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/students/:id', async (req, res) => {
+app.delete('/api/students/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const deletedStudent = await Student.findByIdAndDelete(id);
@@ -879,7 +895,7 @@ app.delete('/api/students/:id', async (req, res) => {
 });
 
 // Attendance
-app.get('/api/attendance', async (req, res) => {
+app.get('/api/attendance', verifyToken, async (req, res) => {
   try {
     const { studentId, month, year, teacherId } = req.query;
     let query = {};
@@ -911,7 +927,7 @@ app.get('/api/attendance', async (req, res) => {
   }
 });
 
-app.post('/api/attendance', async (req, res) => {
+app.post('/api/attendance', verifyToken, async (req, res) => {
   try {
     const { studentId, date, session = 'daily', status } = req.body;
     console.log('POST /api/attendance received:', { studentId, date, session, status });
@@ -946,7 +962,7 @@ app.post('/api/attendance', async (req, res) => {
 });
 
 // Classes
-app.get('/api/classes', async (req, res) => {
+app.get('/api/classes', verifyToken, async (req, res) => {
   try {
     const { teacherId } = req.query;
     let query = {};
@@ -977,7 +993,7 @@ app.get('/api/classes', async (req, res) => {
   }
 });
 
-app.post('/api/classes', async (req, res) => {
+app.post('/api/classes', verifyToken, async (req, res) => {
   try {
     const { name, teacherId } = req.body;
     
@@ -996,7 +1012,7 @@ app.post('/api/classes', async (req, res) => {
   }
 });
 
-app.get('/api/classes/:id', async (req, res) => {
+app.get('/api/classes/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     console.log('GET /api/classes/:id called with id:', id);
@@ -1019,7 +1035,7 @@ app.get('/api/classes/:id', async (req, res) => {
   }
 });
 
-app.put('/api/classes/:id', async (req, res) => {
+app.put('/api/classes/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
@@ -1033,7 +1049,7 @@ app.put('/api/classes/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/classes/:id', async (req, res) => {
+app.delete('/api/classes/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     await Class.findByIdAndDelete(id);
@@ -1258,7 +1274,7 @@ app.get('/api/student/status', async (req, res) => {
 });
 
 // Payments
-app.get('/api/payments', async (req, res) => {
+app.get('/api/payments', verifyToken, async (req, res) => {
   try {
     const { classId, studentId, teacherId } = req.query;
     let query = {};
@@ -1322,7 +1338,7 @@ app.get('/api/payments', async (req, res) => {
   }
 });
 
-app.post('/api/payments', async (req, res) => {
+app.post('/api/payments', verifyToken, async (req, res) => {
   try {
     const { studentId, classId, amount, type, month } = req.body;
     
@@ -1348,7 +1364,7 @@ app.post('/api/payments', async (req, res) => {
   }
 });
 
-app.delete('/api/payments/:id', async (req, res) => {
+app.delete('/api/payments/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     await Payment.findByIdAndDelete(id);
@@ -1634,7 +1650,7 @@ app.post('/api/admin/payment-proofs/:id/review', verifySuperAdmin, async (req, r
 });
 
 // Teachers
-app.get('/api/teachers', async (req, res) => {
+app.get('/api/teachers', verifyToken, async (req, res) => {
   const debugLog = [];
   try {
     const { status, companyId } = req.query;
@@ -1719,7 +1735,7 @@ app.get('/api/teachers', async (req, res) => {
   }
 });
 
-app.get('/api/teachers/:id', async (req, res) => {
+app.get('/api/teachers/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -1741,7 +1757,7 @@ app.get('/api/teachers/:id', async (req, res) => {
   }
 });
 
-app.post('/api/teachers', async (req, res) => {
+app.post('/api/teachers', verifyToken, async (req, res) => {
   try {
     const { name, email, phone, password, teacherId, status = 'inactive' } = req.body;
     
@@ -1784,7 +1800,7 @@ app.post('/api/teachers', async (req, res) => {
   }
 });
 
-app.put('/api/teachers/:id', async (req, res) => {
+app.put('/api/teachers/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, email, phone, password, status, profilePicture } = req.body;
@@ -1833,7 +1849,7 @@ app.put('/api/teachers/:id', async (req, res) => {
   }
 });
 
-app.put('/api/teachers/:id/status', async (req, res) => {
+app.put('/api/teachers/:id/status', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -1852,7 +1868,7 @@ app.put('/api/teachers/:id/status', async (req, res) => {
   }
 });
 
-app.delete('/api/teachers/:id', async (req, res) => {
+app.delete('/api/teachers/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     console.log('DELETE /api/teachers/:id called with id:', id);
@@ -1893,7 +1909,7 @@ app.delete('/api/teachers/:id', async (req, res) => {
 });
 
 // GET teacher status
-app.get('/api/teachers/:id/status', async (req, res) => {
+app.get('/api/teachers/:id/status', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const teacher = await Teacher.findById(id);
@@ -1907,7 +1923,7 @@ app.get('/api/teachers/:id/status', async (req, res) => {
 });
 
 // PUT activate teacher
-app.put('/api/teachers/:id/activate', async (req, res) => {
+app.put('/api/teachers/:id/activate', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const updatedTeacher = await Teacher.findByIdAndUpdate(id, { status: 'active' }, { new: true });
@@ -1921,11 +1937,16 @@ app.put('/api/teachers/:id/activate', async (req, res) => {
 });
 
 // POST submit problem report
-app.post('/api/reports/problem', async (req, res) => {
+app.post('/api/reports/problem', verifyToken, async (req, res) => {
   try {
-    const { userEmail, issueDescription, appVersion, device, teacherId } = req.body;
-    if (!userEmail || !issueDescription) {
-      return res.status(400).json({ error: 'userEmail and issueDescription are required' });
+    const { userEmail, issueDescription, appVersion, device, teacherId, studentId, userType } = req.body;
+    if (!userEmail || !issueDescription || !userType) {
+      return res.status(400).json({ error: 'userEmail, issueDescription, and userType are required' });
+    }
+
+    // Validate userType
+    if (!['teacher', 'student'].includes(userType)) {
+      return res.status(400).json({ error: 'userType must be either teacher or student' });
     }
 
     // Save the report to database
@@ -1934,81 +1955,56 @@ app.post('/api/reports/problem', async (req, res) => {
       issueDescription,
       appVersion,
       device,
-      teacherId
+      teacherId,
+      studentId,
+      userType
     });
     await report.save();
-
-    // Email sending removed - reports are now accessible via admin app
-    // const mailOptions = {
-    //   from: process.env.EMAIL_USER,
-    //   to: 'umeshbandara08@gmail.com',
-    //   subject: 'New Problem Report - Teacher Attendance App',
-    //   html: `
-    //     <!DOCTYPE html>
-    //     <html>
-    //     <head>
-    //       <meta charset="utf-8">
-    //       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    //       <title>New Problem Report</title>
-    //       <style>
-    //         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
-    //         .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    //         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
-    //         .content { padding: 30px; }
-    //         .report-details { background: #f8f9fa; border-radius: 6px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea; }
-    //         .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }
-    //         .app-name { font-weight: bold; color: #667eea; }
-    //         .label { font-weight: bold; color: #333; margin-bottom: 5px; }
-    //         .value { margin-bottom: 15px; color: #555; }
-    //       </style>
-    //     </head>
-    //     <body>
-    //       <div class="container">
-    //         <div class="header">
-    //           <h1>🚨 New Problem Report</h1>
-    //           <p>Teacher Attendance App</p>
-    //         </div>
-
-    //         <div class="content">
-    //           <h2>Report Details</h2>
-
-    //           <div class="report-details">
-    //             <div class="label">User Email:</div>
-    //             <div class="value">${userEmail}</div>
-
-    //             <div class="label">Issue Description:</div>
-    //             <div class="value">${issueDescription.replace(/\n/g, '<br>')}</div>
-
-    //             ${appVersion ? `<div class="label">App Version:</div><div class="value">${appVersion}</div>` : ''}
-    //             ${device ? `<div class="label">Device:</div><div class="value">${device}</div>` : ''}
-    //             ${teacherId ? `<div class="label">Teacher ID:</div><div class="value">${teacherId}</div>` : ''}
-    //           </div>
-
-    //           <p>Please review this problem report and take appropriate action.</p>
-    //         </div>
-
-    //         <div class="footer">
-    //           <p>
-    //             <span class="app-name">Teacher Attendance App</span><br>
-    //             Problem Report System<br>
-    //             © 2025 Teacher Attendance. All rights reserved.
-    //           </p>
-    //         </div>
-    //       </div>
-    //     </body>
-    //     </html>
-    //   `
-    // };
-
-    // // Send email asynchronously (don't wait for it to complete)
-    // transporter.sendMail(mailOptions).catch(error => {
-    //   console.error('Error sending problem report email:', error);
-    // });
 
     res.status(201).json({ message: 'Problem report submitted successfully' });
   } catch (error) {
     console.error('Error submitting problem report:', error);
     res.status(500).json({ error: 'Failed to submit problem report' });
+  }
+});
+
+// POST submit feature request
+app.post('/api/reports/feature-request', verifyToken, async (req, res) => {
+  try {
+    const { userEmail, featureDescription, bidPrice, appVersion, device, teacherId, studentId, userType } = req.body;
+    if (!userEmail || !featureDescription || !bidPrice || !userType) {
+      return res.status(400).json({ error: 'userEmail, featureDescription, bidPrice, and userType are required' });
+    }
+
+    // Validate userType
+    if (!['teacher', 'student'].includes(userType)) {
+      return res.status(400).json({ error: 'userType must be either teacher or student' });
+    }
+
+    // Validate bidPrice
+    const price = parseFloat(bidPrice);
+    if (isNaN(price) || price < 0) {
+      return res.status(400).json({ error: 'bidPrice must be a valid positive number' });
+    }
+
+    // Save the feature request to database
+    const featureRequest = new FeatureRequest({
+      userEmail,
+      featureDescription,
+      bidPrice: price,
+      appVersion,
+      device,
+      teacherId,
+      studentId,
+      userType,
+      status: 'pending'
+    });
+    await featureRequest.save();
+
+    res.status(201).json({ message: 'Feature request submitted successfully' });
+  } catch (error) {
+    console.error('Error submitting feature request:', error);
+    res.status(500).json({ error: 'Failed to submit feature request' });
   }
 });
 
@@ -2023,7 +2019,18 @@ app.get('/api/reports/problems', verifySuperAdmin, async (req, res) => {
   }
 });
 
-app.get('/api/reports/attendance-summary', async (req, res) => {
+// GET feature requests (super admin only)
+app.get('/api/reports/feature-requests', verifySuperAdmin, async (req, res) => {
+  try {
+    const requests = await FeatureRequest.find().sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (error) {
+    console.error('Error fetching feature requests:', error);
+    res.status(500).json({ error: 'Failed to fetch feature requests' });
+  }
+});
+
+app.get('/api/reports/attendance-summary', verifyToken, async (req, res) => {
   try {
     const { teacherId } = req.query;
     const today = new Date();
@@ -2078,7 +2085,7 @@ app.get('/api/reports/attendance-summary', async (req, res) => {
   }
 });
 
-app.get('/api/reports/student-reports', async (req, res) => {
+app.get('/api/reports/student-reports', verifyToken, async (req, res) => {
   try {
     const { teacherId, month, year, classId } = req.query;
 
@@ -2162,7 +2169,7 @@ app.get('/api/reports/student-reports', async (req, res) => {
   }
 });
 
-app.get('/api/reports/monthly-stats', async (req, res) => {
+app.get('/api/reports/monthly-stats', verifyToken, async (req, res) => {
   try {
     const { teacherId } = req.query;
 
@@ -2230,7 +2237,7 @@ app.get('/api/reports/monthly-stats', async (req, res) => {
 });
 
 // Monthly earnings by class - allows teacher to check how much each class earned each month
-app.get('/api/reports/monthly-earnings-by-class', async (req, res) => {
+app.get('/api/reports/monthly-earnings-by-class', verifyToken, async (req, res) => {
   try {
     const { teacherId, year, month } = req.query;
 
@@ -2324,7 +2331,7 @@ app.get('/api/reports/monthly-earnings-by-class', async (req, res) => {
 });
 
 // Daily attendance by class
-app.get('/api/reports/daily-by-class', async (req, res) => {
+app.get('/api/reports/daily-by-class', verifyToken, async (req, res) => {
   try {
     const { teacherId, date } = req.query;
     
@@ -2380,7 +2387,7 @@ app.get('/api/reports/daily-by-class', async (req, res) => {
 });
 
 // Monthly stats by class
-app.get('/api/reports/monthly-by-class', async (req, res) => {
+app.get('/api/reports/monthly-by-class', verifyToken, async (req, res) => {
   try {
     const { teacherId } = req.query;
 
@@ -2486,7 +2493,7 @@ app.get('/api/reports/monthly-by-class', async (req, res) => {
 });
 
 // Get detailed student attendance for a specific class and month
-app.get('/api/reports/class-student-details', async (req, res) => {
+app.get('/api/reports/class-student-details', verifyToken, async (req, res) => {
   try {
     const { classId, month, year } = req.query;
 
@@ -2561,7 +2568,7 @@ app.get('/api/reports/class-student-details', async (req, res) => {
 });
 
 // Home Dashboard Endpoints
-app.get('/api/home/stats', async (req, res) => {
+app.get('/api/home/stats', verifyToken, async (req, res) => {
   try {
     // Ensure database connection is fully ready
     await connectToDatabase();
@@ -2734,7 +2741,7 @@ app.get('/api/home/stats', async (req, res) => {
   }
 });
 
-app.get('/api/home/activities', async (req, res) => {
+app.get('/api/home/activities', verifyToken, async (req, res) => {
   try {
     // Ensure database connection is fully ready
     await connectToDatabase();
@@ -4088,7 +4095,7 @@ app.post('/api/teachers/remove-company', verifyToken, async (req, res) => {
 });
 
 // Generate QR code for web login (HTTP endpoint)
-app.post('/api/web-session/generate-qr', async (req, res) => {
+app.post('/api/web-session/generate-qr', verifyToken, async (req, res) => {
   try {
     await connectToDatabase();
     
@@ -4145,7 +4152,7 @@ app.post('/api/web-session/generate-qr', async (req, res) => {
 });
 
 // Check if QR session is authenticated (polling endpoint)
-app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
+app.get('/api/web-session/check-auth/:sessionId', verifyToken, async (req, res) => {
   try {
     await connectToDatabase();
     
@@ -4229,7 +4236,7 @@ app.get('/api/web-session/check-auth/:sessionId', async (req, res) => {
 });
 
 // Authenticate QR code (HTTP endpoint for mobile app)
-app.post('/api/web-session/authenticate', async (req, res) => {
+app.post('/api/web-session/authenticate', verifyToken, async (req, res) => {
   try {
     await connectToDatabase();
     

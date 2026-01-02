@@ -128,11 +128,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.white),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text('Unable to connect. Please check your internet connection and try again.'),
               ),
             ],
@@ -167,11 +167,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
+            content: const Row(
               children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 8),
-                const Expanded(child: Text('Failed to continue as guest. Please try again.')),
+                Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(child: Text('Failed to continue as guest. Please try again.')),
               ],
             ),
             backgroundColor: Colors.red.shade700,
@@ -202,15 +202,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topRight,
             end: Alignment.bottomLeft,
             colors: [
-              const Color(0xFF06B6D4), // Cyan
-              const Color(0xFF3B82F6), // Blue
-              const Color(0xFF8B5CF6), // Purple
-              const Color(0xFFEC4899), // Pink
+              Color(0xFF06B6D4), // Cyan
+              Color(0xFF3B82F6), // Blue
+              Color(0xFF8B5CF6), // Purple
+              Color(0xFFEC4899), // Pink
             ],
             stops: [0.0, 0.4, 0.7, 1.0],
           ),
@@ -222,7 +222,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
               child: Opacity(
                 opacity: 0.05,
                 child: Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: RadialGradient(
                       center: Alignment.center,
                       radius: 1.5,

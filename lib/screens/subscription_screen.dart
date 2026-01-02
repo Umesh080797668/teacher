@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../services/api_service.dart';
 import 'activation_screen.dart';
 
 class SubscriptionScreen extends StatefulWidget {
@@ -104,7 +103,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               Card(
                 color: _selectedPlan == 'monthly'
                     ? Theme.of(context).colorScheme.primaryContainer
-                    : Theme.of(context).colorScheme.surfaceVariant,
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
                 child: InkWell(
                   onTap: () {
                     setState(() {
@@ -169,7 +168,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               Card(
                 color: _selectedPlan == 'yearly'
                     ? Theme.of(context).colorScheme.primaryContainer
-                    : Theme.of(context).colorScheme.surfaceVariant,
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
                 child: InkWell(
                   onTap: () {
                     setState(() {
@@ -254,7 +253,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
@@ -360,9 +359,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : Text(
+                      : const Text(
                           'Continue to Payment',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),

@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 
 class QRScannerScreen extends StatefulWidget {
-  const QRScannerScreen({Key? key}) : super(key: key);
+  const QRScannerScreen({super.key});
 
   @override
   State<QRScannerScreen> createState() => _QRScannerScreenState();
@@ -16,7 +17,7 @@ class QRScannerScreen extends StatefulWidget {
 class _QRScannerScreenState extends State<QRScannerScreen> {
   MobileScannerController cameraController = MobileScannerController();
   bool _isProcessing = false;
-  bool _isConnected = true; // HTTP is always "connected"
+  final bool _isConnected = true; // HTTP is always "connected"
   String? _teacherId;
   String? _deviceId;
   Timer? _pollingTimer;
@@ -76,8 +77,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         // Store the JWT token if provided
         if (data['token'] != null) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('auth_token', data['token']);
-          print('✓ JWT token saved to SharedPreferences');
+          const FlutterSecureStorage storage = FlutterSecureStorage();
+          await storage.write(key: 'auth_token', value: data['token']);
+          print('✓ JWT token saved to secure storage');
         }
         
         return data;
@@ -234,8 +236,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
             Text(
               'Authenticating...',
               style: TextStyle(
@@ -270,8 +272,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             backgroundColor: Theme.of(context).dialogBackgroundColor,
             title: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green, size: 32),
-                SizedBox(width: 12),
+                const Icon(Icons.check_circle, color: Colors.green, size: 32),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Success',
@@ -330,8 +332,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           backgroundColor: Theme.of(context).dialogBackgroundColor,
           title: Row(
             children: [
-              Icon(Icons.error, color: Colors.red, size: 32),
-              SizedBox(width: 12),
+              const Icon(Icons.error, color: Colors.red, size: 32),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Error',
@@ -446,8 +448,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               color: Colors.black54,
-              child: Column(
-                children: const [
+              child: const Column(
+                children: [
                   Icon(Icons.qr_code_scanner, color: Colors.white, size: 48),
                   SizedBox(height: 8),
                   Text(

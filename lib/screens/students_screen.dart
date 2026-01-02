@@ -110,7 +110,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
   String _generateStudentId() {
     final timestamp = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
     final random = (DateTime.now().microsecondsSinceEpoch % 1000).toString().padLeft(3, '0');
-    return 'STU${timestamp}${random}';
+    return 'STU$timestamp$random';
   }
 
   @override
@@ -140,7 +140,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 hintText: 'Search students...',
                 prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.outline),
                 filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceVariant,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -305,7 +305,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                     color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                   ),
                                   filled: true,
-                                  fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
                                   helperText: 'This ID is automatically generated',
                                   helperStyle: TextStyle(
                                     color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
@@ -317,7 +317,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               Consumer<ClassesProvider>(
                                 builder: (context, classesProvider, child) {
                                   return DropdownButtonFormField<String>(
-                                    value: _selectedClassId,
+                                    initialValue: _selectedClassId,
                                     style: TextStyle(
                                       color: Theme.of(context).colorScheme.onSurface,
                                     ),
@@ -397,7 +397,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 if (_searchQuery.isEmpty) return true;
                 return student.name.toLowerCase().contains(_searchQuery) ||
                   (student.email?.toLowerCase().contains(_searchQuery) ?? false) ||
-                  (student.studentId?.toLowerCase().contains(_searchQuery) ?? false);
+                  (student.studentId.toLowerCase().contains(_searchQuery) ?? false);
               }).toList();
               if (filteredStudents.isEmpty) {
                 return SizedBox(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/notification_service.dart';
@@ -593,7 +592,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    leading: Icon(Icons.delete_outline, color: Colors.red),
+                    leading: const Icon(Icons.delete_outline, color: Colors.red),
                     title: const Text('Clear Local Data'),
                     subtitle: const Text('Remove all locally stored data'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -653,6 +652,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle: const Text('Report issues or bugs'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () => _showReportProblemDialog(),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: Icon(
+                      Icons.lightbulb_outline,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: const Text('Request a Feature'),
+                    subtitle: const Text('Suggest new features'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () => _showFeatureRequestDialog(),
                   ),
                   const Divider(height: 1),
                   ListTile(
@@ -1211,8 +1221,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   filled: true,
                   fillColor: Theme.of(context).brightness == Brightness.dark
-                      ? Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.2)
-                      : Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                      ? Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.2)
+                      : Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
                 ),
               ),
             ],
@@ -1309,5 +1319,219 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     }
+  }
+
+  void _showFeatureRequestDialog() {
+    final TextEditingController featureController = TextEditingController();
+    final TextEditingController bidPriceController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.lightbulb_outline,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Request a Feature',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Describe the feature you would like:',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: featureController,
+                maxLines: 4,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Describe the feature in detail...',
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.2)
+                      : Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Bid Price (LKR):',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: bidPriceController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Enter amount you\'re willing to pay',
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                  ),
+                  prefixText: 'LKR ',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.2)
+                      : Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'The bid price helps prioritize feature development.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (featureController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Please describe the feature'),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              if (bidPriceController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Please enter a bid price'),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              final bidPrice = double.tryParse(bidPriceController.text.trim());
+              if (bidPrice == null || bidPrice < 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Please enter a valid price'),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              final userEmail = auth.userEmail;
+
+              if (userEmail == null || userEmail.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('User email not found. Please log in again.'),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              Navigator.of(context).pop();
+              
+              try {
+                await ApiService.submitFeatureRequest(
+                  userEmail: userEmail,
+                  featureDescription: featureController.text.trim(),
+                  bidPrice: bidPrice,
+                  appVersion: _currentVersion,
+                  device: Theme.of(context).platform == TargetPlatform.android ? 'Android' : 
+                          Theme.of(context).platform == TargetPlatform.iOS ? 'iOS' : 'Unknown',
+                  teacherId: Provider.of<AuthProvider>(context, listen: false).teacherId,
+                );
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text('Feature request submitted successfully'),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to submit feature request: $e'),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Submit Request'),
+          ),
+        ],
+      ),
+    );
   }
 }

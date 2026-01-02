@@ -58,11 +58,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> with Single
       // Show success message and navigate to reset password screen
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.email_outlined, color: Colors.white),
-              const SizedBox(width: 8),
-              const Expanded(child: Text('Password reset code sent to your email')),
+              Icon(Icons.email_outlined, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(child: Text('Password reset code sent to your email')),
             ],
           ),
           backgroundColor: Colors.green.shade700,
@@ -109,11 +109,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> with Single
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.white),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text('Unable to send reset code. Please check your connection and try again.'),
               ),
             ],
@@ -142,15 +142,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> with Single
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF6366F1), // Indigo
-              const Color(0xFF8B5CF6), // Purple
-              const Color(0xFFA855F7), // Medium Purple
-              const Color(0xFFEC4899), // Pink
+              Color(0xFF6366F1), // Indigo
+              Color(0xFF8B5CF6), // Purple
+              Color(0xFFA855F7), // Medium Purple
+              Color(0xFFEC4899), // Pink
             ],
             stops: [0.0, 0.4, 0.7, 1.0],
           ),
@@ -162,7 +162,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> with Single
               child: Opacity(
                 opacity: 0.05,
                 child: Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: RadialGradient(
                       center: Alignment.center,
                       radius: 1.5,

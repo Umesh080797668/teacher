@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'subscription_screen.dart';
 import 'pending_activation_screen.dart';
+import 'subscription_upgrade_alert_screen.dart';
 
 class ActivationScreen extends StatefulWidget {
   final String? selectedPlan;
@@ -621,13 +622,13 @@ class _ActivationScreenState extends State<ActivationScreen> {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: _selectedPlan != null ? _handlePaymentDone : null,
+                onPressed: (_selectedPlan != null && _paymentProof != null) ? _handlePaymentDone : null,
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  backgroundColor: _selectedPlan != null
+                  backgroundColor: (_selectedPlan != null && _paymentProof != null)
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
                 ),
@@ -636,7 +637,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: _selectedPlan != null
+                    color: (_selectedPlan != null && _paymentProof != null)
                         ? Theme.of(context).colorScheme.onPrimary
                         : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                   ),
@@ -716,7 +717,20 @@ class _ActivationScreenState extends State<ActivationScreen> {
           );
         }
       } else {
-        // For renewal, activate subscription immediately
+        // For renewal, check if user currently has free access
+        if (auth.isSubscriptionFree) {
+          // User currently has free access, show alert that free access has been removed
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => const SubscriptionUpgradeAlertScreen(),
+              ),
+            );
+          }
+          return;
+        }
+
+        // User doesn't have free access, activate subscription normally
         await ApiService.activateSubscription(email, _selectedPlan!);
 
         // Update the auth provider to reflect the activated subscription

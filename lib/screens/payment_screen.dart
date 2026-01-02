@@ -335,7 +335,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 Consumer<ClassesProvider>(
                                   builder: (context, classesProvider, child) {
                                     return DropdownButtonFormField<String>(
-                                      value: _selectedClassId,
+                                      initialValue: _selectedClassId,
                                       style: TextStyle(
                                         color: Theme.of(context).colorScheme.onSurface,
                                       ),
@@ -386,7 +386,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                         .toList();
 
                                     return DropdownButtonFormField<String>(
-                                      value: _selectedStudentId,
+                                      initialValue: _selectedStudentId,
                                       style: TextStyle(
                                         color: Theme.of(context).colorScheme.onSurface,
                                       ),
@@ -430,7 +430,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
                                 // Month Selection
                                 DropdownButtonFormField<String>(
-                                  value: _selectedMonth,
+                                  initialValue: _selectedMonth,
                                   style: TextStyle(
                                     color: Theme.of(context).colorScheme.onSurface,
                                   ),
@@ -466,7 +466,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
                                 // Payment Type Selection
                                 DropdownButtonFormField<String>(
-                                  value: _selectedPaymentType,
+                                  initialValue: _selectedPaymentType,
                                   style: TextStyle(
                                     color: Theme.of(context).colorScheme.onSurface,
                                   ),
@@ -542,7 +542,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                       color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                                     ),
                                   ),
-                                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
                                       return 'Please enter an amount';
@@ -638,7 +638,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           orElse: () => Student(id: '', name: '', studentId: ''),
                         );
                         return student.name.toLowerCase().contains(_searchText) ||
-                               (student.studentId?.toLowerCase().contains(_searchText) ?? false);
+                               (student.studentId.toLowerCase().contains(_searchText) ?? false);
                       }).toList();
 
                 if (filteredPayments.isEmpty) {
@@ -653,7 +653,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          _searchText.isNotEmpty ? 'No payments found matching "${_searchText}"' : 'No payments yet',
+                          _searchText.isNotEmpty ? 'No payments found matching "$_searchText"' : 'No payments yet',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Theme.of(context).colorScheme.outline,
                           ),

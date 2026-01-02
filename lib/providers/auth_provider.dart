@@ -75,6 +75,9 @@ class AuthProvider extends ChangeNotifier {
   bool _hasSelectedSubscriptionPlan = false; // Track if user has selected a subscription plan
   String? _selectedSubscriptionPlan; // Track the selected subscription plan
   bool _wasActivationNotified = false; // Track if activation notification was shown
+  bool _isSubscriptionFree = false; // Track if subscription is free
+  DateTime? _subscriptionFreeSetDate; // Track when subscription was set to free
+  bool _wasSubscriptionFreeAlertShown = false; // Track if free subscription alert was shown
   List<UserAccount> _accountHistory = [];
   Timer? _statusCheckTimer;
 
@@ -98,6 +101,9 @@ class AuthProvider extends ChangeNotifier {
   bool get hasCompletedSubscriptionSetup => _hasCompletedSubscriptionSetup;
   bool get hasSelectedSubscriptionPlan => _hasSelectedSubscriptionPlan;
   String? get selectedSubscriptionPlan => _selectedSubscriptionPlan;
+  bool get isSubscriptionFree => _isSubscriptionFree;
+  DateTime? get subscriptionFreeSetDate => _subscriptionFreeSetDate;
+  bool get shouldShowSubscriptionFreeAlert => _isSubscriptionFree && !_wasSubscriptionFreeAlertShown;
   List<UserAccount> get accountHistory => _accountHistory;
 
   AuthProvider() {
@@ -124,6 +130,12 @@ class AuthProvider extends ChangeNotifier {
       _hasSelectedSubscriptionPlan = prefs.getBool('has_selected_subscription_plan') ?? false; // Load subscription plan selection
       _selectedSubscriptionPlan = prefs.getString('selected_subscription_plan'); // Load selected subscription plan
       _wasActivationNotified = prefs.getBool('was_activation_notified') ?? false; // Load activation notification status
+      _isSubscriptionFree = prefs.getBool('is_subscription_free') ?? false; // Load subscription free status
+      final subscriptionFreeSetDateStr = prefs.getString('subscription_free_set_date');
+      if (subscriptionFreeSetDateStr != null) {
+        _subscriptionFreeSetDate = DateTime.parse(subscriptionFreeSetDateStr);
+      }
+      _wasSubscriptionFreeAlertShown = prefs.getBool('was_subscription_free_alert_shown') ?? false; // Load free alert shown status
       final teacherDataJson = prefs.getString('teacher_data');
       if (teacherDataJson != null) {
         _teacherData = Map<String, dynamic>.from(json.decode(teacherDataJson));
@@ -163,6 +175,11 @@ class AuthProvider extends ChangeNotifier {
     
     await prefs.setBool('is_activated', activationStatus);
     
+    // If teacher is activated, mark subscription as completed
+    if (activationStatus) {
+      await prefs.setBool('has_completed_subscription_setup', true);
+    }
+    
     if (teacherId != null) {
       await prefs.setString('teacher_id', teacherId);
     }
@@ -177,6 +194,11 @@ class AuthProvider extends ChangeNotifier {
     _teacherId = teacherId;
     _teacherData = teacherData;
     _isActivated = activationStatus;
+    
+    // If activated, mark subscription as completed
+    if (activationStatus) {
+      _hasCompletedSubscriptionSetup = true;
+    }
 
     // Add to account history
     final newAccount = UserAccount(
@@ -238,6 +260,9 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('has_selected_subscription_plan'); // Remove subscription plan selection
     await prefs.remove('selected_subscription_plan'); // Remove selected subscription plan
     await prefs.remove('was_activation_notified'); // Remove activation notification status
+    await prefs.remove('is_subscription_free'); // Remove subscription free status
+    await prefs.remove('subscription_free_set_date'); // Remove subscription free set date
+    await prefs.remove('was_subscription_free_alert_shown'); // Remove free alert shown status
     
     _isLoggedIn = false;
     _isGuest = false;
@@ -255,6 +280,9 @@ class AuthProvider extends ChangeNotifier {
     _hasSelectedSubscriptionPlan = false; // Reset subscription plan selection
     _selectedSubscriptionPlan = null; // Reset selected subscription plan
     _wasActivationNotified = false; // Reset activation notification status
+    _isSubscriptionFree = false; // Reset subscription free status
+    _subscriptionFreeSetDate = null; // Reset subscription free set date
+    _wasSubscriptionFreeAlertShown = false; // Reset free alert shown status
     notifyListeners();
   }
 
@@ -321,6 +349,27 @@ class AuthProvider extends ChangeNotifier {
     await prefs.setBool('was_activation_notified', true);
   }
 
+  Future<void> updateSubscriptionFreeStatus(bool isFree, {DateTime? setDate}) async {
+    _isSubscriptionFree = isFree;
+    _subscriptionFreeSetDate = setDate ?? DateTime.now();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_subscription_free', _isSubscriptionFree);
+    await prefs.setString('subscription_free_set_date', _subscriptionFreeSetDate!.toIso8601String());
+    notifyListeners();
+  }
+
+  Future<void> markSubscriptionFreeAlertShown() async {
+    _wasSubscriptionFreeAlertShown = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('was_subscription_free_alert_shown', true);
+  }
+
+  Future<void> resetSubscriptionFreeAlert() async {
+    _wasSubscriptionFreeAlertShown = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('was_subscription_free_alert_shown', false);
+  }
+
   Future<void> switchToAccount(UserAccount account) async {
     await login(
       account.email,
@@ -363,6 +412,7 @@ class AuthProvider extends ChangeNotifier {
       final subscriptionExpired = response['subscriptionExpired'] as bool? ?? false;
       final subscriptionExpiringSoon = response['subscriptionExpiringSoon'] as bool? ?? false;
       final teacherStatus = response['status'] as String? ?? 'inactive';
+      final isSubscriptionFree = response['isSubscriptionFree'] as bool? ?? false;
 
       // Update activation status based on teacher status
       final isActivated = teacherStatus == 'active';
@@ -371,6 +421,12 @@ class AuthProvider extends ChangeNotifier {
         _isActivated = isActivated;
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('is_activated', _isActivated);
+        
+        // If teacher is activated, mark subscription as completed
+        if (isActivated) {
+          _hasCompletedSubscriptionSetup = true;
+          await prefs.setBool('has_completed_subscription_setup', true);
+        }
         
         // Show notification if account just got activated and we haven't notified yet
         if (isActivated && wasInactive && !_wasActivationNotified) {
@@ -400,6 +456,21 @@ class AuthProvider extends ChangeNotifier {
         _subscriptionExpiringSoon = subscriptionExpiringSoon;
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('subscription_expiring_soon', _subscriptionExpiringSoon);
+      }
+
+      // Update subscription free status
+      if (_isSubscriptionFree != isSubscriptionFree) {
+        final wasFree = _isSubscriptionFree;
+        _isSubscriptionFree = isSubscriptionFree;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_subscription_free', _isSubscriptionFree);
+        
+        // If subscription just became free, reset the alert shown flag
+        if (isSubscriptionFree && !wasFree) {
+          await resetSubscriptionFreeAlert();
+        }
+        
+        notifyListeners();
       }
 
       if (!isActive && !_accountInactive) {

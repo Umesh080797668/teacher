@@ -26,6 +26,15 @@ class StudentsProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateStudent(String studentId, String name, String? email, String? classId) async {
+    final updatedStudent = await ApiService.updateStudent(studentId, name, email, classId);
+    final index = _students.indexWhere((s) => s.id == studentId);
+    if (index != -1) {
+      _students[index] = updatedStudent;
+      notifyListeners();
+    }
+  }
+
   Future<void> deleteStudent(String studentId) async {
     await ApiService.deleteStudent(studentId);
     _students.removeWhere((s) => s.id == studentId);

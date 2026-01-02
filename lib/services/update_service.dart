@@ -222,7 +222,7 @@ class UpdateService {
             // For unknown total size, just report that we're downloading
             if (onProgress != null && received > 0) {
               // Use a fake progress that never reaches 100%
-              final fakeProgress = 0.5;
+              const fakeProgress = 0.5;
               onProgress(fakeProgress);
             }
           }

@@ -312,10 +312,10 @@ class StudentCardSkeleton extends StatelessWidget {
         child: Row(
           children: [
             Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               highlightColor: Theme.of(context).colorScheme.surface,
               child: CircleAvatar(
-                backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 radius: 28,
               ),
             ),
@@ -325,22 +325,22 @@ class StudentCardSkeleton extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Shimmer.fromColors(
-                    baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                    baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     highlightColor: Theme.of(context).colorScheme.surface,
                     child: Container(
                       height: 16,
                       width: 120,
-                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Shimmer.fromColors(
-                    baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                    baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     highlightColor: Theme.of(context).colorScheme.surface,
                     child: Container(
                       height: 12,
                       width: 80,
-                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     ),
                   ),
                 ],
@@ -351,13 +351,13 @@ class StudentCardSkeleton extends StatelessWidget {
               children: List.generate(
                 3,
                 (index) => Shimmer.fromColors(
-                  baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                  baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                   highlightColor: Theme.of(context).colorScheme.surface,
                   child: Container(
                     width: 44,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
@@ -386,13 +386,13 @@ class ClassCardSkeleton extends StatelessWidget {
         child: Row(
           children: [
             Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               highlightColor: Theme.of(context).colorScheme.surface,
               child: Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(24),
                 ),
               ),
@@ -403,35 +403,35 @@ class ClassCardSkeleton extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Shimmer.fromColors(
-                    baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                    baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     highlightColor: Theme.of(context).colorScheme.surface,
                     child: Container(
                       height: 18,
                       width: 140,
-                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Shimmer.fromColors(
-                    baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                    baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     highlightColor: Theme.of(context).colorScheme.surface,
                     child: Container(
                       height: 14,
                       width: 100,
-                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     ),
                   ),
                 ],
               ),
             ),
             Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               highlightColor: Theme.of(context).colorScheme.surface,
               child: Container(
                 width: 80,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
@@ -482,13 +482,13 @@ class DashboardCardSkeleton extends StatelessWidget {
             Row(
               children: [
                 Shimmer.fromColors(
-                  baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                  baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                   highlightColor: Theme.of(context).colorScheme.surface,
                   child: Container(
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
@@ -499,22 +499,22 @@ class DashboardCardSkeleton extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Shimmer.fromColors(
-                        baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                        baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                         highlightColor: Theme.of(context).colorScheme.surface,
                         child: Container(
                           height: 16,
                           width: 100,
-                          color: Theme.of(context).colorScheme.surfaceVariant,
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Shimmer.fromColors(
-                        baseColor: Theme.of(context).colorScheme.surfaceVariant,
+                        baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                         highlightColor: Theme.of(context).colorScheme.surface,
                         child: Container(
                           height: 20,
                           width: 60,
-                          color: Theme.of(context).colorScheme.surfaceVariant,
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         ),
                       ),
                     ],
@@ -563,35 +563,35 @@ class AttendanceStatsSkeleton extends StatelessWidget {
         child: Column(
           children: [
             Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               highlightColor: Theme.of(context).colorScheme.surface,
               child: Container(
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   shape: BoxShape.circle,
                 ),
               ),
             ),
             const SizedBox(height: 8),
             Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               highlightColor: Theme.of(context).colorScheme.surface,
               child: Container(
                 height: 20,
                 width: 40,
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
               ),
             ),
             const SizedBox(height: 4),
             Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               highlightColor: Theme.of(context).colorScheme.surface,
               child: Container(
                 height: 14,
                 width: 50,
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
               ),
             ),
           ],
@@ -611,42 +611,42 @@ class AttendanceCardSkeleton extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           highlightColor: Theme.of(context).colorScheme.surface,
           child: Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               shape: BoxShape.circle,
             ),
           ),
         ),
         title: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           highlightColor: Theme.of(context).colorScheme.surface,
           child: Container(
             height: 16,
             width: 80,
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
         ),
         subtitle: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           highlightColor: Theme.of(context).colorScheme.surface,
           child: Container(
             height: 14,
             width: 100,
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
         ),
         trailing: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           highlightColor: Theme.of(context).colorScheme.surface,
           child: Container(
             height: 14,
             width: 40,
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
         ),
       ),
@@ -665,13 +665,13 @@ class PaymentCardSkeleton extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         leading: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           highlightColor: Theme.of(context).colorScheme.surface,
           child: Container(
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               shape: BoxShape.circle,
             ),
           ),
@@ -680,42 +680,42 @@ class PaymentCardSkeleton extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               highlightColor: Theme.of(context).colorScheme.surface,
               child: Container(
                 height: 16,
                 width: 120,
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
               ),
             ),
             const SizedBox(height: 4),
             Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceVariant,
+              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               highlightColor: Theme.of(context).colorScheme.surface,
               child: Container(
                 height: 14,
                 width: 80,
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
               ),
             ),
           ],
         ),
         subtitle: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           highlightColor: Theme.of(context).colorScheme.surface,
           child: Container(
             height: 14,
             width: 60,
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
         ),
         trailing: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceVariant,
+          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           highlightColor: Theme.of(context).colorScheme.surface,
           child: Container(
             height: 16,
             width: 70,
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
         ),
       ),

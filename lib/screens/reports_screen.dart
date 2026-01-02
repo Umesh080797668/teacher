@@ -298,7 +298,7 @@ class _StudentReportsTabState extends State<_StudentReportsTab> {
             Container(
               padding: const EdgeInsets.all(16),
               child: DropdownButtonFormField<String>(
-                value: _selectedClassId,
+                initialValue: _selectedClassId,
                 decoration: InputDecoration(
                   labelText: 'Filter by Class',
                   border: OutlineInputBorder(
@@ -557,9 +557,9 @@ class _MonthlyOverviewChart extends StatelessWidget {
                           Container(
                             width: 30,
                             height: presentHeight,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: Colors.green,
-                              borderRadius: const BorderRadius.only(
+                              borderRadius: BorderRadius.only(
                                 topLeft: Radius.circular(4),
                                 topRight: Radius.circular(4),
                               ),
@@ -655,7 +655,7 @@ class _PaymentsTabState extends State<_PaymentsTab> {
                 children: [
                   // Class filter
                   DropdownButtonFormField<String>(
-                    value: _selectedClassId,
+                    initialValue: _selectedClassId,
                     decoration: InputDecoration(
                       labelText: 'Filter by Class',
                       border: OutlineInputBorder(
@@ -686,7 +686,7 @@ class _PaymentsTabState extends State<_PaymentsTab> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<int>(
-                          value: _selectedMonth,
+                          initialValue: _selectedMonth,
                           decoration: InputDecoration(
                             labelText: 'Month',
                             border: OutlineInputBorder(
@@ -712,7 +712,7 @@ class _PaymentsTabState extends State<_PaymentsTab> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: DropdownButtonFormField<int>(
-                          value: _selectedYear,
+                          initialValue: _selectedYear,
                           decoration: InputDecoration(
                             labelText: 'Year',
                             border: OutlineInputBorder(
@@ -940,7 +940,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                       // Month filter
                       Expanded(
                         child: DropdownButtonFormField<int>(
-                          value: _selectedMonth,
+                          initialValue: _selectedMonth,
                           decoration: InputDecoration(
                             labelText: 'Month',
                             border: OutlineInputBorder(
@@ -966,7 +966,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                       // Year filter
                       Expanded(
                         child: DropdownButtonFormField<int>(
-                          value: _selectedYear,
+                          initialValue: _selectedYear,
                           decoration: InputDecoration(
                             labelText: 'Year',
                             border: OutlineInputBorder(
@@ -993,7 +993,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                   const SizedBox(height: 16),
                   // Class filter
                   DropdownButtonFormField<String>(
-                    value: _selectedClassId,
+                    initialValue: _selectedClassId,
                     decoration: InputDecoration(
                       labelText: 'Filter by Class',
                       border: OutlineInputBorder(
@@ -1160,7 +1160,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
 
 Widget _buildShimmerLoading(BuildContext context) {
   return Shimmer.fromColors(
-    baseColor: Theme.of(context).colorScheme.surfaceVariant,
+    baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
     highlightColor: Theme.of(context).colorScheme.surface,
     child: SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -1170,7 +1170,7 @@ Widget _buildShimmerLoading(BuildContext context) {
           Container(
             height: 20,
             width: 200,
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             margin: const EdgeInsets.only(bottom: 16),
           ),
           Row(
@@ -1179,7 +1179,7 @@ Widget _buildShimmerLoading(BuildContext context) {
                 child: Container(
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   margin: const EdgeInsets.only(right: 8),
@@ -1189,7 +1189,7 @@ Widget _buildShimmerLoading(BuildContext context) {
                 child: Container(
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   margin: const EdgeInsets.only(left: 8),
@@ -1204,7 +1204,7 @@ Widget _buildShimmerLoading(BuildContext context) {
                 child: Container(
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   margin: const EdgeInsets.only(right: 8),
@@ -1214,7 +1214,7 @@ Widget _buildShimmerLoading(BuildContext context) {
                 child: Container(
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   margin: const EdgeInsets.only(left: 8),
@@ -1226,14 +1226,14 @@ Widget _buildShimmerLoading(BuildContext context) {
           Container(
             height: 18,
             width: 150,
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             margin: const EdgeInsets.only(bottom: 16),
           ),
           ...List.generate(3, (index) => Container(
             height: 60,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
             margin: const EdgeInsets.only(bottom: 12),

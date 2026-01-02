@@ -104,7 +104,7 @@ class _ActivationDialogState extends State<ActivationDialog> {
             ),
             const SizedBox(height: 12),
             Card(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -129,7 +129,7 @@ class _ActivationDialogState extends State<ActivationDialog> {
             ),
             const SizedBox(height: 8),
             Card(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(

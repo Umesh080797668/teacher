@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 
 class LinkedDevicesScreen extends StatefulWidget {
@@ -31,7 +32,8 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
     try {
       print('=== Loading Linked Devices ===');
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      final FlutterSecureStorage storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
 
       if (token == null) {
         print('❌ No auth token found');
@@ -153,7 +155,8 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
       print('Session ID: $sessionId');
       
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      final FlutterSecureStorage storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
 
       if (token == null) {
         print('❌ No auth token found');

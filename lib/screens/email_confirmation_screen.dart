@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'home_screen.dart';
 import '../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
-import '../widgets/activation_dialog.dart';
 import 'subscription_screen.dart';
 
 class EmailConfirmationScreen extends StatefulWidget {
@@ -163,11 +161,11 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.white),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text('Unable to verify code. Please check your connection and try again.'),
               ),
             ],
@@ -248,11 +246,11 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.white),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text('Unable to complete registration. Please try again.'),
               ),
             ],
@@ -312,11 +310,11 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.white),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text('Unable to send code. Please check your connection and try again.'),
               ),
             ],
@@ -344,13 +342,13 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF6750A4),
-              const Color(0xFF8B7AB8),
+              Color(0xFF6750A4),
+              Color(0xFF8B7AB8),
             ],
           ),
         ),

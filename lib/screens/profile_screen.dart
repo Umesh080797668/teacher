@@ -507,7 +507,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 width: 2,
                               ),
                             ),
-                            child: Icon(
+                            child: const Icon(
                               Icons.close,
                               size: 16,
                               color: Colors.white,

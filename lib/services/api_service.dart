@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/student.dart';
 import '../models/attendance.dart';
 import '../models/class.dart';
@@ -300,7 +300,8 @@ class ApiService {
 
     // Add authorization header if available
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final FlutterSecureStorage storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'auth_token');
     if (token != null) {
       request.headers['Authorization'] = 'Bearer $token';
     }
@@ -446,11 +447,42 @@ class ApiService {
         'appVersion': appVersion,
         'device': device,
         'teacherId': teacherId,
+        'userType': 'teacher',
       },
     );
 
     if (response.statusCode != 201) {
       throw ApiException('Failed to submit problem report', statusCode: response.statusCode);
+    }
+
+    return json.decode(response.body);
+  }
+
+  // Submit feature request
+  static Future<Map<String, dynamic>> submitFeatureRequest({
+    required String userEmail,
+    required String featureDescription,
+    required double bidPrice,
+    String? appVersion,
+    String? device,
+    String? teacherId,
+  }) async {
+    final response = await _makeRequest(
+      'POST',
+      '/api/reports/feature-request',
+      body: {
+        'userEmail': userEmail,
+        'featureDescription': featureDescription,
+        'bidPrice': bidPrice,
+        'appVersion': appVersion,
+        'device': device,
+        'teacherId': teacherId,
+        'userType': 'teacher',
+      },
+    );
+
+    if (response.statusCode != 201) {
+      throw ApiException('Failed to submit feature request', statusCode: response.statusCode);
     }
 
     return json.decode(response.body);
@@ -483,6 +515,25 @@ class ApiService {
         'name': name,
         'email': email,
         'studentId': studentId,
+        'classId': classId,
+      },
+    );
+
+    return Student.fromJson(json.decode(response.body));
+  }
+
+  static Future<Student> updateStudent(
+    String studentId,
+    String name,
+    String? email,
+    String? classId,
+  ) async {
+    final response = await _makeRequest(
+      'PUT',
+      '/api/students/$studentId',
+      body: {
+        'name': name,
+        'email': email,
         'classId': classId,
       },
     );

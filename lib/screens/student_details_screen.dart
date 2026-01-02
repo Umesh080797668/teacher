@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/student.dart';
 import '../models/attendance.dart';
 import '../models/payment.dart';
+import '../models/class.dart' as class_model;
 import '../services/api_service.dart';
+import '../providers/students_provider.dart';
+import '../providers/classes_provider.dart';
 import '../widgets/custom_widgets.dart';
 
 class StudentDetailsScreen extends StatefulWidget {
@@ -109,12 +113,19 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: isDark ? Theme.of(context).colorScheme.background : Theme.of(context).colorScheme.surface,
+      backgroundColor: isDark ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Student Details'),
         elevation: 0,
         backgroundColor: isDark ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.primaryContainer,
         foregroundColor: isDark ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onPrimaryContainer,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: _showEditStudentDialog,
+            tooltip: 'Edit Student',
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: isDark ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onPrimaryContainer,
@@ -492,7 +503,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 16),
-                          color: isDark ? Theme.of(context).colorScheme.surfaceVariant : Theme.of(context).colorScheme.surface,
+                          color: isDark ? Theme.of(context).colorScheme.surfaceContainerHighest : Theme.of(context).colorScheme.surface,
                           child: ExpansionTile(
                             title: Text(
                               _getMonthName(monthKey),
@@ -614,6 +625,118 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
       default:
         return Icons.help;
     }
+  }
+
+  void _showEditStudentDialog() {
+    final nameController = TextEditingController(text: widget.student.name);
+    final emailController = TextEditingController(text: widget.student.email ?? '');
+    String? selectedClassId = widget.student.classId;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Edit Student'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email (optional)',
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16),
+                Consumer<ClassesProvider>(
+                  builder: (context, classesProvider, child) {
+                    return DropdownButtonFormField<String?>(
+                      initialValue: selectedClassId,
+                      decoration: const InputDecoration(
+                        labelText: 'Class (optional)',
+                        prefixIcon: Icon(Icons.class_),
+                      ),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('No Class'),
+                        ),
+                        ...classesProvider.classes.map((class_model.Class cls) {
+                          return DropdownMenuItem<String?>(
+                            value: cls.id,
+                            child: Text(cls.name),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          selectedClassId = value;
+                        });
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nameController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a name')),
+                  );
+                  return;
+                }
+
+                try {
+                  await Provider.of<StudentsProvider>(context, listen: false).updateStudent(
+                    widget.student.id,
+                    nameController.text,
+                    emailController.text.isEmpty ? null : emailController.text,
+                    selectedClassId,
+                  );
+
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Student updated successfully')),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to update student: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

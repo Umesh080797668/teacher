@@ -464,7 +464,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                       ],
                     ),
                   );
-                }).toList(),
+                }),
             ],
           ),
         );
@@ -903,15 +903,15 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                                         ],
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                               ),
                             );
-                          }).toList(),
+                          }),
                       ],
                     ),
                   );
-                }).toList(),
+                }),
             ],
           ),
         );

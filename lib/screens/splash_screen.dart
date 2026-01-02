@@ -9,6 +9,7 @@ import 'forced_update_screen.dart';
 import 'subscription_screen.dart';
 import 'activation_screen.dart';
 import 'pending_activation_screen.dart';
+import 'subscription_status_alert_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -132,7 +133,17 @@ class _SplashScreenState extends State<SplashScreen>
         target = const SubscriptionScreen();
       }
     } else {
-      target = const HomeScreen();
+      // Check if user should see subscription free alert
+      if (auth.shouldShowSubscriptionFreeAlert) {
+        target = const SubscriptionStatusAlertScreen(
+          title: 'Subscription Status Update',
+          message: 'Your subscription has been set to free by the super admin. You can continue using all features without any charges.',
+          actionText: 'Continue',
+          showHomeButton: false,
+        );
+      } else {
+        target = const HomeScreen();
+      }
     }
 
     Navigator.of(context).pushReplacement(

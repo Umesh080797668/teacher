@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
-import 'subscription_screen.dart';
 
 class PendingActivationScreen extends StatefulWidget {
   const PendingActivationScreen({super.key});

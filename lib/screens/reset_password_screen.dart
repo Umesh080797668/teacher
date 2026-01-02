@@ -169,11 +169,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> with SingleTi
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.white),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text('Unable to reset password. Please check your connection and try again.'),
               ),
             ],
@@ -236,11 +236,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> with SingleTi
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.white),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text('Unable to send code. Please check your connection and try again.'),
               ),
             ],
@@ -282,15 +282,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> with SingleTi
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF6366F1), // Indigo
-              const Color(0xFF8B5CF6), // Purple
-              const Color(0xFFA855F7), // Medium Purple
-              const Color(0xFFEC4899), // Pink
+              Color(0xFF6366F1), // Indigo
+              Color(0xFF8B5CF6), // Purple
+              Color(0xFFA855F7), // Medium Purple
+              Color(0xFFEC4899), // Pink
             ],
             stops: [0.0, 0.4, 0.7, 1.0],
           ),
@@ -302,7 +302,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> with SingleTi
               child: Opacity(
                 opacity: 0.05,
                 child: Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: RadialGradient(
                       center: Alignment.center,
                       radius: 1.5,

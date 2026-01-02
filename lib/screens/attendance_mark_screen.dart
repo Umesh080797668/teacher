@@ -214,7 +214,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                     child: Consumer<ClassesProvider>(
                       builder: (context, classesProvider, child) {
                         return DropdownButtonFormField<String>(
-                          value: _selectedClassId,
+                          initialValue: _selectedClassId,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
@@ -364,7 +364,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                     ? classFilteredStudents
                     : classFilteredStudents.where((student) => 
                         student.name.toLowerCase().contains(_searchText) ||
-                        (student.studentId?.toLowerCase().contains(_searchText) ?? false)
+                        (student.studentId.toLowerCase().contains(_searchText) ?? false)
                       ).toList();
 
                 if (filteredStudents.isEmpty) {
@@ -380,7 +380,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                         const SizedBox(height: 16),
                         Text(
                           _searchText.isNotEmpty 
-                              ? 'No students found matching "${_searchText}"'
+                              ? 'No students found matching "$_searchText"'
                               : (_selectedClassId == null ? 'No students found' : 'No students in selected class'),
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Theme.of(context).colorScheme.outline,

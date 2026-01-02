@@ -60,7 +60,7 @@ class _SubscriptionWarningScreenState extends State<SubscriptionWarningScreen> {
                       color: Colors.orange.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.warning_amber_rounded,
                       size: 40,
                       color: Colors.orange,
