@@ -260,7 +260,7 @@ const TeacherSchema = new mongoose.Schema({
   status: { type: String, enum: ['active', 'inactive'], default: 'inactive' },
   profilePicture: { type: String }, // Profile picture path
   companyIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }], // Multiple companies - added when QR scanned
-  subscriptionType: { type: String, enum: ['monthly', 'yearly'], default: 'monthly' },
+  subscriptionType: { type: String, enum: ['monthly', 'yearly', 'free'], default: 'monthly' },
   subscriptionStartDate: { type: Date, default: Date.now },
   subscriptionExpiryDate: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }, // Default 30 days for monthly
   isRestricted: { type: Boolean, default: false },
