@@ -5042,6 +5042,50 @@ app.put('/api/super-admin/teachers/:teacherId/status', verifySuperAdmin, async (
   }
 });
 
+// Set teacher subscription free with options
+app.post('/api/super-admin/teachers/:teacherId/set-free-options', verifySuperAdmin, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    const { isLifetime, freeDays } = req.body;
+    
+    const teacher = await Teacher.findById(teacherId);
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    
+    // Update subscription details
+    teacher.subscriptionType = 'free';
+    teacher.subscriptionStartDate = new Date();
+    
+    if (isLifetime) {
+      // Set expiry to far future for lifetime
+      teacher.subscriptionExpiryDate = new Date(Date.now() + (100 * 365 * 24 * 60 * 60 * 1000)); // 100 years
+    } else {
+      // Set expiry based on freeDays
+      const days = freeDays || 30; // Default to 30 days if not specified
+      teacher.subscriptionExpiryDate = new Date(Date.now() + (days * 24 * 60 * 60 * 1000));
+    }
+    
+    teacher.updatedAt = new Date();
+    await teacher.save();
+    
+    res.json({ 
+      message: `Teacher subscription set to free ${isLifetime ? 'lifetime' : `for ${freeDays || 30} days`} successfully`,
+      teacher: {
+        _id: teacher._id,
+        teacherId: teacher.teacherId,
+        name: teacher.name,
+        subscriptionType: teacher.subscriptionType,
+        subscriptionStartDate: teacher.subscriptionStartDate,
+        subscriptionExpiryDate: teacher.subscriptionExpiryDate
+      }
+    });
+  } catch (error) {
+    console.error('Error setting teacher subscription free:', error);
+    res.status(500).json({ error: 'Failed to set teacher subscription free' });
+  }
+});
+
 // Get super admin stats
 app.get('/api/super-admin/stats', verifySuperAdmin, async (req, res) => {
   try {
