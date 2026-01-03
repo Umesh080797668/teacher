@@ -78,65 +78,78 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     try {
       debugPrint('DEBUG: Loading attendance for ${students.length} students on ${date.toString().split(' ')[0]}');
       
-      // Load attendance for each student individually to ensure we get proper studentId
-      final Map<String, Attendance?> studentAttendance = {};
-      
-      for (final student in students) {
-        try {
-          final attendanceList = await ApiService.getAttendance(
-            studentId: student.id,
-            month: date.month,
-            year: date.year,
-          );
-          
-          // Find attendance for the specific date
-          final attendanceForDate = attendanceList.where((record) => 
-            record.date.year == date.year && 
-            record.date.month == date.month && 
-            record.date.day == date.day
-          ).toList();
-          
-          if (attendanceForDate.isNotEmpty) {
-            // Ensure studentId is set correctly even if backend doesn't include it
-            final attendance = attendanceForDate.first;
-            if (attendance.studentId.isEmpty) {
-              debugPrint('DEBUG: Backend missing studentId for student ${student.name}, setting it manually');
-              // Create a corrected attendance record with proper studentId
-              final correctedAttendance = Attendance(
-                id: attendance.id,
-                studentId: student.id, // Set the correct studentId
-                date: attendance.date,
-                session: attendance.session,
-                status: attendance.status,
-                month: attendance.month,
-                year: attendance.year,
-                createdAt: attendance.createdAt,
-              );
-              studentAttendance[student.id] = correctedAttendance;
-            } else {
-              studentAttendance[student.id] = attendance;
-            }
-          } else {
-            studentAttendance[student.id] = null;
-          }
-        } catch (e) {
-          studentAttendance[student.id] = null;
-        }
+      if (students.isEmpty) {
+        debugPrint('DEBUG: No students to load attendance for');
+        setState(() {
+          _attendanceStatus.clear();
+          _preExistingAttendance.clear();
+        });
+        return;
       }
       
-      setState(() {
-        _attendanceStatus.clear();
-        _preExistingAttendance.clear();
+      // Use batch endpoint for faster loading instead of loading each student individually
+      final studentIds = students.map((s) => s.id).toList();
+      
+      try {
+        final attendanceMap = await ApiService.getBatchAttendance(studentIds, date);
+        
+        debugPrint('DEBUG: Batch attendance loaded, found ${attendanceMap.length} records');
+        
+        setState(() {
+          _attendanceStatus.clear();
+          _preExistingAttendance.clear();
+          
+          // Populate from batch result
+          attendanceMap.forEach((studentId, status) {
+            _attendanceStatus[studentId] = status;
+            _preExistingAttendance[studentId] = status;
+          });
+        });
+        
+        debugPrint('DEBUG: Loaded attendance for ${students.length} students, found ${_attendanceStatus.length} existing records');
+      } catch (batchError) {
+        // Fallback to individual requests if batch endpoint fails
+        debugPrint('DEBUG: Batch endpoint failed, falling back to individual requests: $batchError');
+        
+        final Map<String, Attendance?> studentAttendance = {};
+        
         for (final student in students) {
-          final attendance = studentAttendance[student.id];
-          if (attendance != null) {
-            _attendanceStatus[student.id] = attendance.status;
-            _preExistingAttendance[student.id] = attendance.status;
+          try {
+            final attendanceList = await ApiService.getAttendance(
+              studentId: student.id,
+              month: date.month,
+              year: date.year,
+            );
+            
+            // Find attendance for the specific date
+            final attendanceForDate = attendanceList.where((record) => 
+              record.date.year == date.year && 
+              record.date.month == date.month && 
+              record.date.day == date.day
+            ).toList();
+            
+            if (attendanceForDate.isNotEmpty) {
+              studentAttendance[student.id] = attendanceForDate.first;
+            } else {
+              studentAttendance[student.id] = null;
+            }
+          } catch (e) {
+            studentAttendance[student.id] = null;
           }
         }
-      });
-      
-      debugPrint('DEBUG: Loaded attendance for ${students.length} students, found ${_attendanceStatus.length} existing records');
+        
+        setState(() {
+          _attendanceStatus.clear();
+          _preExistingAttendance.clear();
+          for (final student in students) {
+            final attendance = studentAttendance[student.id];
+            if (attendance != null) {
+              _attendanceStatus[student.id] = attendance.status;
+              _preExistingAttendance[student.id] = attendance.status;
+            }
+          }
+        });
+      }
     } catch (e) {
       debugPrint('Error loading attendance for date: $e');
     }

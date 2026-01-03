@@ -605,6 +605,28 @@ class ApiService {
     return Attendance.fromJson(json.decode(response.body));
   }
 
+  // Get batch attendance for multiple students on a specific date (faster than individual requests)
+  static Future<Map<String, String>> getBatchAttendance(
+    List<String> studentIds,
+    DateTime date,
+  ) async {
+    if (studentIds.isEmpty) {
+      return {};
+    }
+    
+    final response = await _makeRequest(
+      'POST',
+      '/api/attendance/batch',
+      body: {
+        'studentIds': studentIds,
+        'date': date.toIso8601String(),
+      },
+    );
+
+    final Map<String, dynamic> data = json.decode(response.body);
+    return data.cast<String, String>();
+  }
+
   // Classes
   static Future<List<Class>> getClasses({String? teacherId}) async {
     final endpoint = teacherId != null ? '/api/classes?teacherId=$teacherId' : '/api/classes';

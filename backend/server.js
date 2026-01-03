@@ -815,10 +815,16 @@ app.get('/api/students', verifyToken, async (req, res) => {
   try {
     console.log('GET /api/students called');
     console.log('MongoDB connection state:', mongoose.connection.readyState);
-    const { teacherId } = req.query;
+    const { teacherId, classId } = req.query;
 
     let query = {};
-    if (teacherId) {
+    
+    // Filter by classId if provided
+    if (classId) {
+      console.log('Filtering students for classId:', classId);
+      query.classId = new mongoose.Types.ObjectId(classId);
+      console.log('Query for classId filter:', query);
+    } else if (teacherId) {
       // Find teacher by teacherId string and get their classes
       console.log('Filtering students for teacherId:', teacherId);
       const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
@@ -1041,6 +1047,58 @@ app.post('/api/attendance', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Error creating attendance record:', error);
     res.status(500).json({ error: 'Failed to create attendance record', details: error.message });
+  }
+});
+
+// Batch get attendance for multiple students on a specific date
+app.post('/api/attendance/batch', verifyToken, async (req, res) => {
+  try {
+    const { studentIds, date } = req.body;
+    
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({ error: 'studentIds must be a non-empty array' });
+    }
+    
+    if (!date) {
+      return res.status(400).json({ error: 'date is required' });
+    }
+    
+    const attendanceDate = new Date(date);
+    const year = attendanceDate.getFullYear();
+    const month = attendanceDate.getMonth() + 1;
+    const day = attendanceDate.getDate();
+    
+    console.log('Batch attendance request for', studentIds.length, 'students on', date);
+    
+    // Convert studentIds to ObjectIds
+    const objectIds = studentIds.map(id => {
+      if (typeof id === 'string' && id.match(/^[0-9a-fA-F]{24}$/)) {
+        return new mongoose.Types.ObjectId(id);
+      }
+      return id;
+    });
+    
+    // Find all attendance records for these students on this date
+    const attendance = await Attendance.find({
+      studentId: { $in: objectIds },
+      year: year,
+      month: month,
+      $expr: { $eq: [{ $dayOfMonth: '$date' }, day] }
+    });
+    
+    console.log('Found', attendance.length, 'attendance records');
+    
+    // Create a map of studentId -> attendance status for quick lookup
+    const attendanceMap = {};
+    attendance.forEach(record => {
+      const studentId = record.studentId.toString();
+      attendanceMap[studentId] = record.status;
+    });
+    
+    res.json(attendanceMap);
+  } catch (error) {
+    console.error('Error fetching batch attendance:', error);
+    res.status(500).json({ error: 'Failed to fetch batch attendance', details: error.message });
   }
 });
 
