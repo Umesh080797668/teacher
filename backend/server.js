@@ -5745,6 +5745,199 @@ app.post('/api/teacher/unrestrict-student', verifyTeacher, async (req, res) => {
   }
 });
 
+// ==================== SUBSCRIPTION STATUS ENDPOINTS ====================
+
+// Teacher: Check subscription status
+app.get('/api/teacher/subscription-status/:teacherId', verifyToken, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    const teacher = await Teacher.findOne({ teacherId })
+      .select('subscriptionType subscriptionStartDate subscriptionExpiryDate status email name');
+
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    const now = new Date();
+    const expiryDate = teacher.subscriptionExpiryDate ? new Date(teacher.subscriptionExpiryDate) : null;
+    const isExpired = expiryDate && expiryDate < now;
+    const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24)) : null;
+
+    res.json({
+      subscriptionType: teacher.subscriptionType || 'free',
+      subscriptionStartDate: teacher.subscriptionStartDate,
+      subscriptionExpiryDate: teacher.subscriptionExpiryDate,
+      status: teacher.status,
+      isExpired: isExpired,
+      expiring: daysUntilExpiry && daysUntilExpiry <= 7,
+      daysUntilExpiry: daysUntilExpiry,
+      email: teacher.email,
+      name: teacher.name
+    });
+  } catch (error) {
+    console.error('Error checking teacher subscription status:', error);
+    res.status(500).json({ error: 'Failed to check subscription status' });
+  }
+});
+
+// Student: Check subscription status
+app.get('/api/student/subscription-status/:studentId', verifyToken, async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    const student = await Student.findOne({ studentId })
+      .select('subscriptionType subscriptionStartDate subscriptionExpiryDate email name')
+      .populate({
+        path: 'classId',
+        select: 'teacherId',
+        populate: {
+          path: 'teacherId',
+          select: 'subscriptionType subscriptionExpiryDate'
+        }
+      });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Get teacher subscription info
+    let teacherSubscriptionStatus = 'free';
+    let teacherSubscriptionExpired = false;
+    if (student.classId && student.classId.teacherId) {
+      teacherSubscriptionStatus = student.classId.teacherId.subscriptionType || 'free';
+      if (student.classId.teacherId.subscriptionExpiryDate) {
+        const expiryDate = new Date(student.classId.teacherId.subscriptionExpiryDate);
+        teacherSubscriptionExpired = expiryDate < new Date();
+      }
+    }
+
+    const now = new Date();
+    const expiryDate = student.subscriptionExpiryDate ? new Date(student.subscriptionExpiryDate) : null;
+    const isExpired = expiryDate && expiryDate < now;
+    const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24)) : null;
+
+    res.json({
+      subscriptionType: student.subscriptionType || 'free',
+      subscriptionStartDate: student.subscriptionStartDate,
+      subscriptionExpiryDate: student.subscriptionExpiryDate,
+      isExpired: isExpired,
+      expiring: daysUntilExpiry && daysUntilExpiry <= 7,
+      daysUntilExpiry: daysUntilExpiry,
+      teacherSubscriptionStatus: teacherSubscriptionStatus,
+      teacherSubscriptionExpired: teacherSubscriptionExpired,
+      email: student.email,
+      name: student.name
+    });
+  } catch (error) {
+    console.error('Error checking student subscription status:', error);
+    res.status(500).json({ error: 'Failed to check subscription status' });
+  }
+});
+
+// ==================== ADMIN CHANGES ENDPOINTS ====================
+
+// Teacher: Get all admin changes
+app.get('/api/teacher/admin-changes/:teacherId', verifyToken, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    const teacher = await Teacher.findOne({ teacherId })
+      .select('isRestricted restrictionReason restrictedAt subscriptionType subscriptionExpiryDate status');
+
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    const now = new Date();
+    const expiryDate = teacher.subscriptionExpiryDate ? new Date(teacher.subscriptionExpiryDate) : null;
+    const isSubscriptionExpired = expiryDate && expiryDate < now;
+
+    res.json({
+      restrictions: {
+        isRestricted: teacher.isRestricted || false,
+        restrictionReason: teacher.restrictionReason,
+        restrictedAt: teacher.restrictedAt
+      },
+      subscription: {
+        status: teacher.subscriptionType || 'free',
+        expiryDate: teacher.subscriptionExpiryDate,
+        expiring: expiryDate && (expiryDate - now) / (1000 * 60 * 60 * 24) <= 7,
+        expired: isSubscriptionExpired
+      },
+      status: {
+        status: teacher.status || 'active',
+        updatedAt: new Date()
+      },
+      classes: []
+    });
+  } catch (error) {
+    console.error('Error checking teacher admin changes:', error);
+    res.status(500).json({ error: 'Failed to check admin changes' });
+  }
+});
+
+// Student: Get all admin changes
+app.get('/api/student/admin-changes/:studentId', verifyToken, async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    const student = await Student.findOne({ studentId })
+      .select('isRestricted restrictionReason restrictedAt subscriptionType subscriptionExpiryDate')
+      .populate({
+        path: 'classId',
+        select: 'name teacherId',
+        populate: {
+          path: 'teacherId',
+          select: 'name subscriptionType subscriptionExpiryDate'
+        }
+      });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const now = new Date();
+    const expiryDate = student.subscriptionExpiryDate ? new Date(student.subscriptionExpiryDate) : null;
+    const isSubscriptionExpired = expiryDate && expiryDate < now;
+
+    // Get teacher subscription info
+    let teacherSubscriptionExpired = false;
+    if (student.classId && student.classId.teacherId && student.classId.teacherId.subscriptionExpiryDate) {
+      const teacherExpiryDate = new Date(student.classId.teacherId.subscriptionExpiryDate);
+      teacherSubscriptionExpired = teacherExpiryDate < now;
+    }
+
+    res.json({
+      restrictions: {
+        isRestricted: student.isRestricted || false,
+        restrictionReason: student.restrictionReason,
+        restrictedAt: student.restrictedAt
+      },
+      subscription: {
+        status: student.subscriptionType || 'free',
+        expiryDate: student.subscriptionExpiryDate,
+        expiring: expiryDate && (expiryDate - now) / (1000 * 60 * 60 * 24) <= 7,
+        expired: isSubscriptionExpired
+      },
+      status: {
+        status: 'active',
+        updatedAt: new Date()
+      },
+      classes: student.classId ? [{ 
+        _id: student.classId._id,
+        name: student.classId.name,
+        teacherId: student.classId.teacherId._id,
+        teacherName: student.classId.teacherId.name,
+        teacherSubscriptionExpired: teacherSubscriptionExpired
+      }] : []
+    });
+  } catch (error) {
+    console.error('Error checking student admin changes:', error);
+    res.status(500).json({ error: 'Failed to check admin changes' });
+  }
+});
+
 // Export the app for Vercel
 module.exports = app;
 
