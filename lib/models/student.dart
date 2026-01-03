@@ -23,15 +23,15 @@ class Student {
 
   factory Student.fromJson(Map<String, dynamic> json) {
     return Student(
-      id: json['_id'] ?? json['id'],
-      name: json['name'],
-      email: json['email'],
-      studentId: json['studentId'],
-      classId: json['classId'],
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
-      isRestricted: json['isRestricted'] ?? false,
-      restrictionReason: json['restrictionReason'],
-      restrictedAt: json['restrictedAt'] != null ? DateTime.parse(json['restrictedAt']) : null,
+      id: (json['_id'] ?? json['id']) is String ? (json['_id'] ?? json['id']) : '',
+      name: json['name'] is String ? json['name'] : '',
+      email: json['email'] is String ? json['email'] : null,
+      studentId: json['studentId'] is String ? json['studentId'] : '',
+      classId: json['classId'] is String ? json['classId'] : null,
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'].toString()) : null,
+      isRestricted: json['isRestricted'] is bool ? json['isRestricted'] : false,
+      restrictionReason: json['restrictionReason'] is String ? json['restrictionReason'] : null,
+      restrictedAt: json['restrictedAt'] != null ? DateTime.parse(json['restrictedAt'].toString()) : null,
     );
   }
 

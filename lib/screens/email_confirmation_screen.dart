@@ -426,7 +426,7 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
                             height: 60,
                             margin: const EdgeInsets.symmetric(horizontal: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: Colors.black.withOpacity(0.3),
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
@@ -448,7 +448,7 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
                               style: GoogleFonts.poppins(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF6750A4),
+                                color: Colors.white,
                               ),
                               decoration: const InputDecoration(
                                 border: InputBorder.none,

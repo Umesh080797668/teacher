@@ -14,6 +14,7 @@ import 'account_selection_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'login_screen.dart';
 import '../providers/auth_provider.dart';
+import '../providers/admin_changes_provider.dart';
 import '../services/api_service.dart';
 import '../services/update_service.dart';
 import '../services/restriction_polling_service.dart';
@@ -52,13 +53,15 @@ class _HomeScreenState extends State<HomeScreen> {
       _searchFocusNode.unfocus();
       _loadData();
       
-      // Start restriction polling
+      // Start admin changes polling (covers restrictions and other admin actions)
       final auth = Provider.of<AuthProvider>(context, listen: false);
+      final adminChangesProvider = Provider.of<AdminChangesProvider>(context, listen: false);
       if (auth.teacherId != null) {
-        RestrictionPollingService().startPolling(
+        adminChangesProvider.startPolling(
           context: context,
           userId: auth.teacherId!,
           userType: 'teacher',
+          pollIntervalSeconds: 5,
         );
       }
     });
@@ -117,8 +120,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _timeUpdateTimer?.cancel();
     _updateCheckTimer?.cancel();
     
-    // Stop restriction polling
-    RestrictionPollingService().stopPolling();
+    // Stop admin changes polling
+    final adminChangesProvider = Provider.of<AdminChangesProvider>(context, listen: false);
+    adminChangesProvider.stopPolling();
     
     // Remove auth listener
     final auth = Provider.of<AuthProvider>(context, listen: false);

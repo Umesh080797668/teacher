@@ -24,14 +24,14 @@ class Teacher {
   factory Teacher.fromJson(Map<String, dynamic> json) {
     return Teacher(
       id: json['_id'] ?? json['id'] ?? '',
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      phone: json['phone'],
-      teacherId: json['teacherId'],
-      status: json['status'] ?? 'active',
-      profilePicture: json['profilePicture'],
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+      name: json['name'] is String ? json['name'] : '',
+      email: json['email'] is String ? json['email'] : '',
+      phone: json['phone'] is String ? json['phone'] : null,
+      teacherId: json['teacherId'] is String ? json['teacherId'] : null,
+      status: json['status'] is String ? json['status'] : 'active',
+      profilePicture: json['profilePicture'] is String ? json['profilePicture'] : null,
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'].toString()) : null,
+      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'].toString()) : null,
     );
   }
 

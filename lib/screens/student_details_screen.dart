@@ -636,16 +636,38 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Edit Student'),
+          title: Text(
+            'Edit Student',
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+            ),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextFormField(
                   controller: nameController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                  ),
+                  decoration: InputDecoration(
                     labelText: 'Name',
-                    prefixIcon: Icon(Icons.person),
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white70
+                          : Colors.black54,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.person,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white70
+                          : Colors.black54,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -657,38 +679,88 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: emailController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                  ),
+                  decoration: InputDecoration(
                     labelText: 'Email (optional)',
-                    prefixIcon: Icon(Icons.email),
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white70
+                          : Colors.black54,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.email,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white70
+                          : Colors.black54,
+                    ),
                   ),
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 16),
                 Consumer<ClassesProvider>(
                   builder: (context, classesProvider, child) {
-                    return DropdownButtonFormField<String?>(
-                      initialValue: selectedClassId,
-                      decoration: const InputDecoration(
-                        labelText: 'Class (optional)',
-                        prefixIcon: Icon(Icons.class_),
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('No Class'),
+                    return Container(
+                      width: MediaQuery.of(context).size.width * 0.8,
+                      child: DropdownButtonFormField<String?>(
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
                         ),
-                        ...classesProvider.classes.map((class_model.Class cls) {
-                          return DropdownMenuItem<String?>(
-                            value: cls.id,
-                            child: Text(cls.name),
-                          );
-                        }),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          selectedClassId = value;
-                        });
-                      },
+                        dropdownColor: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[800]
+                            : Colors.white,
+                        initialValue: selectedClassId,
+                        decoration: InputDecoration(
+                          labelText: 'Class (optional)',
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white70
+                                : Colors.black54,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.class_,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white70
+                                : Colors.black54,
+                          ),
+                        ),
+                        items: [
+                          DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text(
+                              'No Class',
+                              style: TextStyle(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black,
+                              ),
+                            ),
+                          ),
+                          ...classesProvider.classes.map((class_model.Class cls) {
+                            return DropdownMenuItem<String?>(
+                              value: cls.id,
+                              child: Text(
+                                cls.name,
+                                style: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black,
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            selectedClassId = value;
+                          });
+                        },
+                      ),
                     );
                   },
                 ),
@@ -698,7 +770,14 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {

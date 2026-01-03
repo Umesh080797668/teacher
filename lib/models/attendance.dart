@@ -21,14 +21,14 @@ class Attendance {
 
   factory Attendance.fromJson(Map<String, dynamic> json) {
     return Attendance(
-      id: json['_id'] ?? json['id'],
-      studentId: json['studentId'],
-      date: DateTime.parse(json['date']),
-      session: json['session'],
-      status: json['status'],
-      month: json['month'],
-      year: json['year'],
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      id: (json['_id'] ?? json['id']) is String ? (json['_id'] ?? json['id']) : '',
+      studentId: json['studentId'] is String ? json['studentId'] : '',
+      date: json['date'] is String ? DateTime.parse(json['date']) : DateTime.now(),
+      session: json['session'] is String ? json['session'] : '',
+      status: json['status'] is String ? json['status'] : 'unknown',
+      month: json['month'] is int ? json['month'] : 0,
+      year: json['year'] is int ? json['year'] : 0,
+      createdAt: json['createdAt'] is String ? DateTime.parse(json['createdAt']) : null,
     );
   }
 

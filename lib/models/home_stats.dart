@@ -29,20 +29,20 @@ class HomeStats {
 
   factory HomeStats.fromJson(Map<String, dynamic> json) {
     return HomeStats(
-      totalStudents: json['totalStudents'] ?? 0,
-      todayAttendancePercentage: (json['todayAttendancePercentage'] ?? 0.0)
+      totalStudents: json['totalStudents'] is int ? json['totalStudents'] : 0,
+      todayAttendancePercentage: (json['todayAttendancePercentage'] is num ? json['todayAttendancePercentage'] : 0.0)
           .toDouble(),
-      totalClasses: json['totalClasses'] ?? 0,
-      paymentStatusPercentage: (json['paymentStatusPercentage'] ?? 0.0)
+      totalClasses: json['totalClasses'] is int ? json['totalClasses'] : 0,
+      paymentStatusPercentage: (json['paymentStatusPercentage'] is num ? json['paymentStatusPercentage'] : 0.0)
           .toDouble(),
-      studentsTrend: json['studentsTrend'] ?? '0%',
-      attendanceTrend: json['attendanceTrend'] ?? '0%',
-      classesTrend: json['classesTrend'] ?? '0',
-      paymentTrend: json['paymentTrend'] ?? '0%',
-      studentsPositive: json['studentsPositive'] ?? true,
-      attendancePositive: json['attendancePositive'] ?? true,
-      classesPositive: json['classesPositive'] ?? true,
-      paymentPositive: json['paymentPositive'] ?? true,
+      studentsTrend: json['studentsTrend'] is String ? json['studentsTrend'] : '0%',
+      attendanceTrend: json['attendanceTrend'] is String ? json['attendanceTrend'] : '0%',
+      classesTrend: json['classesTrend'] is String ? json['classesTrend'] : '0',
+      paymentTrend: json['paymentTrend'] is String ? json['paymentTrend'] : '0%',
+      studentsPositive: json['studentsPositive'] is bool ? json['studentsPositive'] : true,
+      attendancePositive: json['attendancePositive'] is bool ? json['attendancePositive'] : true,
+      classesPositive: json['classesPositive'] is bool ? json['classesPositive'] : true,
+      paymentPositive: json['paymentPositive'] is bool ? json['paymentPositive'] : true,
     );
   }
 }
@@ -64,11 +64,11 @@ class RecentActivity {
 
   factory RecentActivity.fromJson(Map<String, dynamic> json) {
     return RecentActivity(
-      id: json['_id'] ?? json['id'],
-      type: json['type'],
-      title: json['title'],
-      subtitle: json['subtitle'],
-      timestamp: DateTime.parse(json['timestamp']),
+      id: (json['_id'] ?? json['id']) is String ? (json['_id'] ?? json['id']) : '',
+      type: json['type'] is String ? json['type'] : '',
+      title: json['title'] is String ? json['title'] : '',
+      subtitle: json['subtitle'] is String ? json['subtitle'] : '',
+      timestamp: json['timestamp'] is String ? DateTime.parse(json['timestamp']) : DateTime.now(),
     );
   }
 

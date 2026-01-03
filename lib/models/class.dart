@@ -13,10 +13,10 @@ class Class {
 
   factory Class.fromJson(Map<String, dynamic> json) {
     return Class(
-      id: json['_id'] ?? json['id'],
-      name: json['name'],
-      teacherId: json['teacherId'],
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      id: (json['_id'] ?? json['id']) is String ? (json['_id'] ?? json['id']) : '',
+      name: json['name'] is String ? json['name'] : '',
+      teacherId: json['teacherId'] is String ? json['teacherId'] : '',
+      createdAt: json['createdAt'] is String ? DateTime.parse(json['createdAt']) : null,
     );
   }
 

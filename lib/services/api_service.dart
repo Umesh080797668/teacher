@@ -73,7 +73,12 @@ class ApiService {
       }
     }
 
+    // Get token and add to headers
+    final token = await getToken();
     final requestHeaders = {'Content-Type': 'application/json', ...?headers};
+    if (token != null) {
+      requestHeaders['Authorization'] = 'Bearer $token';
+    }
 
     try {
       late http.Response response;
@@ -791,6 +796,7 @@ class ApiService {
 
   // Home Dashboard
   static Future<HomeStats> getHomeStats({String? teacherId}) async {
+    final token = await getToken();
     final queryParams = <String, String>{};
     if (teacherId != null) queryParams['teacherId'] = teacherId;
 
@@ -798,12 +804,14 @@ class ApiService {
       path: '/api/home/stats',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
-    final response = await _makeRequest('GET', endpoint);
+    final headers = token != null ? {'Authorization': 'Bearer $token'} : <String, String>{};
+    final response = await _makeRequest('GET', endpoint, headers: headers);
     final data = json.decode(response.body);
     return HomeStats.fromJson(data);
   }
 
   static Future<List<RecentActivity>> getRecentActivities({String? teacherId}) async {
+    final token = await getToken();
     final queryParams = <String, String>{};
     if (teacherId != null) queryParams['teacherId'] = teacherId;
 
@@ -811,7 +819,8 @@ class ApiService {
       path: '/api/home/activities',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
-    final response = await _makeRequest('GET', endpoint);
+    final headers = token != null ? {'Authorization': 'Bearer $token'} : <String, String>{};
+    final response = await _makeRequest('GET', endpoint, headers: headers);
     final data = json.decode(response.body);
     return (data as List).map((item) => RecentActivity.fromJson(item)).toList();
   }

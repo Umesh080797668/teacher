@@ -8,9 +8,14 @@ class RestrictionService {
   /// Check if teacher is restricted
   Future<Map<String, dynamic>> checkTeacherRestrictionStatus(String teacherId) async {
     try {
+      final token = await ApiService.getToken();
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
       final response = await http.get(
         Uri.parse('$baseUrl/api/teacher/restriction-status/$teacherId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -27,9 +32,14 @@ class RestrictionService {
   /// Check if student is restricted
   Future<Map<String, dynamic>> checkStudentRestrictionStatus(String studentId) async {
     try {
+      final token = await ApiService.getToken();
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
       final response = await http.get(
         Uri.parse('$baseUrl/api/student/restriction-status/$studentId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
