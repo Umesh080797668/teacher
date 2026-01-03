@@ -6,6 +6,8 @@ import '../models/student.dart';
 import '../providers/students_provider.dart';
 import '../providers/attendance_provider.dart';
 import '../providers/classes_provider.dart';
+import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 import '../screens/student_details_screen.dart';
 import '../widgets/custom_widgets.dart';
 
@@ -24,22 +26,63 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   Future<void> _loadData() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
     final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
     final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
 
-    await studentsProvider.loadStudents();
-    await attendanceProvider.loadAttendance();
+    try {
+      print('DEBUG: Loading students for class ${widget.classObj.id}');
+      
+      // Try to load students for this specific class
+      final classStudents = await ApiService.getStudentsByClass(widget.classObj.id);
+      print('DEBUG: Loaded ${classStudents.length} students from class endpoint');
+      
+      if (classStudents.isNotEmpty) {
+        // If we got students from the class endpoint, use them
+        studentsProvider.setStudents(classStudents);
+      } else {
+        // If class endpoint returned empty, load all teacher students
+        print('DEBUG: Class endpoint returned no students, loading all teacher students');
+        await studentsProvider.loadStudents(teacherId: auth.teacherId);
+      }
+      
+      // Load attendance data
+      await attendanceProvider.loadAttendance(teacherId: auth.teacherId);
+    } catch (e) {
+      print('DEBUG: Error loading class students: $e');
+      // Fallback to loading all teacher students
+      print('DEBUG: Falling back to loading all teacher students');
+      await studentsProvider.loadStudents(teacherId: auth.teacherId);
+      await attendanceProvider.loadAttendance(teacherId: auth.teacherId);
+    }
   }
 
   List<Student> _getStudentsInClass() {
     final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
-    return studentsProvider.students
-        .where((student) => student.classId == widget.classObj.id)
-        .toList();
+    final students = studentsProvider.students;
+    
+    // If students have classId set, filter by it
+    final studentsWithClassId = students.where((s) => s.classId != null).toList();
+    
+    if (studentsWithClassId.isNotEmpty) {
+      // Filter by classId if available
+      final classStudents = studentsWithClassId
+          .where((student) => student.classId == widget.classObj.id)
+          .toList();
+      print('DEBUG: Showing ${classStudents.length} students with classId filter');
+      return classStudents;
+    } else {
+      // If no students have classId (fallback case), show all loaded students
+      // These should be students added to this class
+      print('DEBUG: No classId data, showing all ${students.length} loaded students for class');
+      return students;
+    }
   }
 
   double _getAttendanceRate() {
@@ -277,6 +320,11 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
           studentIdController.text.trim(), // Use auto-generated ID
           widget.classObj.id,
         );
+        
+        // Reload students to ensure the new student appears with correct classId
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        await studentsProvider.loadStudents(teacherId: auth.teacherId);
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

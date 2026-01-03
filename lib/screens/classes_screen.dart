@@ -377,11 +377,15 @@ class _ClassesScreenState extends State<ClassesScreen> {
                                 fontSize: 16,
                               ),
                             ),
-                            subtitle: Text(
-                              'Teacher ID: ${classObj.teacherId}',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
+                            subtitle: Consumer<AuthProvider>(
+                              builder: (context, auth, child) {
+                                return Text(
+                                  'Teacher ID: ${auth.teacherId ?? classObj.teacherId}',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.outline,
+                                  ),
+                                );
+                              },
                             ),
                             trailing: Icon(
                               Icons.chevron_right,

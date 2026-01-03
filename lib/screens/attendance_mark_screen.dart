@@ -8,6 +8,7 @@ import '../providers/students_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/custom_widgets.dart';
 import 'login_screen.dart';
+import '../providers/attendance_provider.dart';
 
 class AttendanceMarkScreen extends StatefulWidget {
   const AttendanceMarkScreen({super.key});
@@ -28,10 +29,46 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      Provider.of<StudentsProvider>(context, listen: false).loadStudents(teacherId: auth.teacherId);
-      Provider.of<ClassesProvider>(context, listen: false).loadClasses(teacherId: auth.teacherId);
+      _loadInitialData();
     });
+  }
+
+  Future<void> _loadInitialData() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Load students and classes
+    await Provider.of<StudentsProvider>(context, listen: false).loadStudents(teacherId: auth.teacherId);
+    await Provider.of<ClassesProvider>(context, listen: false).loadClasses(teacherId: auth.teacherId);
+    
+    // Load attendance records for the selected date
+    await _loadAttendanceForDate(_selectedDate, auth.teacherId);
+  }
+
+  Future<void> _loadAttendanceForDate(DateTime date, String? teacherId) async {
+    try {
+      final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
+      await attendanceProvider.loadAttendance(
+        month: date.month,
+        year: date.year,
+        teacherId: teacherId,
+      );
+      
+      // Populate _attendanceStatus with existing records for this date
+      final existingRecords = attendanceProvider.attendance
+          .where((record) => record.date.year == date.year && 
+                             record.date.month == date.month && 
+                             record.date.day == date.day)
+          .toList();
+      
+      setState(() {
+        _attendanceStatus.clear();
+        for (var record in existingRecords) {
+          _attendanceStatus[record.studentId] = record.status;
+        }
+      });
+    } catch (e) {
+      debugPrint('Error loading attendance for date: $e');
+    }
   }
 
   Future<void> _markAllAttendance() async {
@@ -104,9 +141,9 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
-        setState(() {
-          _attendanceStatus.clear();
-        });
+        // Reload attendance data to reflect the newly marked attendance
+        final reloadAuth = Provider.of<AuthProvider>(context, listen: false);
+        await _loadAttendanceForDate(_selectedDate, reloadAuth.teacherId);
       }
     } catch (e) {
       if (mounted) {
@@ -164,9 +201,12 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                         lastDate: DateTime(2030),
                       );
                       if (picked != null) {
+                        final auth = Provider.of<AuthProvider>(context, listen: false);
                         setState(() {
                           _selectedDate = picked;
                         });
+                        // Load attendance for the new date
+                        await _loadAttendanceForDate(picked, auth.teacherId);
                       }
                     },
                     borderRadius: BorderRadius.circular(12),

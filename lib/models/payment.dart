@@ -6,6 +6,7 @@ class Payment {
   final String type; // 'full', 'half', 'free'
   final DateTime date;
   final int? month;
+  final int? year;
 
   Payment({
     required this.id,
@@ -15,11 +16,13 @@ class Payment {
     required this.type,
     required this.date,
     this.month,
+    this.year,
   });
 
   factory Payment.fromJson(Map<String, dynamic> json) {
     final date = json['date'] is String ? DateTime.parse(json['date']) : DateTime.now();
     final month = json['month'] is int ? json['month'] : date.month; // Derive from date if not provided
+    final year = json['year'] is int ? json['year'] : date.year; // Derive from date if not provided
     
     return Payment(
       id: (json['_id'] ?? json['id']) is String ? (json['_id'] ?? json['id']) : '',
@@ -29,6 +32,7 @@ class Payment {
       type: json['type'] is String ? json['type'] : '',
       date: date,
       month: month,
+      year: year,
     );
   }
 
@@ -40,6 +44,7 @@ class Payment {
       'type': type,
       'date': date.toIso8601String(),
       'month': month,
+      'year': year,
     };
   }
 }

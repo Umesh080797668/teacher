@@ -22,6 +22,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? _selectedClassId;
   String _selectedPaymentType = 'full';
   String _selectedMonth = DateTime.now().month.toString();
+  String _selectedYear = DateTime.now().year.toString();
   final TextEditingController _amountController = TextEditingController();
   bool _showForm = false;
   final TextEditingController _searchController = TextEditingController();
@@ -41,6 +42,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
     {'value': '11', 'label': 'November'},
     {'value': '12', 'label': 'December'},
   ];
+
+  List<Map<String, dynamic>> get _years {
+    final currentYear = DateTime.now().year;
+    final years = <Map<String, dynamic>>[];
+    // Generate last 5 years + current year
+    for (int i = currentYear; i >= currentYear - 5; i--) {
+      years.add({'value': i.toString(), 'label': i.toString()});
+    }
+    return years;
+  }
 
   @override
   void initState() {
@@ -108,6 +119,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           amount,
           _selectedPaymentType,
           month: int.parse(_selectedMonth),
+          year: int.parse(_selectedYear),
         );
 
         setState(() {
@@ -115,6 +127,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _selectedClassId = null;
           _selectedPaymentType = 'full';
           _selectedMonth = DateTime.now().month.toString();
+          _selectedYear = DateTime.now().year.toString();
           _amountController.clear();
           _showForm = false;
         });
@@ -459,6 +472,42 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   onChanged: (value) {
                                     setState(() {
                                       _selectedMonth = value!;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+
+                                // Year Selection
+                                DropdownButtonFormField<String>(
+                                  initialValue: _selectedYear,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  dropdownColor: Theme.of(context).colorScheme.surface,
+                                  decoration: InputDecoration(
+                                    labelText: 'Select Year',
+                                    labelStyle: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                    ),
+                                    prefixIcon: Icon(
+                                      Icons.date_range,
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                    ),
+                                  ),
+                                  items: _years.map((year) {
+                                    return DropdownMenuItem<String>(
+                                      value: year['value'],
+                                      child: Text(
+                                        year['label'],
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedYear = value!;
                                     });
                                   },
                                 ),

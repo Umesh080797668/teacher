@@ -10,6 +10,12 @@ class StudentsProvider with ChangeNotifier {
   List<Student> get students => _students;
   bool get isLoading => _isLoading;
 
+  // Set students directly (used for class-specific student loading)
+  void setStudents(List<Student> students) {
+    _students = students;
+    notifyListeners();
+  }
+
   Future<void> loadStudents({String? teacherId}) async {
     _isLoading = true;
     notifyListeners();

@@ -507,8 +507,15 @@ class ApiService {
   // Students
   static Future<List<Student>> getStudents({String? teacherId}) async {
     // Use the new teacher endpoint that includes restriction data
-    final endpoint = '/api/teacher/students';
+    final endpoint = teacherId != null ? '/api/teacher/students?teacherId=$teacherId' : '/api/teacher/students';
     final response = await _makeRequest('GET', endpoint);
+    List<dynamic> data = json.decode(response.body);
+    return data.map((json) => Student.fromJson(json)).toList();
+  }
+
+  // Get students by class
+  static Future<List<Student>> getStudentsByClass(String classId) async {
+    final response = await _makeRequest('GET', '/api/students?classId=$classId');
     List<dynamic> data = json.decode(response.body);
     return data.map((json) => Student.fromJson(json)).toList();
   }
@@ -656,6 +663,7 @@ class ApiService {
     double amount,
     String type, {
     int? month,
+    int? year,
   }) async {
     final response = await _makeRequest(
       'POST',
@@ -666,6 +674,7 @@ class ApiService {
         'amount': amount,
         'type': type,
         if (month != null) 'month': month,
+        if (year != null) 'year': year,
       },
     );
 
