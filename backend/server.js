@@ -1163,7 +1163,8 @@ app.post('/api/student/login', async (req, res) => {
 // Student restriction check middleware
 const checkStudentRestriction = async (req, res, next) => {
   try {
-    const { studentId } = req.body;
+    // Get studentId from either query params (GET) or body (POST/PUT/DELETE)
+    const studentId = req.query.studentId || req.body.studentId;
     
     if (!studentId) {
       return res.status(400).json({ error: 'Student ID is required' });
