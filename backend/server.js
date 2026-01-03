@@ -4922,9 +4922,11 @@ app.put('/api/admin/change-password', verifyToken, async (req, res) => {
 // Get all teachers with earnings
 app.get('/api/super-admin/teachers', verifySuperAdmin, async (req, res) => {
   try {
-    const teachers = await Teacher.find({}).populate('companyIds', 'companyName');
+    const teachers = await Teacher.find({})
+      .select('_id name email teacherId phone status profilePicture companyIds subscriptionType subscriptionStartDate subscriptionExpiryDate isRestricted restrictedAt restrictionReason restrictedBy createdAt updatedAt')
+      .populate('companyIds', 'companyName');
     
-    // Calculate earnings for each teacher
+    // Calculate earnings and student count for each teacher
     const teachersWithEarnings = await Promise.all(teachers.map(async (teacher) => {
       // Find all classes for this teacher
       const classes = await Class.find({ teacherId: teacher._id });
@@ -4949,6 +4951,10 @@ app.get('/api/super-admin/teachers', verifySuperAdmin, async (req, res) => {
         subscriptionType: teacher.subscriptionType,
         subscriptionStartDate: teacher.subscriptionStartDate,
         subscriptionExpiryDate: teacher.subscriptionExpiryDate,
+        isRestricted: teacher.isRestricted,
+        restrictedAt: teacher.restrictedAt,
+        restrictionReason: teacher.restrictionReason,
+        restrictedBy: teacher.restrictedBy,
         totalEarnings,
         studentCount,
         classCount: classes.length,
@@ -5252,18 +5258,6 @@ app.get('/api/super-admin/reports/monthly-earnings-by-class', verifySuperAdmin, 
 // ==================== RESTRICTION MANAGEMENT ENDPOINTS ====================
 
 // Super Admin: Get all teachers with their restriction status
-app.get('/api/super-admin/teachers', verifySuperAdmin, async (req, res) => {
-  try {
-    const teachers = await Teacher.find({})
-      .select('name email teacherId isRestricted restrictedAt restrictionReason companyIds status')
-      .populate('companyIds', 'companyName');
-    
-    res.json(teachers);
-  } catch (error) {
-    console.error('Error fetching teachers:', error);
-    res.status(500).json({ error: 'Failed to fetch teachers' });
-  }
-});
 
 // Super Admin: Restrict a teacher
 app.post('/api/super-admin/restrict-teacher', verifySuperAdmin, async (req, res) => {
