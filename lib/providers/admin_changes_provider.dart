@@ -48,6 +48,7 @@ class AdminChangesProvider with ChangeNotifier {
     required String userId,
     required String userType,
     int pollIntervalSeconds = 5,
+    Function()? onUserNotFound,
   }) {
     _isPolling = true;
     
@@ -61,6 +62,7 @@ class AdminChangesProvider with ChangeNotifier {
       onStatusChanged: _handleStatusChange,
       onClassesChanged: _handleClassesChange,
       onCriticalChangeDetected: _handleCriticalChange,
+      onUserNotFound: onUserNotFound,
     );
     
     notifyListeners();

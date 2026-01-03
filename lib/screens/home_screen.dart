@@ -62,6 +62,12 @@ class _HomeScreenState extends State<HomeScreen> {
           userId: auth.teacherId!,
           userType: 'teacher',
           pollIntervalSeconds: 5,
+          onUserNotFound: () async {
+            await auth.logout();
+            if (mounted) {
+              Navigator.of(context).pushReplacementNamed('/login');
+            }
+          },
         );
       }
     });

@@ -24,6 +24,7 @@ class AdminChangesPollingService {
   Function(Map<String, dynamic>)? _onStatusChanged;
   Function(Map<String, dynamic>)? _onClassesChanged;
   Function(String)? _onCriticalChangeDetected;
+  Function()? _onUserNotFound;
 
   // Last known state for comparison
   Map<String, dynamic> _lastKnownState = {};
@@ -42,6 +43,7 @@ class AdminChangesPollingService {
     Function(Map<String, dynamic>)? onStatusChanged,
     Function(Map<String, dynamic>)? onClassesChanged,
     Function(String)? onCriticalChangeDetected,
+    Function()? onUserNotFound,
   }) {
     _context = context;
     _userId = userId;
@@ -55,6 +57,7 @@ class AdminChangesPollingService {
     _onStatusChanged = onStatusChanged;
     _onClassesChanged = onClassesChanged;
     _onCriticalChangeDetected = onCriticalChangeDetected;
+    _onUserNotFound = onUserNotFound;
 
     // Check immediately
     _checkAdminChanges();
@@ -89,6 +92,13 @@ class AdminChangesPollingService {
       final token = await ApiService.getToken();
       if (token == null) return;
 
+      // First check if user still exists
+      final userExists = await _checkUserExists(token);
+      if (!userExists) {
+        _onUserNotFound?.call();
+        return;
+      }
+
       final currentState = await _fetchCurrentState(token);
       _processStateChanges(currentState);
       _lastKnownState = currentState;
@@ -97,7 +107,36 @@ class AdminChangesPollingService {
     }
   }
 
-  /// Fetch current state from backend
+  /// Check if user still exists
+  Future<bool> _checkUserExists(String token) async {
+    try {
+      if (_userType == 'student') {
+        final response = await http.get(
+          Uri.parse('$baseUrl/api/students/$_userId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ).timeout(const Duration(seconds: 10));
+
+        return response.statusCode == 200;
+      } else if (_userType == 'teacher') {
+        final response = await http.get(
+          Uri.parse('$baseUrl/api/teachers/$_userId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ).timeout(const Duration(seconds: 10));
+
+        return response.statusCode == 200;
+      }
+      return true; // For other types, assume exists
+    } catch (e) {
+      print('AdminChangesPollingService: Error checking user existence: $e');
+      return false; // If error, assume user doesn't exist to be safe
+    }
+  }
   Future<Map<String, dynamic>> _fetchCurrentState(String token) async {
     if (_userType == 'student') {
       return await _fetchStudentState(token);
