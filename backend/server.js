@@ -233,6 +233,7 @@ const StudentSchema = new mongoose.Schema({
 
 const AttendanceSchema = new mongoose.Schema({
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
+  classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' }, // Made optional for migration
   date: { type: Date, required: true },
   session: { type: String, default: 'daily' }, // Changed default to 'daily'
   status: { type: String, enum: ['present', 'absent', 'late'], required: true },
@@ -973,7 +974,10 @@ app.get('/api/attendance', verifyToken, async (req, res) => {
       }
     }
 
-    const attendance = await Attendance.find(query).sort({ date: -1 });
+    const attendance = await Attendance.find(query)
+      .populate('studentId', 'name studentId')
+      .populate('classId', 'name')
+      .sort({ date: -1 });
     res.json(attendance);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch attendance' });
@@ -994,11 +998,22 @@ app.post('/api/attendance', verifyToken, async (req, res) => {
       console.log('studentId is not a valid ObjectId string:', studentId);
     }
     
+    // Get student to retrieve classId
+    const student = await Student.findById(studentObjectId);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    
+    if (!student.classId) {
+      return res.status(400).json({ error: 'Student is not assigned to any class' });
+    }
+    
     const attendanceDate = new Date(date);
     console.log('Parsed date:', attendanceDate);
     
     const attendance = new Attendance({
       studentId: studentObjectId,
+      classId: student.classId,
       date: attendanceDate,
       session,
       status,
@@ -1225,6 +1240,7 @@ app.get('/api/student/attendance', checkStudentRestriction, async (req, res) => 
     // Get attendance records
     const attendance = await Attendance.find(query)
       .populate('studentId', 'name studentId')
+      .populate('classId', 'name')
       .sort({ date: -1, createdAt: -1 });
 
     res.json({
