@@ -5092,6 +5092,56 @@ app.post('/api/super-admin/teachers/:teacherId/set-free-options', verifySuperAdm
   }
 });
 
+// Start paid subscription for teacher
+app.post('/api/super-admin/teachers/:teacherId/start-subscription', verifySuperAdmin, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    const { subscriptionType } = req.body;
+
+    if (!subscriptionType) {
+      return res.status(400).json({ error: 'subscriptionType is required' });
+    }
+
+    const teacher = await Teacher.findById(teacherId);
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    // Update subscription details based on type
+    teacher.subscriptionType = subscriptionType;
+    teacher.subscriptionStartDate = new Date();
+
+    // Set subscription expiry based on type
+    if (subscriptionType === 'monthly') {
+      // Monthly subscription expires in 30 days
+      teacher.subscriptionExpiryDate = new Date(Date.now() + (30 * 24 * 60 * 60 * 1000));
+    } else if (subscriptionType === 'yearly') {
+      // Yearly subscription expires in 365 days
+      teacher.subscriptionExpiryDate = new Date(Date.now() + (365 * 24 * 60 * 60 * 1000));
+    } else {
+      return res.status(400).json({ error: 'Invalid subscriptionType. Must be "monthly" or "yearly"' });
+    }
+
+    teacher.updatedAt = new Date();
+    await teacher.save();
+
+    res.json({
+      message: `Teacher subscription set to ${subscriptionType} successfully`,
+      teacher: {
+        _id: teacher._id,
+        teacherId: teacher.teacherId,
+        name: teacher.name,
+        subscriptionType: teacher.subscriptionType,
+        subscriptionStartDate: teacher.subscriptionStartDate,
+        subscriptionExpiryDate: teacher.subscriptionExpiryDate
+      }
+    });
+  } catch (error) {
+    console.error('Error starting teacher subscription:', error);
+    res.status(500).json({ error: 'Failed to start teacher subscription' });
+  }
+});
+
 // Get super admin stats
 app.get('/api/super-admin/stats', verifySuperAdmin, async (req, res) => {
   try {
