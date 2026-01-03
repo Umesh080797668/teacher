@@ -1849,11 +1849,11 @@ app.get('/api/teachers/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     
     // Try to find by teacherId first, then by _id if that fails
-    let teacher = await Teacher.findOne({ teacherId: id });
+    let teacher = await Teacher.findOne({ teacherId: id }).select('-password');
     
-    // If not found by teacherId, try by _id
-    if (!teacher) {
-      teacher = await Teacher.findById(id);
+    // If not found by teacherId, try by _id (only if id looks like a valid ObjectId)
+    if (!teacher && id.match(/^[0-9a-fA-F]{24}$/)) {
+      teacher = await Teacher.findById(id).select('-password');
     }
     
     if (!teacher) {
@@ -1862,7 +1862,7 @@ app.get('/api/teachers/:id', verifyToken, async (req, res) => {
     res.json(teacher);
   } catch (error) {
     console.error('Error fetching teacher:', error);
-    res.status(500).json({ error: 'Failed to fetch teacher' });
+    res.status(500).json({ error: 'Failed to fetch teacher', message: error.message });
   }
 });
 
@@ -5941,17 +5941,20 @@ app.get('/api/student/admin-changes/:studentId', verifyToken, async (req, res) =
 // ==================== ALTERNATIVE ENDPOINT PATHS (for backward compatibility) ====================
 
 // Alternative path: /api/teachers/:teacherId/restriction-status
-app.get('/api/teachers/:teacherId/restriction-status', async (req, res) => {
+app.get('/api/teachers/:teacherId/restriction-status', verifyToken, async (req, res) => {
   try {
     const { teacherId } = req.params;
+    console.log('Checking restriction status for teacher:', teacherId);
 
     const teacher = await Teacher.findOne({ teacherId })
       .select('isRestricted restrictedAt restrictionReason name email');
 
     if (!teacher) {
+      console.log('Teacher not found:', teacherId);
       return res.status(404).json({ error: 'Teacher not found' });
     }
 
+    console.log('Restriction status:', teacher.isRestricted);
     res.json({
       isRestricted: teacher.isRestricted || false,
       restrictedAt: teacher.restrictedAt,
@@ -5961,7 +5964,7 @@ app.get('/api/teachers/:teacherId/restriction-status', async (req, res) => {
     });
   } catch (error) {
     console.error('Error checking teacher restriction:', error);
-    res.status(500).json({ error: 'Failed to check restriction status' });
+    res.status(500).json({ error: 'Failed to check restriction status', message: error.message });
   }
 });
 
@@ -5969,11 +5972,13 @@ app.get('/api/teachers/:teacherId/restriction-status', async (req, res) => {
 app.get('/api/teachers/:teacherId/subscription-status', verifyToken, async (req, res) => {
   try {
     const { teacherId } = req.params;
+    console.log('Checking subscription status for teacher:', teacherId);
 
     const teacher = await Teacher.findOne({ teacherId })
       .select('subscriptionType subscriptionStartDate subscriptionExpiryDate status email name');
 
     if (!teacher) {
+      console.log('Teacher not found:', teacherId);
       return res.status(404).json({ error: 'Teacher not found' });
     }
 
@@ -5982,6 +5987,7 @@ app.get('/api/teachers/:teacherId/subscription-status', verifyToken, async (req,
     const isExpired = expiryDate && expiryDate < now;
     const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24)) : null;
 
+    console.log('Subscription status:', { type: teacher.subscriptionType, isExpired, daysUntilExpiry });
     res.json({
       subscriptionType: teacher.subscriptionType || 'free',
       subscriptionStartDate: teacher.subscriptionStartDate,
@@ -5995,7 +6001,7 @@ app.get('/api/teachers/:teacherId/subscription-status', verifyToken, async (req,
     });
   } catch (error) {
     console.error('Error checking teacher subscription status:', error);
-    res.status(500).json({ error: 'Failed to check subscription status' });
+    res.status(500).json({ error: 'Failed to check subscription status', message: error.message });
   }
 });
 
@@ -6003,17 +6009,25 @@ app.get('/api/teachers/:teacherId/subscription-status', verifyToken, async (req,
 app.get('/api/teachers/:teacherId/admin-changes', verifyToken, async (req, res) => {
   try {
     const { teacherId } = req.params;
+    console.log('Checking admin changes for teacher:', teacherId);
 
     const teacher = await Teacher.findOne({ teacherId })
       .select('isRestricted restrictionReason restrictedAt subscriptionType subscriptionExpiryDate status');
 
     if (!teacher) {
+      console.log('Teacher not found:', teacherId);
       return res.status(404).json({ error: 'Teacher not found' });
     }
 
     const now = new Date();
     const expiryDate = teacher.subscriptionExpiryDate ? new Date(teacher.subscriptionExpiryDate) : null;
     const isSubscriptionExpired = expiryDate && expiryDate < now;
+
+    console.log('Admin changes data:', { 
+      isRestricted: teacher.isRestricted, 
+      subscriptionType: teacher.subscriptionType,
+      isExpired: isSubscriptionExpired 
+    });
 
     res.json({
       restrictions: {
@@ -6035,7 +6049,7 @@ app.get('/api/teachers/:teacherId/admin-changes', verifyToken, async (req, res) 
     });
   } catch (error) {
     console.error('Error checking teacher admin changes:', error);
-    res.status(500).json({ error: 'Failed to check admin changes' });
+    res.status(500).json({ error: 'Failed to check admin changes', message: error.message });
   }
 });
 
