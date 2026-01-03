@@ -22,7 +22,9 @@ class Attendance {
   factory Attendance.fromJson(Map<String, dynamic> json) {
     return Attendance(
       id: (json['_id'] ?? json['id']) is String ? (json['_id'] ?? json['id']) : '',
-      studentId: json['studentId'] is String ? json['studentId'] : '',
+      studentId: (json['studentId'] ?? json['student_id'] ?? json['student']) is String 
+          ? (json['studentId'] ?? json['student_id'] ?? json['student']) 
+          : '',
       date: json['date'] is String ? DateTime.parse(json['date']) : DateTime.now(),
       session: json['session'] is String ? json['session'] : '',
       status: json['status'] is String ? json['status'] : 'unknown',

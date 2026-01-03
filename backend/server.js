@@ -978,7 +978,22 @@ app.get('/api/attendance', verifyToken, async (req, res) => {
       .populate('studentId', 'name studentId')
       .populate('classId', 'name')
       .sort({ date: -1 });
-    res.json(attendance);
+    
+    // Convert the populated attendance records to include studentId as string
+    const result = attendance.map(record => {
+      const obj = record.toObject();
+      
+      // If studentId is populated (object), extract the studentId string
+      if (obj.studentId && typeof obj.studentId === 'object' && obj.studentId.studentId) {
+        obj.studentId = obj.studentId.studentId; // Use the student's ID string
+      } else if (obj.studentId && typeof obj.studentId === 'object' && obj.studentId._id) {
+        obj.studentId = obj.studentId._id.toString(); // Fallback to ObjectId string
+      }
+      
+      return obj;
+    });
+    
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch attendance' });
   }

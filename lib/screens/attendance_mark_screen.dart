@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/student.dart';
+import '../models/attendance.dart';
 import '../services/api_service.dart';
 import '../providers/classes_provider.dart';
 import '../providers/students_provider.dart';
@@ -21,6 +22,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   DateTime _selectedDate = DateTime.now();
   String? _selectedClassId;
   final Map<String, String> _attendanceStatus = {};
+  final Map<String, String> _preExistingAttendance = {}; // Track pre-existing attendance
   bool _isSaving = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
@@ -36,39 +38,118 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   Future<void> _loadInitialData() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     
-    // Load students and classes
-    await Provider.of<StudentsProvider>(context, listen: false).loadStudents(teacherId: auth.teacherId);
+    debugPrint('DEBUG: Loading initial data');
+    // Load classes first
     await Provider.of<ClassesProvider>(context, listen: false).loadClasses(teacherId: auth.teacherId);
     
+    // Load students
+    await _loadStudentsForClass(null); // Load all students initially
+    
+    // Get the current students list
+    final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
+    
     // Load attendance records for the selected date
-    await _loadAttendanceForDate(_selectedDate, auth.teacherId);
+    await _loadAttendanceForDate(_selectedDate, auth.teacherId, studentsProvider.students);
+    
+    // No need to filter attendance since we loaded it specifically for current students
   }
 
-  Future<void> _loadAttendanceForDate(DateTime date, String? teacherId) async {
+  Future<void> _loadStudentsForClass(String? classId) async {
+    final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    
     try {
-      final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
-      await attendanceProvider.loadAttendance(
-        month: date.month,
-        year: date.year,
-        teacherId: teacherId,
-      );
+      if (classId != null) {
+        // Load students for the specific class
+        final classStudents = await ApiService.getStudentsByClass(classId);
+        studentsProvider.setStudents(classStudents);
+      } else {
+        // Load all students for the teacher
+        await studentsProvider.loadStudents(teacherId: auth.teacherId);
+      }
+    } catch (e) {
+      debugPrint('Error loading students for class: $e');
+      // Fallback to loading all students
+      await studentsProvider.loadStudents(teacherId: auth.teacherId);
+    }
+  }
+
+  Future<void> _loadAttendanceForDate(DateTime date, String? teacherId, List<Student> students) async {
+    try {
+      debugPrint('DEBUG: Loading attendance for ${students.length} students on ${date.toString().split(' ')[0]}');
       
-      // Populate _attendanceStatus with existing records for this date
-      final existingRecords = attendanceProvider.attendance
-          .where((record) => record.date.year == date.year && 
-                             record.date.month == date.month && 
-                             record.date.day == date.day)
-          .toList();
+      // Load attendance for each student individually to ensure we get proper studentId
+      final Map<String, Attendance?> studentAttendance = {};
+      
+      for (final student in students) {
+        try {
+          final attendanceList = await ApiService.getAttendance(
+            studentId: student.id,
+            month: date.month,
+            year: date.year,
+          );
+          
+          // Find attendance for the specific date
+          final attendanceForDate = attendanceList.where((record) => 
+            record.date.year == date.year && 
+            record.date.month == date.month && 
+            record.date.day == date.day
+          ).toList();
+          
+          if (attendanceForDate.isNotEmpty) {
+            // Ensure studentId is set correctly even if backend doesn't include it
+            final attendance = attendanceForDate.first;
+            if (attendance.studentId.isEmpty) {
+              debugPrint('DEBUG: Backend missing studentId for student ${student.name}, setting it manually');
+              // Create a corrected attendance record with proper studentId
+              final correctedAttendance = Attendance(
+                id: attendance.id,
+                studentId: student.id, // Set the correct studentId
+                date: attendance.date,
+                session: attendance.session,
+                status: attendance.status,
+                month: attendance.month,
+                year: attendance.year,
+                createdAt: attendance.createdAt,
+              );
+              studentAttendance[student.id] = correctedAttendance;
+            } else {
+              studentAttendance[student.id] = attendance;
+            }
+          } else {
+            studentAttendance[student.id] = null;
+          }
+        } catch (e) {
+          studentAttendance[student.id] = null;
+        }
+      }
       
       setState(() {
         _attendanceStatus.clear();
-        for (var record in existingRecords) {
-          _attendanceStatus[record.studentId] = record.status;
+        _preExistingAttendance.clear();
+        for (final student in students) {
+          final attendance = studentAttendance[student.id];
+          if (attendance != null) {
+            _attendanceStatus[student.id] = attendance.status;
+            _preExistingAttendance[student.id] = attendance.status;
+          }
         }
       });
+      
+      debugPrint('DEBUG: Loaded attendance for ${students.length} students, found ${_attendanceStatus.length} existing records');
     } catch (e) {
       debugPrint('Error loading attendance for date: $e');
     }
+  }
+
+  bool _hasNewlyMarkedAttendance() {
+    for (var entry in _attendanceStatus.entries) {
+      final preExisting = _preExistingAttendance[entry.key];
+      if (preExisting == null || preExisting != entry.value) {
+        return true;
+      }
+    }
+    return false;
   }
 
   Future<void> _markAllAttendance() async {
@@ -143,7 +224,8 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         );
         // Reload attendance data to reflect the newly marked attendance
         final reloadAuth = Provider.of<AuthProvider>(context, listen: false);
-        await _loadAttendanceForDate(_selectedDate, reloadAuth.teacherId);
+        final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
+        await _loadAttendanceForDate(_selectedDate, reloadAuth.teacherId, studentsProvider.students);
       }
     } catch (e) {
       if (mounted) {
@@ -202,11 +284,15 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                       );
                       if (picked != null) {
                         final auth = Provider.of<AuthProvider>(context, listen: false);
+                        debugPrint('DEBUG: Date changed to ${picked.toString().split(' ')[0]}');
                         setState(() {
                           _selectedDate = picked;
                         });
-                        // Load attendance for the new date
-                        await _loadAttendanceForDate(picked, auth.teacherId);
+                        // Reload students for current class filter
+                        await _loadStudentsForClass(_selectedClassId);
+                        // Load attendance for the new date with current students
+                        final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
+                        await _loadAttendanceForDate(picked, auth.teacherId, studentsProvider.students);
                       }
                     },
                     borderRadius: BorderRadius.circular(12),
@@ -292,11 +378,18 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                               );
                             }),
                           ],
-                          onChanged: (value) {
+                          onChanged: (value) async {
+                            debugPrint('DEBUG: Class changed from $_selectedClassId to $value');
                             setState(() {
                               _selectedClassId = value;
-                              _attendanceStatus.clear(); // Clear attendance when class changes
                             });
+                            // Reload students for the selected class
+                            await _loadStudentsForClass(value);
+                            
+                            // Load attendance for current students and date
+                            final auth = Provider.of<AuthProvider>(context, listen: false);
+                            final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
+                            await _loadAttendanceForDate(_selectedDate, auth.teacherId, studentsProvider.students);
                           },
                         );
                       },
@@ -395,16 +488,12 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                   );
                 }
 
-                // Filter students by selected class and search text
-                final classFilteredStudents = _selectedClassId == null
-                    ? studentsProvider.students
-                    : studentsProvider.students.where((student) => student.classId == _selectedClassId).toList();
-                
+                // Filter students by search text and class (class filtering is done by loading appropriate students)
                 final filteredStudents = _searchText.isEmpty
-                    ? classFilteredStudents
-                    : classFilteredStudents.where((student) => 
+                    ? studentsProvider.students
+                    : studentsProvider.students.where((student) => 
                         student.name.toLowerCase().contains(_searchText) ||
-                        (student.studentId.toLowerCase().contains(_searchText) ?? false)
+                        student.studentId.toLowerCase().contains(_searchText)
                       ).toList();
 
                 if (filteredStudents.isEmpty) {
@@ -449,6 +538,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                   itemBuilder: (context, index) {
                     final student = filteredStudents[index];
                     return AttendanceStudentCard(
+                      key: ValueKey(student.id), // Add key for proper widget tracking
                       student: student,
                       date: _selectedDate,
                       session: 'daily', // Changed from _selectedSession to 'daily'
@@ -470,7 +560,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
           ),
         ],
       ),
-      floatingActionButton: _attendanceStatus.isNotEmpty
+      floatingActionButton: _hasNewlyMarkedAttendance()
           ? FloatingActionButton.extended(
               onPressed: _isSaving ? null : _markAllAttendance,
               icon: _isSaving
@@ -546,8 +636,11 @@ class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
   @override
   void didUpdateWidget(AttendanceStudentCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.currentStatus != _status) {
-      _status = widget.currentStatus;
+    // Always update _status when widget updates with different currentStatus
+    if (widget.currentStatus != oldWidget.currentStatus) {
+      setState(() {
+        _status = widget.currentStatus;
+      });
     }
   }
 
