@@ -156,12 +156,21 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   }
 
   bool _hasNewlyMarkedAttendance() {
+    // Check for newly marked or changed attendance
     for (var entry in _attendanceStatus.entries) {
       final preExisting = _preExistingAttendance[entry.key];
       if (preExisting == null || preExisting != entry.value) {
         return true;
       }
     }
+    
+    // Check for unmarked (deleted) attendance
+    for (var studentId in _preExistingAttendance.keys) {
+      if (!_attendanceStatus.containsKey(studentId)) {
+        return true; // Student had attendance but now doesn't (unmarked)
+      }
+    }
+    
     return false;
   }
 
@@ -195,10 +204,11 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       }
     }
 
-    if (_attendanceStatus.isEmpty) {
+    // Check if there are any changes to save (new marks or deletions)
+    if (!_hasNewlyMarkedAttendance()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please mark attendance for at least one student'),
+          content: Text('No attendance changes to save'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -210,24 +220,55 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     });
 
     try {
+      int markedCount = 0;
+      int deletedCount = 0;
+      
+      // Process newly marked or changed attendance
       final entries = _attendanceStatus.entries.toList();
       for (var entry in entries) {
-        await ApiService.markAttendance(
-          entry.key,
-          _selectedDate,
-          'daily', // Changed from session to 'daily'
-          entry.value,
-        );
+        final preExisting = _preExistingAttendance[entry.key];
+        if (preExisting == null || preExisting != entry.value) {
+          await ApiService.markAttendance(
+            entry.key,
+            _selectedDate,
+            'daily',
+            entry.value,
+          );
+          markedCount++;
+        }
+      }
+      
+      // Process deleted (unmarked) attendance
+      for (var studentId in _preExistingAttendance.keys) {
+        if (!_attendanceStatus.containsKey(studentId)) {
+          // Send empty status to delete the record
+          await ApiService.markAttendance(
+            studentId,
+            _selectedDate,
+            'daily',
+            '', // Empty status triggers deletion in backend
+          );
+          deletedCount++;
+        }
       }
 
       if (mounted) {
+        String message = '';
+        if (markedCount > 0 && deletedCount > 0) {
+          message = 'Marked: $markedCount, Unmarked: $deletedCount';
+        } else if (markedCount > 0) {
+          message = 'Attendance marked for $markedCount student${markedCount > 1 ? "s" : ""}';
+        } else if (deletedCount > 0) {
+          message = 'Attendance unmarked for $deletedCount student${deletedCount > 1 ? "s" : ""}';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 12),
-                Text('Attendance marked for ${_attendanceStatus.length} students'),
+                Expanded(child: Text(message)),
               ],
             ),
             backgroundColor: Colors.green,
@@ -589,7 +630,22 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                   : const Icon(Icons.save),
               label: Text(_isSaving
                   ? 'Saving...'
-                  : 'Save (${_attendanceStatus.length})'),
+                  : () {
+                      int changeCount = 0;
+                      // Count new/changed marks
+                      for (var entry in _attendanceStatus.entries) {
+                        if (_preExistingAttendance[entry.key] != entry.value) {
+                          changeCount++;
+                        }
+                      }
+                      // Count deletions
+                      for (var studentId in _preExistingAttendance.keys) {
+                        if (!_attendanceStatus.containsKey(studentId)) {
+                          changeCount++;
+                        }
+                      }
+                      return 'Save Changes ($changeCount)';
+                    }()),
               backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
             )

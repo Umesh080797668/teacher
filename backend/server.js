@@ -1032,21 +1032,71 @@ app.post('/api/attendance', verifyToken, async (req, res) => {
     const attendanceDate = new Date(date);
     console.log('Parsed date:', attendanceDate);
     
-    const attendance = new Attendance({
+    // Check if status is empty (meaning unmark/delete)
+    if (!status || status.trim() === '') {
+      // Delete existing attendance record
+      const deleteResult = await Attendance.deleteOne({
+        studentId: studentObjectId,
+        date: attendanceDate,
+        session,
+      });
+      
+      if (deleteResult.deletedCount > 0) {
+        console.log('Deleted attendance record for student:', studentId);
+        return res.status(200).json({ 
+          message: 'Attendance record deleted successfully',
+          deleted: true,
+          studentId: studentObjectId,
+          date: attendanceDate,
+          session
+        });
+      } else {
+        console.log('No attendance record found to delete for student:', studentId);
+        // Return success even if no record exists (idempotent deletion)
+        return res.status(200).json({ 
+          message: 'No attendance record to delete (already unmarked)',
+          deleted: false,
+          studentId: studentObjectId,
+          date: attendanceDate,
+          session
+        });
+      }
+    }
+    
+    // For marking/updating attendance
+    // Check if record already exists
+    const existingAttendance = await Attendance.findOne({
       studentId: studentObjectId,
-      classId: student.classId,
       date: attendanceDate,
       session,
-      status,
-      month: attendanceDate.getMonth() + 1,
-      year: attendanceDate.getFullYear(),
     });
-    console.log('Saving attendance:', attendance);
-    await attendance.save();
-    res.status(201).json(attendance);
+    
+    if (existingAttendance) {
+      // Update existing record
+      existingAttendance.status = status;
+      existingAttendance.month = attendanceDate.getMonth() + 1;
+      existingAttendance.year = attendanceDate.getFullYear();
+      await existingAttendance.save();
+      console.log('Updated attendance:', existingAttendance);
+      res.status(200).json(existingAttendance);
+    } else {
+      // Create new record
+      const attendance = new Attendance({
+        studentId: studentObjectId,
+        classId: student.classId,
+        date: attendanceDate,
+        session,
+        status,
+        month: attendanceDate.getMonth() + 1,
+        year: attendanceDate.getFullYear(),
+      });
+      console.log('Saving new attendance:', attendance);
+      await attendance.save();
+      res.status(201).json(attendance);
+    }
   } catch (error) {
-    console.error('Error creating attendance record:', error);
-    res.status(500).json({ error: 'Failed to create attendance record', details: error.message });
+    console.error('Error handling attendance record:', error);
+    res.status(500).json({ error: 'Failed to handle attendance record', details: error.message });
   }
 });
 

@@ -44,27 +44,47 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _timeUpdateTimer;
   Timer? _updateCheckTimer;
   final UpdateService _updateService = UpdateService();
+  
+  // Safe references saved in didChangeDependencies
+  AuthProvider? _authProvider;
+  AdminChangesProvider? _adminChangesProvider;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Save provider references for safe access in dispose and callbacks
+    final previousAuth = _authProvider;
+    _authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _adminChangesProvider = Provider.of<AdminChangesProvider>(context, listen: false);
+    
+    // Add listener only once
+    if (previousAuth == null && _authProvider != null) {
+      _authProvider!.addListener(_onAuthChanged);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     // Ensure search field doesn't have focus when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      
       _searchFocusNode.unfocus();
       _loadData();
       
       // Start admin changes polling (covers restrictions and other admin actions)
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      final adminChangesProvider = Provider.of<AdminChangesProvider>(context, listen: false);
-      if (auth.teacherId != null) {
-        adminChangesProvider.startPolling(
+      if (_authProvider?.teacherId != null && _adminChangesProvider != null) {
+        _adminChangesProvider!.startPolling(
           context: context,
-          userId: auth.teacherId!,
+          userId: _authProvider!.teacherId!,
           userType: 'teacher',
           pollIntervalSeconds: 5,
           onUserNotFound: () async {
-            await auth.logout();
-            if (mounted) {
+            if (_authProvider != null) {
+              await _authProvider!.logout();
+            }
+            if (mounted && context.mounted) {
               Navigator.of(context).pushReplacementNamed('/login');
             }
           },
@@ -85,37 +105,41 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     // Perform initial background update check
     _updateService.performBackgroundUpdateCheck();
-    
-    // Listen for auth provider changes to detect account inactive status
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    auth.addListener(_onAuthChanged);
   }
 
   void _onAuthChanged() {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    if (!auth.isAuthenticated && mounted) {
-      // User logged out, navigate to account selection
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const AccountSelectionScreen()),
-        (route) => false,
-      );
-    } else if (!auth.isActivated && mounted) {
-      // User account not activated by admin yet
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const PendingActivationScreen()),
-        (route) => false,
-      );
-    } else if (auth.subscriptionExpired && mounted) {
-      // Navigate to activation screen
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => const ActivationScreen()),
-      );
-    } else if (auth.shouldShowSubscriptionWarning && mounted) {
-      // Navigate to subscription warning screen
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => const SubscriptionWarningScreen()),
-      );
-    }
+    if (!mounted || _authProvider == null) return;
+    
+    final auth = _authProvider!;
+    
+    // Schedule navigation for next frame to avoid state changes during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !context.mounted) return;
+      
+      if (!auth.isAuthenticated) {
+        // User logged out, navigate to account selection
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const AccountSelectionScreen()),
+          (route) => false,
+        );
+      } else if (!auth.isActivated) {
+        // User account not activated by admin yet
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const PendingActivationScreen()),
+          (route) => false,
+        );
+      } else if (auth.subscriptionExpired) {
+        // Navigate to activation screen
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const ActivationScreen()),
+        );
+      } else if (auth.shouldShowSubscriptionWarning) {
+        // Navigate to subscription warning screen
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const SubscriptionWarningScreen()),
+        );
+      }
+    });
   }
 
   @override
@@ -126,13 +150,11 @@ class _HomeScreenState extends State<HomeScreen> {
     _timeUpdateTimer?.cancel();
     _updateCheckTimer?.cancel();
     
-    // Stop admin changes polling
-    final adminChangesProvider = Provider.of<AdminChangesProvider>(context, listen: false);
-    adminChangesProvider.stopPolling();
+    // Stop admin changes polling using saved reference
+    _adminChangesProvider?.stopPolling();
     
-    // Remove auth listener
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    auth.removeListener(_onAuthChanged);
+    // Remove auth listener using saved reference
+    _authProvider?.removeListener(_onAuthChanged);
     
     super.dispose();
   }

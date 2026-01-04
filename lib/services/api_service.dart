@@ -585,7 +585,7 @@ class ApiService {
     return data.map((json) => Attendance.fromJson(json)).toList();
   }
 
-  static Future<Attendance> markAttendance(
+  static Future<Attendance?> markAttendance(
     String studentId,
     DateTime date,
     String session,
@@ -602,7 +602,15 @@ class ApiService {
       },
     );
 
-    return Attendance.fromJson(json.decode(response.body));
+    final responseData = json.decode(response.body);
+    
+    // If status is empty, we're deleting and response format is different
+    if (status.isEmpty) {
+      // Return null to indicate deletion
+      return null;
+    }
+    
+    return Attendance.fromJson(responseData);
   }
 
   // Get batch attendance for multiple students on a specific date (faster than individual requests)

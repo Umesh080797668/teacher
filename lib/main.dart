@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/splash_screen.dart';
+import 'screens/login_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/students_provider.dart';
 import 'providers/attendance_provider.dart';
@@ -116,6 +117,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 ? ThemeMode.dark
                 : ThemeMode.light,
             home: const SplashScreen(),
+            routes: {
+              '/login': (context) => const LoginScreen(),
+            },
           );
         },
       ),
