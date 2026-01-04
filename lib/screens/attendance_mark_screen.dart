@@ -64,7 +64,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     
     // Poll every 10 seconds for real-time attendance updates
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
-      if (mounted) {
+      if (mounted && !_isSaving) {  // Don't poll while saving
         final auth = Provider.of<AuthProvider>(context, listen: false);
         final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
         
@@ -273,6 +273,9 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       _isSaving = true;
     });
 
+    // Stop polling during save to avoid conflicts
+    _stopPolling();
+
     try {
       int markedCount = 0;
       int deletedCount = 0;
@@ -334,9 +337,6 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         final reloadAuth = Provider.of<AuthProvider>(context, listen: false);
         final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
         await _loadAttendanceForDate(_selectedDate, reloadAuth.teacherId, studentsProvider.students);
-        
-        // Restart polling after save
-        _startPolling();
       }
     } catch (e) {
       if (mounted) {
@@ -352,6 +352,8 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         setState(() {
           _isSaving = false;
         });
+        // Restart polling after save operation completes
+        _startPolling();
       }
     }
   }
