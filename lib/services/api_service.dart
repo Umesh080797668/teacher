@@ -447,31 +447,81 @@ class ApiService {
   }
 
   // Submit problem report
+  // Submit problem report with optional images
   static Future<Map<String, dynamic>> submitProblemReport({
     required String userEmail,
     required String issueDescription,
     String? appVersion,
     String? device,
     String? teacherId,
+    List<File>? images,
   }) async {
-    final response = await _makeRequest(
-      'POST',
-      '/api/reports/problem',
-      body: {
-        'userEmail': userEmail,
-        'issueDescription': issueDescription,
-        'appVersion': appVersion,
-        'device': device,
-        'teacherId': teacherId,
-        'userType': 'teacher',
-      },
-    );
+    final token = await getToken();
+    final uri = Uri.parse('$baseUrl/api/reports/problem');
+    
+    if (images == null || images.isEmpty) {
+      // If no images, use regular POST request
+      final response = await _makeRequest(
+        'POST',
+        '/api/reports/problem',
+        body: {
+          'userEmail': userEmail,
+          'issueDescription': issueDescription,
+          'appVersion': appVersion,
+          'device': device,
+          'teacherId': teacherId,
+          'userType': 'teacher',
+        },
+      );
 
-    if (response.statusCode != 201) {
-      throw ApiException('Failed to submit problem report', statusCode: response.statusCode);
+      if (response.statusCode != 201) {
+        throw ApiException('Failed to submit problem report', statusCode: response.statusCode);
+      }
+
+      return json.decode(response.body);
     }
 
-    return json.decode(response.body);
+    // If images present, use multipart request
+    final request = http.MultipartRequest('POST', uri);
+    
+    // Add headers
+    request.headers['Authorization'] = 'Bearer $token';
+    
+    // Add fields
+    request.fields['userEmail'] = userEmail;
+    request.fields['issueDescription'] = issueDescription;
+    if (appVersion != null) request.fields['appVersion'] = appVersion;
+    if (device != null) request.fields['device'] = device;
+    if (teacherId != null) request.fields['teacherId'] = teacherId;
+    request.fields['userType'] = 'teacher';
+    
+    // Add images
+    for (int i = 0; i < images.length; i++) {
+      final file = images[i];
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'images',
+          file.path,
+          filename: 'image_$i.jpg',
+        ),
+      );
+    }
+
+    try {
+      final response = await request.send().timeout(timeout);
+      
+      if (response.statusCode != 201) {
+        throw ApiException(
+          'Failed to submit problem report',
+          statusCode: response.statusCode,
+        );
+      }
+
+      final responseBody = await response.stream.bytesToString();
+      return json.decode(responseBody);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   // Submit feature request

@@ -326,6 +326,10 @@ const ProblemReportSchema = new mongoose.Schema({
   teacherId: { type: String },
   studentId: { type: String },
   userType: { type: String, enum: ['teacher', 'student'], required: true },
+  images: [{
+    url: { type: String }, // Cloudinary URL
+    publicId: { type: String } // Cloudinary public ID for deletion
+  }],
 }, { timestamps: true });
 
 // Feature Request Schema for user-submitted feature requests
@@ -2204,8 +2208,8 @@ app.put('/api/teachers/:id/activate', verifyToken, async (req, res) => {
   }
 });
 
-// POST submit problem report
-app.post('/api/reports/problem', verifyToken, async (req, res) => {
+// POST submit problem report with optional images
+app.post('/api/reports/problem', verifyToken, upload.array('images', 5), async (req, res) => {
   try {
     const { userEmail, issueDescription, appVersion, device, teacherId, studentId, userType } = req.body;
     if (!userEmail || !issueDescription || !userType) {
@@ -2217,6 +2221,36 @@ app.post('/api/reports/problem', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'userType must be either teacher or student' });
     }
 
+    // Handle image uploads to Cloudinary
+    let images = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        try {
+          const result = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              {
+                folder: 'problem-reports',
+                resource_type: 'auto',
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            );
+            uploadStream.end(file.buffer);
+          });
+
+          images.push({
+            url: result.secure_url,
+            publicId: result.public_id
+          });
+        } catch (error) {
+          console.error('Error uploading image to Cloudinary:', error);
+          // Continue with other images even if one fails
+        }
+      }
+    }
+
     // Save the report to database
     const report = new ProblemReport({
       userEmail,
@@ -2225,14 +2259,49 @@ app.post('/api/reports/problem', verifyToken, async (req, res) => {
       device,
       teacherId,
       studentId,
-      userType
+      userType,
+      images
     });
     await report.save();
 
-    res.status(201).json({ message: 'Problem report submitted successfully' });
+    res.status(201).json({ 
+      message: 'Problem report submitted successfully',
+      reportId: report._id,
+      images: images.length
+    });
   } catch (error) {
     console.error('Error submitting problem report:', error);
     res.status(500).json({ error: 'Failed to submit problem report' });
+  }
+});
+
+// DELETE image from problem report
+app.delete('/api/reports/problem/:reportId/image/:publicId', verifyToken, async (req, res) => {
+  try {
+    const { reportId, publicId } = req.params;
+
+    // Delete from Cloudinary
+    try {
+      await cloudinary.uploader.destroy(publicId);
+    } catch (error) {
+      console.error('Error deleting image from Cloudinary:', error);
+    }
+
+    // Update the report in database
+    const report = await ProblemReport.findByIdAndUpdate(
+      reportId,
+      { $pull: { images: { publicId: publicId } } },
+      { new: true }
+    );
+
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    res.json({ message: 'Image deleted successfully', report });
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    res.status(500).json({ error: 'Failed to delete image' });
   }
 });
 
