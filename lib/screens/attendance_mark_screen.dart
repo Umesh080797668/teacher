@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 import '../models/student.dart';
 import '../models/attendance.dart';
 import '../services/api_service.dart';
@@ -26,6 +27,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   bool _isSaving = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
+  Timer? _pollingTimer;
 
   @override
   void initState() {
@@ -52,6 +54,58 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     await _loadAttendanceForDate(_selectedDate, auth.teacherId, studentsProvider.students);
     
     // No need to filter attendance since we loaded it specifically for current students
+    
+    // Start polling for real-time updates
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel(); // Cancel any existing timer
+    
+    // Poll every 10 seconds for real-time attendance updates
+    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      if (mounted) {
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
+        
+        try {
+          // Store current state for comparison
+          final previousAttendance = Map<String, String>.from(_attendanceStatus);
+          
+          // Reload attendance data
+          await _loadAttendanceForDate(_selectedDate, auth.teacherId, studentsProvider.students);
+          
+          // Check if attendance data changed
+          bool hasChanges = false;
+          for (final studentId in _attendanceStatus.keys) {
+            if (previousAttendance[studentId] != _attendanceStatus[studentId]) {
+              hasChanges = true;
+              break;
+            }
+          }
+          
+          // Also check for deletions
+          for (final studentId in previousAttendance.keys) {
+            if (!_attendanceStatus.containsKey(studentId)) {
+              hasChanges = true;
+              break;
+            }
+          }
+          
+          if (hasChanges) {
+            debugPrint('Real-time polling: Attendance data updated');
+            setState(() {}); // Trigger UI update
+          }
+        } catch (e) {
+          debugPrint('Polling error: $e');
+        }
+      }
+    });
+  }
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
   }
 
   Future<void> _loadStudentsForClass(String? classId) async {
@@ -280,6 +334,9 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         final reloadAuth = Provider.of<AuthProvider>(context, listen: false);
         final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
         await _loadAttendanceForDate(_selectedDate, reloadAuth.teacherId, studentsProvider.students);
+        
+        // Restart polling after save
+        _startPolling();
       }
     } catch (e) {
       if (mounted) {
@@ -297,6 +354,13 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         });
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -347,6 +411,9 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                         // Load attendance for the new date with current students
                         final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
                         await _loadAttendanceForDate(picked, auth.teacherId, studentsProvider.students);
+                        
+                        // Restart polling for the new date
+                        _startPolling();
                       }
                     },
                     borderRadius: BorderRadius.circular(12),
@@ -444,6 +511,9 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                             final auth = Provider.of<AuthProvider>(context, listen: false);
                             final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
                             await _loadAttendanceForDate(_selectedDate, auth.teacherId, studentsProvider.students);
+                            
+                            // Restart polling for the new class
+                            _startPolling();
                           },
                         );
                       },

@@ -1034,15 +1034,21 @@ app.post('/api/attendance', verifyToken, async (req, res) => {
     
     // Check if status is empty (meaning unmark/delete)
     if (!status || status.trim() === '') {
-      // Delete existing attendance record
+      // Delete existing attendance record using the same date logic as batch query
+      const year = attendanceDate.getFullYear();
+      const month = attendanceDate.getMonth() + 1;
+      const day = attendanceDate.getDate();
+      
       const deleteResult = await Attendance.deleteOne({
         studentId: studentObjectId,
-        date: attendanceDate,
+        year: year,
+        month: month,
         session,
+        $expr: { $eq: [{ $dayOfMonth: '$date' }, day] }
       });
       
       if (deleteResult.deletedCount > 0) {
-        console.log('Deleted attendance record for student:', studentId);
+        console.log('Deleted attendance record for student:', studentId, 'on', attendanceDate);
         return res.status(200).json({ 
           message: 'Attendance record deleted successfully',
           deleted: true,
@@ -1051,7 +1057,7 @@ app.post('/api/attendance', verifyToken, async (req, res) => {
           session
         });
       } else {
-        console.log('No attendance record found to delete for student:', studentId);
+        console.log('No attendance record found to delete for student:', studentId, 'on', attendanceDate);
         // Return success even if no record exists (idempotent deletion)
         return res.status(200).json({ 
           message: 'No attendance record to delete (already unmarked)',
@@ -1064,11 +1070,17 @@ app.post('/api/attendance', verifyToken, async (req, res) => {
     }
     
     // For marking/updating attendance
-    // Check if record already exists
+    // Check if record already exists using the same date logic as batch query
+    const year = attendanceDate.getFullYear();
+    const month = attendanceDate.getMonth() + 1;
+    const day = attendanceDate.getDate();
+    
     const existingAttendance = await Attendance.findOne({
       studentId: studentObjectId,
-      date: attendanceDate,
+      year: year,
+      month: month,
       session,
+      $expr: { $eq: [{ $dayOfMonth: '$date' }, day] }
     });
     
     if (existingAttendance) {

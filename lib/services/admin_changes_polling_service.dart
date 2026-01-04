@@ -134,7 +134,12 @@ class AdminChangesPollingService {
       return true; // For other types, assume exists
     } catch (e) {
       print('AdminChangesPollingService: Error checking user existence: $e');
-      return false; // If error, assume user doesn't exist to be safe
+      // Don't assume user doesn't exist on network errors - return true to continue polling
+      // Only return false for explicit 404 responses
+      if (e.toString().contains('404') || e.toString().contains('Not Found')) {
+        return false;
+      }
+      return true; // Continue polling on network errors, timeouts, etc.
     }
   }
   Future<Map<String, dynamic>> _fetchCurrentState(String token) async {
