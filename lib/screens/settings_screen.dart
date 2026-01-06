@@ -1437,7 +1437,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             : Theme.of(context).platform == TargetPlatform.iOS
                 ? 'iOS'
                 : 'Unknown',
-        deviceName: deviceName.isNotEmpty ? deviceName : null,
+        deviceName: deviceName != null && deviceName.isNotEmpty ? deviceName : null,
         teacherId: Provider.of<AuthProvider>(context, listen: false).teacherId,
         images: images,
       );
@@ -1480,7 +1480,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _sendReportEmail(String issueDescription, String userEmail) async {
     // Keep this method for backward compatibility if needed
-    await _sendReportWithImages(issueDescription, userEmail, []);
+    await _sendReportWithImages(issueDescription, userEmail, [], null);
   }
 
   void _showFeatureRequestDialog() {
