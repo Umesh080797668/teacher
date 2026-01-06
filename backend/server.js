@@ -8,6 +8,7 @@ const socketIo = require('socket.io');
 const QRCode = require('qrcode');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const path = require('path');
 const cloudinary = require('cloudinary').v2;
 require('dotenv').config();
 
@@ -62,9 +63,15 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     // Accept only image files
-    if (file.mimetype.startsWith('image/')) {
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg'];
+    const isImageMime = file.mimetype && file.mimetype.startsWith('image/');
+    const ext = path.extname(file.originalname).toLowerCase();
+    const isImageExt = allowedExtensions.includes(ext);
+    
+    if (isImageMime || isImageExt) {
       cb(null, true);
     } else {
+      console.log('Rejected file:', file.originalname, 'mimetype:', file.mimetype, 'ext:', ext);
       cb(new Error('Only image files are allowed'), false);
     }
   }
