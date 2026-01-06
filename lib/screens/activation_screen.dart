@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../services/subscription_polling_service.dart';
 import 'subscription_screen.dart';
 import 'pending_activation_screen.dart';
 import 'subscription_upgrade_alert_screen.dart';
@@ -23,11 +24,96 @@ class _ActivationScreenState extends State<ActivationScreen> {
   bool _shouldContinuePolling = true;
   File? _paymentProof;
   bool _isSendingEmail = false;
+  bool _isPaymentSubmitted = false; // Track if payment was submitted
+  bool _accountActivatedAfterSubmission = false; // Track if account was activated after payment
+  bool _screenJustLoaded = true; // Track if screen just loaded to prevent immediate nav
+  SubscriptionPollingService? _subscriptionPollingService;
+  String? _currentSubscriptionType;
+  bool _subscriptionStatusChanged = false;
 
   @override
   void initState() {
     super.initState();
     _selectedPlan = widget.selectedPlan;
+    _initializeSubscriptionPolling();
+    
+    // Allow polling navigation after screen is fully loaded (1 second delay)
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {
+          _screenJustLoaded = false;
+        });
+      }
+    });
+  }
+
+  void _initializeSubscriptionPolling() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.userEmail != null) {
+      _subscriptionPollingService = SubscriptionPollingService(
+        pollingInterval: const Duration(seconds: 3),
+        userEmail: auth.userEmail,
+        onStatusChanged: _handleSubscriptionStatusChange,
+      );
+      // Start polling in the background
+      _subscriptionPollingService?.startPolling();
+    }
+  }
+
+  void _handleSubscriptionStatusChange(Map<String, dynamic> status) {
+    if (!mounted || _screenJustLoaded) return; // Don't navigate while screen is loading
+
+    final newSubscriptionType = status['subscriptionType'] as String?;
+    final isActive = status['isActive'] as bool? ?? false;
+
+    // Check if subscription status has changed to paid or updated
+    if (_currentSubscriptionType != newSubscriptionType) {
+      setState(() {
+        _currentSubscriptionType = newSubscriptionType;
+        _subscriptionStatusChanged = true;
+      });
+
+      debugPrint('Subscription status updated in real-time: $newSubscriptionType');
+    }
+
+    // Only navigate if account is active AND it was activated AFTER payment submission
+    // This prevents navigation while payment is still being processed
+    if (isActive && !_isPaymentSubmitted && newSubscriptionType != null && newSubscriptionType != 'free') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your subscription has been activated successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      // Stop polling and navigate back
+      _subscriptionPollingService?.stopPolling();
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      });
+    } else if (isActive && _isPaymentSubmitted && !_accountActivatedAfterSubmission) {
+      // Account was activated after payment submission
+      setState(() {
+        _accountActivatedAfterSubmission = true;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your payment has been approved! Your account is now active.'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      // Stop polling and navigate back
+      _subscriptionPollingService?.stopPolling();
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      });
+    }
   }
 
   Future<void> _pickPaymentProof() async {
@@ -69,9 +155,14 @@ class _ActivationScreenState extends State<ActivationScreen> {
       );
 
       if (mounted) {
+        // Mark that payment was submitted - now polling will wait for admin activation
+        setState(() {
+          _isPaymentSubmitted = true;
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Payment proof submitted successfully! You will receive a confirmation email and your account will be activated within 24 hours.'),
+            content: Text('Payment proof submitted successfully! Please wait for admin approval...'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 5),
           ),
@@ -158,9 +249,9 @@ class _ActivationScreenState extends State<ActivationScreen> {
         leading: widget.selectedPlan != null ? IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
-            );
+            // Stop polling before navigating
+            _subscriptionPollingService?.stopPolling();
+            Navigator.of(context).pop();
           },
         ) : null,
         automaticallyImplyLeading: widget.selectedPlan == null,
@@ -808,6 +899,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
   @override
   void dispose() {
     _shouldContinuePolling = false;
+    _subscriptionPollingService?.stopPolling();
+    _subscriptionPollingService?.dispose();
     super.dispose();
   }
 }

@@ -18,10 +18,12 @@ import '../providers/admin_changes_provider.dart';
 import '../services/api_service.dart';
 import '../services/update_service.dart';
 import '../services/restriction_polling_service.dart';
+import '../services/subscription_polling_service.dart';
 import '../models/home_stats.dart';
 import '../widgets/custom_widgets.dart';
 import 'activation_screen.dart';
 import 'subscription_warning_screen.dart';
+import 'subscription_screen.dart';
 import 'pending_activation_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -44,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _timeUpdateTimer;
   Timer? _updateCheckTimer;
   final UpdateService _updateService = UpdateService();
+  SubscriptionPollingService? _subscriptionPollingService;
   
   // Safe references saved in didChangeDependencies
   AuthProvider? _authProvider;
@@ -89,6 +92,16 @@ class _HomeScreenState extends State<HomeScreen> {
             }
           },
         );
+      }
+      
+      // Start subscription polling to detect plan changes from admin
+      if (_authProvider?.userEmail != null) {
+        _subscriptionPollingService = SubscriptionPollingService(
+          pollingInterval: const Duration(seconds: 5),
+          userEmail: _authProvider!.userEmail,
+          onStatusChanged: _handleSubscriptionChange,
+        );
+        _subscriptionPollingService?.startPolling();
       }
     });
     // Refresh data every 30 seconds for real-time updates
@@ -141,6 +154,102 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
   }
+  
+  void _handleSubscriptionChange(Map<String, dynamic> status) {
+    if (!mounted) return;
+    
+    // Check if this is a subscription upgrade from free to paid
+    final showSubscriptionScreen = status['_showSubscriptionScreen'] as bool? ?? false;
+    final accountInactivated = status['_accountInactivated'] as bool? ?? false;
+    final accountActivated = status['_accountActivated'] as bool? ?? false;
+    final newType = status['subscriptionType'] as String?;
+    final isActive = status['isActive'] as bool? ?? true;
+    
+    // Only navigate if we're on the home screen (not on subscription/activation screens)
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    final isOnSubscriptionScreen = currentRoute?.contains('subscription') ?? false;
+    final isOnActivationScreen = currentRoute?.contains('activation') ?? false;
+    
+    // Don't navigate if already on subscription or activation screens
+    if (isOnSubscriptionScreen || isOnActivationScreen) {
+      debugPrint('Already on subscription/activation screen, skipping navigation');
+      return;
+    }
+    
+    // Handle account activation (payment approved)
+    if (accountActivated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your account has been activated! You can now use all features.'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      
+      // Update auth provider
+      if (_authProvider != null) {
+        _authProvider!.checkStatusNow();
+      }
+      
+      return;
+    }
+    
+    // Handle subscription upgrade with account inactivation
+    if (showSubscriptionScreen && (newType == 'monthly' || newType == 'yearly')) {
+      // Update auth provider to reflect inactivation
+      if (_authProvider != null && !isActive) {
+        _authProvider!.checkStatusNow();
+      }
+      
+      // Show notification
+      String message = 'Your subscription has been updated to ${newType == 'monthly' ? 'Monthly' : 'Yearly'}!';
+      if (!isActive) {
+        message += ' Please complete your subscription setup and payment.';
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: !isActive ? Colors.orange : Colors.blue,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      
+      // Navigate to subscription screen
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+            (route) => false, // Remove all previous routes
+          );
+        }
+      });
+    } else if (accountInactivated && !showSubscriptionScreen) {
+      // Account inactivated without subscription change
+      // Update auth provider
+      if (_authProvider != null) {
+        _authProvider!.checkStatusNow();
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your account has been inactivated. Please contact support.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      
+      // Navigate to subscription screen or login
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+            (route) => false,
+          );
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -150,8 +259,15 @@ class _HomeScreenState extends State<HomeScreen> {
     _timeUpdateTimer?.cancel();
     _updateCheckTimer?.cancel();
     
+    // Stop polling services - stop before notifying to avoid framework lock
+    _subscriptionPollingService?.stopPolling();
+    _subscriptionPollingService?.dispose();
+    
     // Stop admin changes polling using saved reference
-    _adminChangesProvider?.stopPolling();
+    // Don't notify listeners during disposal
+    if (_adminChangesProvider != null) {
+      _adminChangesProvider!.stopPolling();
+    }
     
     // Remove auth listener using saved reference
     _authProvider?.removeListener(_onAuthChanged);
@@ -1449,69 +1565,73 @@ class _StatisticsCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 22),
                 ),
-                child: Icon(icon, color: color, size: 22),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: trendColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      trend,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: trendColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: trendColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  trend,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: trendColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11,
-                      ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontSize: 28,
-                ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
-                  fontSize: 13,
-                ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 24,
+                  ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.7),
+                    fontSize: 12,
+                  ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -6,6 +6,10 @@ class Teacher {
   final String? teacherId;
   final String status;
   final String? profilePicture;
+  final String? subscriptionType;
+  final String? subscriptionStatus;
+  final DateTime? subscriptionExpiryDate;
+  final bool? isFirstLogin;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -17,6 +21,10 @@ class Teacher {
     this.teacherId,
     required this.status,
     this.profilePicture,
+    this.subscriptionType,
+    this.subscriptionStatus,
+    this.subscriptionExpiryDate,
+    this.isFirstLogin,
     this.createdAt,
     this.updatedAt,
   });
@@ -30,6 +38,12 @@ class Teacher {
       teacherId: json['teacherId'] is String ? json['teacherId'] : null,
       status: json['status'] is String ? json['status'] : 'active',
       profilePicture: json['profilePicture'] is String ? json['profilePicture'] : null,
+      subscriptionType: json['subscriptionType'] is String ? json['subscriptionType'] : null,
+      subscriptionStatus: json['subscriptionStatus'] is String ? json['subscriptionStatus'] : null,
+      subscriptionExpiryDate: json['subscriptionExpiryDate'] != null 
+        ? DateTime.parse(json['subscriptionExpiryDate'].toString()) 
+        : null,
+      isFirstLogin: json['isFirstLogin'] is bool ? json['isFirstLogin'] : null,
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'].toString()) : null,
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'].toString()) : null,
     );
@@ -43,6 +57,10 @@ class Teacher {
       'teacherId': teacherId,
       'status': status,
       'profilePicture': profilePicture,
+      'subscriptionType': subscriptionType,
+      'subscriptionStatus': subscriptionStatus,
+      'subscriptionExpiryDate': subscriptionExpiryDate?.toIso8601String(),
+      'isFirstLogin': isFirstLogin,
     };
   }
 
@@ -53,6 +71,10 @@ class Teacher {
     String? teacherId,
     String? status,
     String? profilePicture,
+    String? subscriptionType,
+    String? subscriptionStatus,
+    DateTime? subscriptionExpiryDate,
+    bool? isFirstLogin,
   }) {
     return Teacher(
       id: id,
@@ -62,6 +84,10 @@ class Teacher {
       teacherId: teacherId ?? this.teacherId,
       status: status ?? this.status,
       profilePicture: profilePicture ?? this.profilePicture,
+      subscriptionType: subscriptionType ?? this.subscriptionType,
+      subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
+      subscriptionExpiryDate: subscriptionExpiryDate ?? this.subscriptionExpiryDate,
+      isFirstLogin: isFirstLogin ?? this.isFirstLogin,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

@@ -72,7 +72,7 @@ class AdminChangesProvider with ChangeNotifier {
   void stopPolling() {
     _pollingService.stopPolling();
     _isPolling = false;
-    notifyListeners();
+    // Don't call notifyListeners() here to avoid framework lock errors during disposal
   }
 
   /// Handle restriction changes
@@ -139,6 +139,13 @@ class AdminChangesProvider with ChangeNotifier {
     if (_isPolling) {
       _pollingService.pausePolling();
     }
+  }
+
+  /// Dispose method to clean up resources
+  @override
+  void dispose() {
+    stopPolling();
+    super.dispose();
   }
 
   /// Check if user is restricted

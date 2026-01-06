@@ -1177,6 +1177,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showReportProblemDialog() {
     final TextEditingController issueController = TextEditingController();
+    final TextEditingController deviceNameController = TextEditingController();
     final List<File> selectedImages = [];
     final ImagePicker _picker = ImagePicker();
 
@@ -1197,11 +1198,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Text(
                   'Please describe the issue you\'re experiencing:',
                   style: TextStyle(
@@ -1232,6 +1237,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
+                  'Device Name (Optional):',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: deviceNameController,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Eg:- Samsung S20 plus',
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.2)
+                        : Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
                   'Attach Images (Optional):',
                   style: TextStyle(
                     fontWeight: FontWeight.w500,
@@ -1242,35 +1275,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 // Image picker buttons
                 Row(
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        final XFile? image = await _picker.pickImage(
-                          source: ImageSource.camera,
-                          imageQuality: 80,
-                        );
-                        if (image != null) {
-                          setState(() {
-                            if (selectedImages.length < 5) {
-                              selectedImages.add(File(image.path));
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Maximum 5 images allowed'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            }
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Camera'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
+
                     ElevatedButton.icon(
                       onPressed: () async {
                         final XFile? image = await _picker.pickImage(
@@ -1313,49 +1318,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 8),
                   SizedBox(
                     height: 80,
-                    child: ListView.builder(
+                    child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      itemCount: selectedImages.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.file(
-                                  selectedImages[index],
-                                  width: 80,
-                                  height: 80,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              Positioned(
-                                top: -8,
-                                right: -8,
-                                child: IconButton(
-                                  icon: const Icon(Icons.close),
-                                  color: Colors.red,
-                                  onPressed: () {
-                                    setState(() {
-                                      selectedImages.removeAt(index);
-                                    });
-                                  },
-                                  iconSize: 20,
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Colors.white,
+                      child: Row(
+                        children: List.generate(
+                          selectedImages.length,
+                          (index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.file(
+                                      selectedImages[index],
+                                      width: 80,
+                                      height: 80,
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
-                                ),
+                                  Positioned(
+                                    top: -8,
+                                    right: -8,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.close),
+                                      color: Colors.red,
+                                      onPressed: () {
+                                        setState(() {
+                                          selectedImages.removeAt(index);
+                                        });
+                                      },
+                                      iconSize: 20,
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        );
-                      },
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ],
             ),
+          ),
           ),
           actions: [
             TextButton(
@@ -1400,6 +1410,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   issueController.text.trim(),
                   userEmail,
                   selectedImages,
+                  deviceNameController.text.trim(),
                 );
               },
               child: const Text('Send Report'),
@@ -1414,6 +1425,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String issueDescription,
     String userEmail,
     List<File> images,
+    String? deviceName,
   ) async {
     try {
       await ApiService.submitProblemReport(
@@ -1425,6 +1437,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             : Theme.of(context).platform == TargetPlatform.iOS
                 ? 'iOS'
                 : 'Unknown',
+        deviceName: deviceName.isNotEmpty ? deviceName : null,
         teacherId: Provider.of<AuthProvider>(context, listen: false).teacherId,
         images: images,
       );

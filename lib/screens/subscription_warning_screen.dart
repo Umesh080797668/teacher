@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 import 'activation_screen.dart';
 
 class SubscriptionWarningScreen extends StatefulWidget {
@@ -15,10 +16,19 @@ class _SubscriptionWarningScreenState extends State<SubscriptionWarningScreen> {
   void initState() {
     super.initState();
     // Mark warning as shown for today
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      auth.markSubscriptionWarningShown();
+      await auth.markSubscriptionWarningShown();
       auth.setWarningScreenShown(true);
+      
+      // Also update on backend
+      if (auth.userEmail != null) {
+        try {
+          await ApiService.markSubscriptionWarningShown(auth.userEmail!);
+        } catch (e) {
+          debugPrint('Error marking subscription warning shown on backend: $e');
+        }
+      }
     });
   }
 

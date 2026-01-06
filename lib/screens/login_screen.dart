@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'registration_screen.dart';
 import 'home_screen.dart';
+import 'subscription_screen.dart';
+import 'pending_activation_screen.dart';
+import 'payment_rejected_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'forgot_password_screen.dart';
@@ -121,7 +124,74 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
 
       if (mounted) {
-        // Check if account is activated
+        // Check subscription and account status
+        final subscriptionStatus = teacher['subscriptionStatus'] as String?;
+        final paymentProofStatus = teacher['paymentProofStatus'] as String?;
+        final paymentProofRejectionReason = teacher['paymentProofRejectionReason'] as String?;
+        final accountInactive = teacher['accountInactive'] as bool? ?? false;
+        final isFirstLogin = teacher['isFirstLogin'] as bool? ?? false;
+        final subscriptionType = teacher['subscriptionType'] as String? ?? 'monthly';
+        
+        // Scenario 1: Payment was rejected - show rejection screen
+        if (paymentProofStatus == 'rejected' && paymentProofRejectionReason != null) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => PaymentRejectedScreen(
+                rejectionReason: paymentProofRejectionReason,
+              ),
+            ),
+          );
+          return;
+        }
+        
+        // Scenario 2: Payment is pending approval - show pending screen
+        if (subscriptionStatus == 'pending' && paymentProofStatus == 'pending') {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const PendingActivationScreen()),
+          );
+          return;
+        }
+        
+        // Scenario 3: First login or no subscription set - show subscription screen
+        if (isFirstLogin && subscriptionType != 'free') {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+          );
+          return;
+        }
+        
+        // Scenario 4: Account inactive (moved from free to paid or other reasons)
+        if (accountInactive && subscriptionType != 'free') {
+          // Check if they need to setup subscription
+          if (subscriptionStatus == 'none' || subscriptionStatus == null) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+            );
+          } else if (subscriptionStatus == 'rejected') {
+            // Show rejection screen if they had a rejected payment
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => PaymentRejectedScreen(
+                  rejectionReason: paymentProofRejectionReason ?? 'Please resubmit payment proof',
+                ),
+              ),
+            );
+          } else {
+            // Generic inactive screen
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Your account is inactive. Please complete the subscription process.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+            );
+          }
+          return;
+        }
+        
+        // Scenario 5: Everything is fine - check normal activation
         if (!auth.isActivated) {
           // Show activation dialog
           showDialog(

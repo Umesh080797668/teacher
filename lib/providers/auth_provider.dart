@@ -413,6 +413,18 @@ class AuthProvider extends ChangeNotifier {
       final subscriptionExpiringSoon = response['subscriptionExpiringSoon'] as bool? ?? false;
       final teacherStatus = response['status'] as String? ?? 'inactive';
       final isSubscriptionFree = response['isSubscriptionFree'] as bool? ?? false;
+      
+      // Get last warning date from backend
+      final lastWarningDateStr = response['lastSubscriptionWarningDate'] as String?;
+      if (lastWarningDateStr != null) {
+        try {
+          _lastSubscriptionWarningDate = DateTime.parse(lastWarningDateStr);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('last_subscription_warning_date', _lastSubscriptionWarningDate!.toIso8601String());
+        } catch (e) {
+          debugPrint('Error parsing last warning date: $e');
+        }
+      }
 
       // Update activation status based on teacher status
       final isActivated = teacherStatus == 'active';

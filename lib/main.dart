@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'providers/auth_provider.dart';
@@ -14,10 +15,17 @@ import 'providers/theme_provider.dart';
 import 'providers/admin_changes_provider.dart';
 import 'services/background_update_service.dart';
 import 'services/background_backup_service.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+  
+  // Initialize Firebase
+  await Firebase.initializeApp();
+  
+  // Initialize notification service with FCM
+  await NotificationService().initialize();
   
   // Initialize background update service for periodic checks even when app is closed
   await BackgroundUpdateService.initialize();

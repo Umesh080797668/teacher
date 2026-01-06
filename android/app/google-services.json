@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "722907877028",
+    "project_id": "eduverse-teacher-app",
+    "storage_bucket": "eduverse-teacher-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:722907877028:android:11b1126480b575bee42031",
+        "android_client_info": {
+          "package_name": "com.example.teacher_attendance"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAa2G9TYGkJU22QxA5PhTFyHhPXEJJVIKw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

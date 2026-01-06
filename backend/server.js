@@ -108,6 +108,25 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// Helper function to format date with timezone awareness
+function formatDateWithTimezone(date) {
+  if (!date) return null;
+  // Store both UTC and local formatted string
+  return {
+    isoString: date.toISOString(),
+    timestamp: date.getTime(),
+    dateString: date.toLocaleString('en-US', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+  };
+}
+
 // MongoDB connection with connection reuse for serverless
 let cachedConnection = null;
 let connectionPromise = null;
@@ -269,9 +288,12 @@ const TeacherSchema = new mongoose.Schema({
   status: { type: String, enum: ['active', 'inactive'], default: 'inactive' },
   profilePicture: { type: String }, // Profile picture path
   companyIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }], // Multiple companies - added when QR scanned
-  subscriptionType: { type: String, enum: ['monthly', 'yearly', 'free'], default: 'monthly' },
-  subscriptionStartDate: { type: Date, default: Date.now },
-  subscriptionExpiryDate: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }, // Default 30 days for monthly
+  subscriptionType: { type: String, enum: ['monthly', 'yearly', 'free'], default: 'free' },
+  subscriptionStartDate: { type: Date },
+  subscriptionExpiryDate: { type: Date },
+  subscriptionStatus: { type: String, enum: ['none', 'pending', 'active', 'expired', 'rejected'], default: 'none' },
+  isFirstLogin: { type: Boolean, default: true },
+  lastSubscriptionWarningDate: { type: Date },
   isRestricted: { type: Boolean, default: false },
   restrictedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
   restrictedAt: { type: Date },
@@ -329,7 +351,8 @@ const ProblemReportSchema = new mongoose.Schema({
   userEmail: { type: String, required: true },
   issueDescription: { type: String, required: true },
   appVersion: { type: String },
-  device: { type: String },
+  device: { type: String }, // Platform: iOS or Android
+  deviceName: { type: String }, // Device model name: eg. Samsung S20 plus
   teacherId: { type: String },
   studentId: { type: String },
   userType: { type: String, enum: ['teacher', 'student'], required: true },
@@ -345,7 +368,8 @@ const FeatureRequestSchema = new mongoose.Schema({
   featureDescription: { type: String, required: true },
   bidPrice: { type: Number, required: true },
   appVersion: { type: String },
-  device: { type: String },
+  device: { type: String }, // Platform: iOS or Android
+  deviceName: { type: String }, // Device model name: eg. Samsung S20 plus
   teacherId: { type: String },
   studentId: { type: String },
   userType: { type: String, enum: ['teacher', 'student'], required: true },
@@ -363,6 +387,7 @@ const PaymentProofSchema = new mongoose.Schema({
   reviewedBy: { type: String }, // Admin email who reviewed it
   reviewedAt: { type: Date },
   reviewNotes: { type: String },
+  rejectionReason: { type: String }, // Specific reason for rejection
 }, { timestamps: true });
 
 AttendanceSchema.index({ studentId: 1, year: 1, month: 1 });
@@ -1725,6 +1750,13 @@ app.post('/api/auth/submit-payment-proof', upload.single('paymentProof'), async 
       paymentProofPublicId: uploadResult.public_id
     });
     await paymentProof.save();
+    
+    // Update teacher subscription status to pending
+    const teacher = await Teacher.findOne({ email: userEmail });
+    if (teacher) {
+      teacher.subscriptionStatus = 'pending';
+      await teacher.save();
+    }
 
     console.log(`Payment proof submitted successfully for ${userEmail} (${subscriptionType}) - Cloudinary URL: ${uploadResult.secure_url}`);
 
@@ -1797,7 +1829,17 @@ const verifyTeacher = async (req, res, next) => {
 app.get('/api/admin/payment-proofs', verifySuperAdmin, async (req, res) => {
   try {
     const paymentProofs = await PaymentProof.find().sort({ createdAt: -1 });
-    res.json(paymentProofs);
+    // Format dates for all payment proofs
+    const formattedProofs = paymentProofs.map(proof => {
+      const proofObj = proof.toObject();
+      proofObj.createdAt = formatDateWithTimezone(new Date(proof.createdAt));
+      proofObj.updatedAt = formatDateWithTimezone(new Date(proof.updatedAt));
+      if (proof.reviewedAt) {
+        proofObj.reviewedAt = formatDateWithTimezone(new Date(proof.reviewedAt));
+      }
+      return proofObj;
+    });
+    res.json(formattedProofs);
   } catch (error) {
     console.error('Error fetching payment proofs:', error);
     res.status(500).json({ error: 'Failed to fetch payment proofs' });
@@ -1823,7 +1865,7 @@ app.get('/api/admin/payment-proofs/:id/image', verifySuperAdmin, async (req, res
 // POST approve/reject payment proof
 app.post('/api/admin/payment-proofs/:id/review', verifySuperAdmin, async (req, res) => {
   try {
-    const { action, notes, adminEmail } = req.body; // action: 'approve' or 'reject'
+    const { action, notes, adminEmail, rejectionReason } = req.body; // action: 'approve' or 'reject'
 
     if (!['approve', 'reject'].includes(action)) {
       return res.status(400).json({ error: 'Invalid action. Must be approve or reject' });
@@ -1843,13 +1885,28 @@ app.post('/api/admin/payment-proofs/:id/review', verifySuperAdmin, async (req, r
     paymentProof.reviewedBy = adminEmail;
     paymentProof.reviewedAt = new Date();
     paymentProof.reviewNotes = notes || '';
+    paymentProof.rejectionReason = action === 'reject' ? (rejectionReason || notes) : undefined;
     await paymentProof.save();
 
-    // If approved, activate the teacher's account
+    // If approved, activate the teacher's account and set subscription
     if (action === 'approve') {
       const teacher = await Teacher.findOne({ email: paymentProof.userEmail });
       if (teacher) {
         teacher.status = 'active';
+        teacher.subscriptionStatus = 'active';
+        teacher.subscriptionType = paymentProof.subscriptionType;
+        teacher.subscriptionStartDate = new Date();
+        
+        // Set expiry date based on subscription type
+        const expiryDate = new Date();
+        if (paymentProof.subscriptionType === 'monthly') {
+          expiryDate.setMonth(expiryDate.getMonth() + 1);
+        } else if (paymentProof.subscriptionType === 'yearly') {
+          expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        }
+        teacher.subscriptionExpiryDate = expiryDate;
+        teacher.isFirstLogin = false;
+        
         await teacher.save();
 
         // Send confirmation email to teacher
@@ -1865,6 +1922,7 @@ app.post('/api/admin/payment-proofs/:id/review', verifySuperAdmin, async (req, r
             <ul>
               <li>Type: ${paymentProof.subscriptionType}</li>
               <li>Amount: ${paymentProof.amount}</li>
+              <li>Valid Until: ${expiryDate.toLocaleDateString()}</li>
             </ul>
             <p>You can now start using the Teacher Attendance App with full features.</p>
             <br>
@@ -1877,7 +1935,15 @@ app.post('/api/admin/payment-proofs/:id/review', verifySuperAdmin, async (req, r
         });
       }
     } else {
-      // If rejected, delete the image from Cloudinary
+      // If rejected, update teacher subscription status to rejected
+      const teacher = await Teacher.findOne({ email: paymentProof.userEmail });
+      if (teacher) {
+        teacher.subscriptionStatus = 'rejected';
+        teacher.status = 'inactive';
+        await teacher.save();
+      }
+      
+      // Delete the image from Cloudinary
       try {
         await cloudinary.uploader.destroy(paymentProof.paymentProofPublicId);
         console.log(`Deleted rejected payment proof from Cloudinary: ${paymentProof.paymentProofPublicId}`);
@@ -1885,7 +1951,7 @@ app.post('/api/admin/payment-proofs/:id/review', verifySuperAdmin, async (req, r
         console.error('Error deleting image from Cloudinary:', cloudinaryError);
       }
 
-      // Send rejection email
+      // Send rejection email with reason
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: paymentProof.userEmail,
@@ -1893,14 +1959,14 @@ app.post('/api/admin/payment-proofs/:id/review', verifySuperAdmin, async (req, r
         html: `
           <h2>Payment Proof Review</h2>
           <p>Dear Teacher,</p>
-          <p>Your payment proof has been reviewed but was not approved. Please check the following notes and resubmit:</p>
-          <p><strong>Review Notes:</strong> ${notes || 'No specific notes provided'}</p>
+          <p>Your payment proof has been reviewed but was not approved.</p>
+          <p><strong>Reason for Rejection:</strong> ${rejectionReason || notes || 'No specific reason provided'}</p>
           <p><strong>Subscription Details:</strong></p>
           <ul>
             <li>Type: ${paymentProof.subscriptionType}</li>
             <li>Amount: ${paymentProof.amount}</li>
           </ul>
-          <p>Please submit a new payment proof if you believe this was an error.</p>
+          <p>Please submit a new payment proof with the correct information.</p>
           <br>
           <p>Best regards,<br>Teacher Attendance App Team</p>
         `
@@ -1918,7 +1984,8 @@ app.post('/api/admin/payment-proofs/:id/review', verifySuperAdmin, async (req, r
         status: paymentProof.status,
         reviewedBy: paymentProof.reviewedBy,
         reviewedAt: paymentProof.reviewedAt,
-        reviewNotes: paymentProof.reviewNotes
+        reviewNotes: paymentProof.reviewNotes,
+        rejectionReason: paymentProof.rejectionReason
       }
     });
 
@@ -2218,7 +2285,7 @@ app.put('/api/teachers/:id/activate', verifyToken, async (req, res) => {
 // POST submit problem report with optional images
 app.post('/api/reports/problem', verifyToken, upload.array('images', 5), async (req, res) => {
   try {
-    const { userEmail, issueDescription, appVersion, device, teacherId, studentId, userType } = req.body;
+    const { userEmail, issueDescription, appVersion, device, deviceName, teacherId, studentId, userType } = req.body;
     if (!userEmail || !issueDescription || !userType) {
       return res.status(400).json({ error: 'userEmail, issueDescription, and userType are required' });
     }
@@ -2264,6 +2331,7 @@ app.post('/api/reports/problem', verifyToken, upload.array('images', 5), async (
       issueDescription,
       appVersion,
       device,
+      deviceName,
       teacherId,
       studentId,
       userType,
@@ -2315,7 +2383,7 @@ app.delete('/api/reports/problem/:reportId/image/:publicId', verifyToken, async 
 // POST submit feature request
 app.post('/api/reports/feature-request', verifyToken, async (req, res) => {
   try {
-    const { userEmail, featureDescription, bidPrice, appVersion, device, teacherId, studentId, userType } = req.body;
+    const { userEmail, featureDescription, bidPrice, appVersion, device, deviceName, teacherId, studentId, userType } = req.body;
     if (!userEmail || !featureDescription || !bidPrice || !userType) {
       return res.status(400).json({ error: 'userEmail, featureDescription, bidPrice, and userType are required' });
     }
@@ -2338,6 +2406,7 @@ app.post('/api/reports/feature-request', verifyToken, async (req, res) => {
       bidPrice: price,
       appVersion,
       device,
+      deviceName,
       teacherId,
       studentId,
       userType,
@@ -2356,7 +2425,14 @@ app.post('/api/reports/feature-request', verifyToken, async (req, res) => {
 app.get('/api/reports/problems', verifySuperAdmin, async (req, res) => {
   try {
     const reports = await ProblemReport.find().sort({ createdAt: -1 });
-    res.json(reports);
+    // Format dates for all reports
+    const formattedReports = reports.map(report => {
+      const reportObj = report.toObject();
+      reportObj.createdAt = formatDateWithTimezone(new Date(report.createdAt));
+      reportObj.updatedAt = formatDateWithTimezone(new Date(report.updatedAt));
+      return reportObj;
+    });
+    res.json(formattedReports);
   } catch (error) {
     console.error('Error fetching problem reports:', error);
     res.status(500).json({ error: 'Failed to fetch problem reports' });
@@ -2367,7 +2443,14 @@ app.get('/api/reports/problems', verifySuperAdmin, async (req, res) => {
 app.get('/api/reports/feature-requests', verifySuperAdmin, async (req, res) => {
   try {
     const requests = await FeatureRequest.find().sort({ createdAt: -1 });
-    res.json(requests);
+    // Format dates for all requests
+    const formattedRequests = requests.map(request => {
+      const requestObj = request.toObject();
+      requestObj.createdAt = formatDateWithTimezone(new Date(request.createdAt));
+      requestObj.updatedAt = formatDateWithTimezone(new Date(request.updatedAt));
+      return requestObj;
+    });
+    res.json(formattedRequests);
   } catch (error) {
     console.error('Error fetching feature requests:', error);
     res.status(500).json({ error: 'Failed to fetch feature requests' });
@@ -3532,16 +3615,7 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
     
-    // Check if teacher is active
-    if (teacher.status !== 'active') {
-      console.log('Login attempt failed: Inactive account for email:', normalizedEmail);
-      return res.status(403).json({ 
-        error: 'Account is not active. Please contact support.',
-        code: 'ACCOUNT_INACTIVE'
-      });
-    }
-    
-    // Generate JWT token for the teacher
+    // Generate JWT token for the teacher (even if inactive for subscription flow)
     const token = jwt.sign(
       {
         userId: teacher._id,
@@ -3553,6 +3627,14 @@ app.post('/api/auth/login', async (req, res) => {
       { expiresIn: '30d' } // 30 days token validity
     );
     
+    // Check subscription status
+    const now = new Date();
+    const isSubscriptionExpired = teacher.subscriptionExpiryDate && now > teacher.subscriptionExpiryDate;
+    
+    // Get latest payment proof for status
+    const latestPaymentProof = await PaymentProof.findOne({ userEmail: normalizedEmail })
+      .sort({ createdAt: -1 });
+    
     // Return teacher data (excluding password) with token
     const teacherData = {
       _id: teacher._id,
@@ -3560,7 +3642,17 @@ app.post('/api/auth/login', async (req, res) => {
       email: teacher.email,
       phone: teacher.phone,
       teacherId: teacher.teacherId,
-      status: teacher.status
+      status: teacher.status,
+      subscriptionType: teacher.subscriptionType,
+      subscriptionStatus: teacher.subscriptionStatus,
+      subscriptionExpiryDate: teacher.subscriptionExpiryDate,
+      isFirstLogin: teacher.isFirstLogin,
+      paymentProofStatus: latestPaymentProof ? latestPaymentProof.status : null,
+      paymentProofRejectionReason: latestPaymentProof && latestPaymentProof.status === 'rejected' 
+        ? latestPaymentProof.rejectionReason : null,
+      requiresSubscriptionSetup: teacher.isFirstLogin && teacher.subscriptionType !== 'free',
+      accountInactive: teacher.status !== 'active',
+      subscriptionExpired: isSubscriptionExpired
     };
     
     console.log('Login successful for email:', normalizedEmail);
@@ -3607,6 +3699,10 @@ app.get('/api/auth/status', async (req, res) => {
     const isSubscriptionExpiringSoon = teacher.subscriptionExpiryDate && 
       teacher.subscriptionExpiryDate <= threeDaysFromNow && 
       !isSubscriptionExpired;
+    
+    // Check for pending or rejected payment proofs
+    const latestPaymentProof = await PaymentProof.findOne({ userEmail: normalizedEmail })
+      .sort({ createdAt: -1 });
 
     res.json({
       status: teacher.status,
@@ -3614,7 +3710,14 @@ app.get('/api/auth/status', async (req, res) => {
       subscriptionExpired: isSubscriptionExpired,
       subscriptionExpiringSoon: isSubscriptionExpiringSoon,
       subscriptionType: teacher.subscriptionType,
-      subscriptionExpiryDate: teacher.subscriptionExpiryDate
+      subscriptionExpiryDate: teacher.subscriptionExpiryDate,
+      subscriptionStatus: teacher.subscriptionStatus,
+      isFirstLogin: teacher.isFirstLogin,
+      lastSubscriptionWarningDate: teacher.lastSubscriptionWarningDate,
+      paymentProofStatus: latestPaymentProof ? latestPaymentProof.status : null,
+      paymentProofRejectionReason: latestPaymentProof && latestPaymentProof.status === 'rejected' 
+        ? latestPaymentProof.rejectionReason : null,
+      _accountActivated: isActive && !teacher.isFirstLogin // Signal for real-time activation
     });
   } catch (error) {
     console.error('Error checking teacher status:', error);
@@ -5341,34 +5444,51 @@ app.post('/api/super-admin/teachers/:teacherId/start-subscription', verifySuperA
     if (!teacher) {
       return res.status(404).json({ error: 'Teacher not found' });
     }
+    
+    const wasFreePreviously = teacher.subscriptionType === 'free' && teacher.status === 'active';
 
     // Update subscription details based on type
     teacher.subscriptionType = subscriptionType;
-    teacher.subscriptionStartDate = new Date();
-
-    // Set subscription expiry based on type
-    if (subscriptionType === 'monthly') {
-      // Monthly subscription expires in 30 days
-      teacher.subscriptionExpiryDate = new Date(Date.now() + (30 * 24 * 60 * 60 * 1000));
-    } else if (subscriptionType === 'yearly') {
-      // Yearly subscription expires in 365 days
-      teacher.subscriptionExpiryDate = new Date(Date.now() + (365 * 24 * 60 * 60 * 1000));
+    
+    // If moving from free to paid, set account to inactive and require payment
+    if (wasFreePreviously) {
+      teacher.status = 'inactive';
+      teacher.subscriptionStatus = 'none'; // Requires new payment
+      teacher.subscriptionStartDate = null;
+      teacher.subscriptionExpiryDate = null;
     } else {
-      return res.status(400).json({ error: 'Invalid subscriptionType. Must be "monthly" or "yearly"' });
+      // For new subscriptions or upgrades, just update the type
+      teacher.subscriptionStartDate = new Date();
+
+      // Set subscription expiry based on type
+      if (subscriptionType === 'monthly') {
+        // Monthly subscription expires in 30 days
+        teacher.subscriptionExpiryDate = new Date(Date.now() + (30 * 24 * 60 * 60 * 1000));
+      } else if (subscriptionType === 'yearly') {
+        // Yearly subscription expires in 365 days
+        teacher.subscriptionExpiryDate = new Date(Date.now() + (365 * 24 * 60 * 60 * 1000));
+      } else if (subscriptionType !== 'free') {
+        return res.status(400).json({ error: 'Invalid subscriptionType. Must be "monthly", "yearly", or "free"' });
+      }
     }
 
     teacher.updatedAt = new Date();
     await teacher.save();
 
     res.json({
-      message: `Teacher subscription set to ${subscriptionType} successfully`,
+      message: wasFreePreviously 
+        ? `Teacher subscription changed from free to ${subscriptionType}. Account deactivated pending payment.`
+        : `Teacher subscription set to ${subscriptionType} successfully`,
       teacher: {
         _id: teacher._id,
         teacherId: teacher.teacherId,
         name: teacher.name,
+        status: teacher.status,
         subscriptionType: teacher.subscriptionType,
+        subscriptionStatus: teacher.subscriptionStatus,
         subscriptionStartDate: teacher.subscriptionStartDate,
-        subscriptionExpiryDate: teacher.subscriptionExpiryDate
+        subscriptionExpiryDate: teacher.subscriptionExpiryDate,
+        requiresPayment: wasFreePreviously
       }
     });
   } catch (error) {
@@ -6170,6 +6290,33 @@ app.get('/api/student/admin-changes/:studentId', verifyToken, async (req, res) =
   } catch (error) {
     console.error('Error checking student admin changes:', error);
     res.status(500).json({ error: 'Failed to check admin changes' });
+  }
+});
+
+// Mark subscription warning as shown
+app.post('/api/teacher/subscription-warning-shown', verifyToken, async (req, res) => {
+  try {
+    const { teacherEmail } = req.body;
+
+    if (!teacherEmail) {
+      return res.status(400).json({ error: 'Teacher email is required' });
+    }
+
+    const teacher = await Teacher.findOne({ email: teacherEmail });
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    teacher.lastSubscriptionWarningDate = new Date();
+    await teacher.save();
+
+    res.json({ 
+      message: 'Warning date updated successfully',
+      lastSubscriptionWarningDate: teacher.lastSubscriptionWarningDate 
+    });
+  } catch (error) {
+    console.error('Error marking subscription warning shown:', error);
+    res.status(500).json({ error: 'Failed to update warning date' });
   }
 });
 

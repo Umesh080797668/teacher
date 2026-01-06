@@ -453,6 +453,7 @@ class ApiService {
     required String issueDescription,
     String? appVersion,
     String? device,
+    String? deviceName,
     String? teacherId,
     List<File>? images,
   }) async {
@@ -469,6 +470,7 @@ class ApiService {
           'issueDescription': issueDescription,
           'appVersion': appVersion,
           'device': device,
+          'deviceName': deviceName,
           'teacherId': teacherId,
           'userType': 'teacher',
         },
@@ -492,6 +494,7 @@ class ApiService {
     request.fields['issueDescription'] = issueDescription;
     if (appVersion != null) request.fields['appVersion'] = appVersion;
     if (device != null) request.fields['device'] = device;
+    if (deviceName != null) request.fields['deviceName'] = deviceName;
     if (teacherId != null) request.fields['teacherId'] = teacherId;
     request.fields['userType'] = 'teacher';
     
@@ -912,5 +915,15 @@ class ApiService {
     final response = await _makeRequest('GET', endpoint, headers: headers);
     final data = json.decode(response.body);
     return (data as List).map((item) => RecentActivity.fromJson(item)).toList();
+  }
+
+  static Future<void> markSubscriptionWarningShown(String teacherEmail) async {
+    await _makeRequest(
+      'POST',
+      '/api/teacher/subscription-warning-shown',
+      body: {
+        'teacherEmail': teacherEmail,
+      },
+    );
   }
 }

@@ -794,7 +794,9 @@ class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Avatar on the left
             CircleAvatar(
               backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               radius: 28,
@@ -808,10 +810,12 @@ class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
               ),
             ),
             const SizedBox(width: 16),
+            // Three rows: name, ID, status buttons
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Row 1: Student Name
                   Text(
                     widget.student.name,
                     style: TextStyle(
@@ -820,7 +824,8 @@ class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
+                  // Row 2: Student ID
                   Text(
                     'ID: ${widget.student.studentId}',
                     style: TextStyle(
@@ -828,61 +833,63 @@ class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
                       fontSize: 12,
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  // Row 3: Attendance Status Buttons
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _StatusChip(
+                        label: 'P',
+                        icon: Icons.check_circle,
+                        color: Colors.green,
+                        isSelected: _status == 'present',
+                        onTap: () {
+                          setState(() {
+                            if (_status == 'present') {
+                              _status = null;
+                            } else {
+                              _status = 'present';
+                            }
+                          });
+                          widget.onStatusChanged(_status ?? '');
+                        },
+                      ),
+                      _StatusChip(
+                        label: 'A',
+                        icon: Icons.cancel,
+                        color: Colors.red,
+                        isSelected: _status == 'absent',
+                        onTap: () {
+                          setState(() {
+                            if (_status == 'absent') {
+                              _status = null;
+                            } else {
+                              _status = 'absent';
+                            }
+                          });
+                          widget.onStatusChanged(_status ?? '');
+                        },
+                      ),
+                      _StatusChip(
+                        label: 'L',
+                        icon: Icons.access_time,
+                        color: Colors.orange,
+                        isSelected: _status == 'late',
+                        onTap: () {
+                          setState(() {
+                            if (_status == 'late') {
+                              _status = null;
+                            } else {
+                              _status = 'late';
+                            }
+                          });
+                          widget.onStatusChanged(_status ?? '');
+                        },
+                      ),
+                    ],
+                  ),
                 ],
               ),
-            ),
-            Wrap(
-              spacing: 8,
-              children: [
-                _StatusChip(
-                  label: 'P',
-                  icon: Icons.check_circle,
-                  color: Colors.green,
-                  isSelected: _status == 'present',
-                  onTap: () {
-                    setState(() {
-                      if (_status == 'present') {
-                        _status = null;
-                      } else {
-                        _status = 'present';
-                      }
-                    });
-                    widget.onStatusChanged(_status ?? '');
-                  },
-                ),
-                _StatusChip(
-                  label: 'A',
-                  icon: Icons.cancel,
-                  color: Colors.red,
-                  isSelected: _status == 'absent',
-                  onTap: () {
-                    setState(() {
-                      if (_status == 'absent') {
-                        _status = null;
-                      } else {
-                        _status = 'absent';
-                      }
-                    });
-                    widget.onStatusChanged(_status ?? '');
-                  },
-                ),
-                _StatusChip(
-                  label: 'L',
-                  icon: Icons.access_time,
-                  color: Colors.orange,
-                  isSelected: _status == 'late',
-                  onTap: () {
-                    setState(() {
-                      if (_status == 'late') {
-                        _status = null;
-                      } else {
-                        _status = 'late';
-                      }
-                    });
-                    widget.onStatusChanged(_status ?? '');
-                  },
-                ),
-              ],
             ),
           ],
         ),
