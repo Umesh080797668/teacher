@@ -1711,6 +1711,12 @@ app.post('/api/auth/submit-payment-proof', upload.single('paymentProof'), async 
   try {
     const { userEmail, subscriptionType } = req.body;
 
+    console.log('Payment Proof Submission:', {
+      userEmail,
+      subscriptionType,
+      hasFile: !!req.file
+    });
+
     if (!userEmail || !subscriptionType) {
       return res.status(400).json({ error: 'User email and subscription type are required' });
     }
@@ -1722,6 +1728,13 @@ app.post('/api/auth/submit-payment-proof', upload.single('paymentProof'), async 
     // Validate subscription type
     if (!['monthly', 'yearly'].includes(subscriptionType)) {
       return res.status(400).json({ error: 'Invalid subscription type. Must be monthly or yearly' });
+    }
+
+    // First, verify that the teacher exists before processing payment
+    const teacher = await Teacher.findOne({ email: userEmail });
+    if (!teacher) {
+      console.log('Teacher not found with email:', userEmail);
+      return res.status(404).json({ error: 'Teacher email not found in the system. Please ensure you are using the correct email address.' });
     }
 
     // Get subscription amount
@@ -1753,12 +1766,9 @@ app.post('/api/auth/submit-payment-proof', upload.single('paymentProof'), async 
     });
     await paymentProof.save();
     
-    // Update teacher subscription status to pending
-    const teacher = await Teacher.findOne({ email: userEmail });
-    if (teacher) {
-      teacher.subscriptionStatus = 'pending';
-      await teacher.save();
-    }
+    // Update teacher subscription status to pending (teacher already verified to exist)
+    teacher.subscriptionStatus = 'pending';
+    await teacher.save();
 
     console.log(`Payment proof submitted successfully for ${userEmail} (${subscriptionType}) - Cloudinary URL: ${uploadResult.secure_url}`);
 
@@ -5568,10 +5578,20 @@ app.post('/api/super-admin/fcm-token', verifySuperAdmin, async (req, res) => {
 app.post('/api/teachers/fcm-token', verifyToken, async (req, res) => {
   try {
     const { fcm_token } = req.body;
-    const teacherId = req.user._id;
+    const teacherId = req.user._id || req.user.userId;
+
+    console.log('FCM Token Registration:', {
+      teacherId,
+      fcm_token: fcm_token ? 'provided' : 'missing',
+      userObj: req.user
+    });
 
     if (!fcm_token) {
       return res.status(400).json({ error: 'FCM token is required' });
+    }
+
+    if (!teacherId) {
+      return res.status(400).json({ error: 'Teacher ID is missing from token' });
     }
 
     // Update teacher's FCM token
@@ -5582,17 +5602,18 @@ app.post('/api/teachers/fcm-token', verifyToken, async (req, res) => {
     );
 
     if (!teacher) {
+      console.log('Teacher not found with ID:', teacherId);
       return res.status(404).json({ error: 'Teacher not found' });
     }
 
-    console.log(`FCM token registered for teacher: ${teacher.email}`);
+    console.log(`FCM token registered successfully for teacher: ${teacher.email}`);
     res.json({ 
       message: 'FCM token registered successfully',
       fcmToken: teacher.fcmToken 
     });
   } catch (error) {
     console.error('Error registering FCM token for teacher:', error);
-    res.status(500).json({ error: 'Failed to register FCM token' });
+    res.status(500).json({ error: 'Failed to register FCM token', details: error.message });
   }
 });
 
