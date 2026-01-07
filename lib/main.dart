@@ -5,6 +5,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/students_screen.dart';
+import 'screens/classes_screen.dart';
+import 'screens/attendance_view_screen.dart';
+import 'screens/reports_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/subscription_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/students_provider.dart';
 import 'providers/attendance_provider.dart';
@@ -38,6 +45,9 @@ void main() async {
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
+  
+  // Global navigator key for notification navigation
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -99,6 +109,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Set navigator key for notification service
+    NotificationService.setNavigatorKey(MyApp.navigatorKey);
+    
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authProvider),
@@ -113,6 +126,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp(
+            navigatorKey: MyApp.navigatorKey,
             title: 'Eduverse Teacher Panel',
             debugShowCheckedModeBanner: false,
             theme: themeProvider.lightTheme.copyWith(
@@ -127,6 +141,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             home: const SplashScreen(),
             routes: {
               '/login': (context) => const LoginScreen(),
+              '/home': (context) => const HomeScreen(),
+              '/students': (context) => const StudentsScreen(),
+              '/classes': (context) => const ClassesScreen(),
+              '/attendance-view': (context) => const AttendanceViewScreen(),
+              '/reports': (context) => const ReportsScreen(),
+              '/settings': (context) => const SettingsScreen(),
+              '/subscription': (context) => const SubscriptionScreen(),
             },
           );
         },

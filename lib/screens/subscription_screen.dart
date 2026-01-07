@@ -16,7 +16,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   String? _selectedPlan;
   SubscriptionPollingService? _subscriptionPollingService;
   String? _currentSubscriptionType;
-  bool _subscriptionChanged = false;
 
   @override
   void initState() {
@@ -83,7 +82,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     if (newSubscriptionType != null && newSubscriptionType != 'free' && newSubscriptionType != _currentSubscriptionType) {
       setState(() {
         _currentSubscriptionType = newSubscriptionType;
-        _subscriptionChanged = true;
         // Pre-select the plan set by admin
         _selectedPlan = newSubscriptionType;
       });
@@ -139,7 +137,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      auth.isActivated ? 'Manage Subscription' : 'Complete Your Subscription',
+                      auth.isActivated
+                          ? 'Manage Subscription'
+                          : 'Complete Your Subscription',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -148,7 +148,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      auth.isActivated 
+                      auth.isActivated
                           ? 'Update your subscription plan'
                           : 'Your account needs activation. Please select a plan and complete payment.',
                       style: TextStyle(
@@ -511,9 +511,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ),
         );
         
-        // When coming back from activation, restart polling
+        // When coming back from activation, check auth status
+        // Don't restart polling if user was activated (they shouldn't be here)
         if (mounted) {
-          _initializeSubscriptionPolling();
+          final auth = Provider.of<AuthProvider>(context, listen: false);
+          if (!auth.isActivated) {
+            // User came back without completing activation, restart polling
+            _initializeSubscriptionPolling();
+          }
         }
       }
     } catch (e) {

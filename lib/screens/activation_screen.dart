@@ -5,7 +5,6 @@ import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../services/subscription_polling_service.dart';
-import 'subscription_screen.dart';
 import 'pending_activation_screen.dart';
 import 'subscription_upgrade_alert_screen.dart';
 
@@ -21,7 +20,6 @@ class ActivationScreen extends StatefulWidget {
 class _ActivationScreenState extends State<ActivationScreen> {
   bool _isWaiting = false;
   String? _selectedPlan;
-  bool _shouldContinuePolling = true;
   File? _paymentProof;
   bool _isSendingEmail = false;
   bool _isPaymentSubmitted = false; // Track if payment was submitted
@@ -29,13 +27,31 @@ class _ActivationScreenState extends State<ActivationScreen> {
   bool _screenJustLoaded = true; // Track if screen just loaded to prevent immediate nav
   SubscriptionPollingService? _subscriptionPollingService;
   String? _currentSubscriptionType;
-  bool _subscriptionStatusChanged = false;
 
   @override
   void initState() {
     super.initState();
     _selectedPlan = widget.selectedPlan;
     _initializeSubscriptionPolling();
+    
+    // Check if payment proof was already submitted (user returning after app closed)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (auth.hasSubmittedPaymentProof) {
+        setState(() {
+          _isPaymentSubmitted = true;
+        });
+        
+        // Show message that payment is being reviewed
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your payment proof is being reviewed by the admin. You will be notified once approved.'),
+            backgroundColor: Colors.blue,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    });
     
     // Allow polling navigation after screen is fully loaded (1 second delay)
     Future.delayed(const Duration(seconds: 1), () {
@@ -70,30 +86,20 @@ class _ActivationScreenState extends State<ActivationScreen> {
     if (_currentSubscriptionType != newSubscriptionType) {
       setState(() {
         _currentSubscriptionType = newSubscriptionType;
-        _subscriptionStatusChanged = true;
       });
 
       debugPrint('Subscription status updated in real-time: $newSubscriptionType');
     }
 
-    // Only navigate if account is active AND it was activated AFTER payment submission
-    // This prevents navigation while payment is still being processed
-    if (isActive && !_isPaymentSubmitted && newSubscriptionType != null && newSubscriptionType != 'free') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your subscription has been activated successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
-        ),
-      );
-      // Stop polling and navigate back
-      _subscriptionPollingService?.stopPolling();
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
-      });
-    } else if (isActive && _isPaymentSubmitted && !_accountActivatedAfterSubmission) {
+    // ONLY navigate if account becomes ACTIVE - don't navigate on inactive status
+    // This prevents redirect loop when user is on activation screen trying to submit payment
+    if (!isActive) {
+      // Account is not active yet, stay on activation screen
+      return;
+    }
+
+    // Only navigate if account is active AND payment was submitted and approved
+    if (isActive && _isPaymentSubmitted && !_accountActivatedAfterSubmission) {
       // Account was activated after payment submission
       setState(() {
         _accountActivatedAfterSubmission = true;
@@ -106,11 +112,27 @@ class _ActivationScreenState extends State<ActivationScreen> {
           duration: Duration(seconds: 3),
         ),
       );
-      // Stop polling and navigate back
+      // Stop polling and navigate to home
       _subscriptionPollingService?.stopPolling();
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
-          Navigator.of(context).pop();
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        }
+      });
+    } else if (isActive && !_isPaymentSubmitted && newSubscriptionType != null && newSubscriptionType != 'free') {
+      // Account was activated by admin without payment submission (edge case)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your subscription has been activated successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      // Stop polling and navigate to home
+      _subscriptionPollingService?.stopPolling();
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
         }
       });
     }
@@ -160,6 +182,9 @@ class _ActivationScreenState extends State<ActivationScreen> {
           _isPaymentSubmitted = true;
         });
         
+        // Save payment proof submission status so user returns to this screen if app closes
+        await auth.markPaymentProofSubmitted();
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Payment proof submitted successfully! Please wait for admin approval...'),
@@ -192,13 +217,19 @@ class _ActivationScreenState extends State<ActivationScreen> {
   Widget build(BuildContext context) {
 
     if (_isWaiting) {
-      return Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        appBar: AppBar(
-          title: const Text('Account Activation'),
+      return WillPopScope(
+        onWillPop: () async {
+          // Stop polling when leaving screen
+          _subscriptionPollingService?.stopPolling();
+          return true;
+        },
+        child: Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
-          foregroundColor: Theme.of(context).colorScheme.onSurface,
-        ),
+          appBar: AppBar(
+            title: const Text('Account Activation'),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
+          ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -237,10 +268,17 @@ class _ActivationScreenState extends State<ActivationScreen> {
             ],
           ),
         ),
+        ),
       );
     }
 
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        // Stop polling when leaving screen
+        _subscriptionPollingService?.stopPolling();
+        return true;
+      },
+      child: Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Account Activation'),
@@ -760,6 +798,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -848,57 +887,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
     }
   }
 
-  Future<void> _waitForActivation() async {
-    _shouldContinuePolling = true;
-
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-
-    // Poll for activation status every 5 seconds for up to 5 minutes
-    const int maxAttempts = 60; // 60 * 5 seconds = 5 minutes
-    int attempts = 0;
-
-    while (attempts < maxAttempts && mounted && _shouldContinuePolling) {
-      await Future.delayed(const Duration(seconds: 5));
-
-      try {
-        // Call API to get fresh teacher status
-        final statusData = await ApiService.getTeacherStatus(auth.teacherId!);
-        final isActive = statusData['status'] == 'active';
-
-        if (isActive) {
-          // Update the auth provider with the new status
-          await auth.updateActivationStatus(true);
-
-          if (mounted) {
-            Navigator.of(context).pop(); // Go back to home screen
-          }
-          return;
-        }
-      } catch (e) {
-        debugPrint('Failed to check activation status: $e');
-      }
-
-      attempts++;
-    }
-
-    // If we reach here, either timeout or cancelled
-    if (mounted && _shouldContinuePolling) {
-      setState(() {
-        _isWaiting = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Activation is taking longer than expected. Please try again later or contact support.'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 5),
-        ),
-      );
-    }
-  }
-
   @override
   void dispose() {
-    _shouldContinuePolling = false;
     _subscriptionPollingService?.stopPolling();
     _subscriptionPollingService?.dispose();
     super.dispose();

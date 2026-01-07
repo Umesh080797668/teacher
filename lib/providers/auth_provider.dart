@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:teacher_attendance/services/api_service.dart';
 import 'package:teacher_attendance/services/notification_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class UserAccount {
   final String email;
@@ -74,6 +75,7 @@ class AuthProvider extends ChangeNotifier {
   bool _hasCompletedSubscriptionSetup = false; // Track if user has completed subscription setup
   bool _hasSelectedSubscriptionPlan = false; // Track if user has selected a subscription plan
   String? _selectedSubscriptionPlan; // Track the selected subscription plan
+  bool _hasSubmittedPaymentProof = false; // Track if user has submitted payment proof and is waiting for approval
   bool _wasActivationNotified = false; // Track if activation notification was shown
   bool _isSubscriptionFree = false; // Track if subscription is free
   DateTime? _subscriptionFreeSetDate; // Track when subscription was set to free
@@ -101,6 +103,7 @@ class AuthProvider extends ChangeNotifier {
   bool get hasCompletedSubscriptionSetup => _hasCompletedSubscriptionSetup;
   bool get hasSelectedSubscriptionPlan => _hasSelectedSubscriptionPlan;
   String? get selectedSubscriptionPlan => _selectedSubscriptionPlan;
+  bool get hasSubmittedPaymentProof => _hasSubmittedPaymentProof;
   bool get isSubscriptionFree => _isSubscriptionFree;
   DateTime? get subscriptionFreeSetDate => _subscriptionFreeSetDate;
   bool get shouldShowSubscriptionFreeAlert => _isSubscriptionFree && !_wasSubscriptionFreeAlertShown;
@@ -129,6 +132,7 @@ class AuthProvider extends ChangeNotifier {
       _hasCompletedSubscriptionSetup = prefs.getBool('has_completed_subscription_setup') ?? false; // Load subscription setup completion
       _hasSelectedSubscriptionPlan = prefs.getBool('has_selected_subscription_plan') ?? false; // Load subscription plan selection
       _selectedSubscriptionPlan = prefs.getString('selected_subscription_plan'); // Load selected subscription plan
+      _hasSubmittedPaymentProof = prefs.getBool('has_submitted_payment_proof') ?? false; // Load payment proof submission status
       _wasActivationNotified = prefs.getBool('was_activation_notified') ?? false; // Load activation notification status
       _isSubscriptionFree = prefs.getBool('is_subscription_free') ?? false; // Load subscription free status
       final subscriptionFreeSetDateStr = prefs.getString('subscription_free_set_date');
@@ -223,6 +227,9 @@ class AuthProvider extends ChangeNotifier {
     // Start status checking
     _startStatusChecking();
 
+    // Register FCM token now that user is authenticated
+    await _registerFCMToken();
+
     notifyListeners();
   }
 
@@ -259,6 +266,7 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('has_completed_subscription_setup'); // Remove subscription setup completion
     await prefs.remove('has_selected_subscription_plan'); // Remove subscription plan selection
     await prefs.remove('selected_subscription_plan'); // Remove selected subscription plan
+    await prefs.remove('has_submitted_payment_proof'); // Remove payment proof submission status
     await prefs.remove('was_activation_notified'); // Remove activation notification status
     await prefs.remove('is_subscription_free'); // Remove subscription free status
     await prefs.remove('subscription_free_set_date'); // Remove subscription free set date
@@ -279,6 +287,7 @@ class AuthProvider extends ChangeNotifier {
     _hasCompletedSubscriptionSetup = false; // Reset subscription setup completion
     _hasSelectedSubscriptionPlan = false; // Reset subscription plan selection
     _selectedSubscriptionPlan = null; // Reset selected subscription plan
+    _hasSubmittedPaymentProof = false; // Reset payment proof submission status
     _wasActivationNotified = false; // Reset activation notification status
     _isSubscriptionFree = false; // Reset subscription free status
     _subscriptionFreeSetDate = null; // Reset subscription free set date
@@ -343,6 +352,20 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> markPaymentProofSubmitted() async {
+    _hasSubmittedPaymentProof = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_submitted_payment_proof', true);
+    notifyListeners();
+  }
+
+  Future<void> clearPaymentProofSubmitted() async {
+    _hasSubmittedPaymentProof = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('has_submitted_payment_proof');
+    notifyListeners();
+  }
+
   Future<void> markActivationNotified() async {
     _wasActivationNotified = true;
     final prefs = await SharedPreferences.getInstance();
@@ -401,6 +424,25 @@ class AuthProvider extends ChangeNotifier {
     _statusCheckTimer = null;
   }
 
+  /// Register FCM token with server after authentication
+  Future<void> _registerFCMToken() async {
+    try {
+      if (_isLoggedIn && _userEmail != null) {
+        // Get auth token from secure storage
+        const storage = FlutterSecureStorage();
+        final authToken = await storage.read(key: 'auth_token');
+        
+        if (authToken != null) {
+          // Send FCM token to server using NotificationService
+          await NotificationService().registerFCMToken(authToken);
+        }
+      }
+    } catch (e) {
+      print('DEBUG: AuthProvider - FCM token registration failed: $e');
+      // Don't rethrow - this is not a critical error
+    }
+  }
+
   Future<void> _checkTeacherStatus() async {
     if (_userEmail == null || !_isLoggedIn) {
       return;
@@ -434,10 +476,12 @@ class AuthProvider extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('is_activated', _isActivated);
         
-        // If teacher is activated, mark subscription as completed
+        // If teacher is activated, mark subscription as completed and clear payment proof flag
         if (isActivated) {
           _hasCompletedSubscriptionSetup = true;
           await prefs.setBool('has_completed_subscription_setup', true);
+          _hasSubmittedPaymentProof = false;
+          await prefs.remove('has_submitted_payment_proof');
         }
         
         // Show notification if account just got activated and we haven't notified yet

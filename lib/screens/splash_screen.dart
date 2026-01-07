@@ -123,17 +123,32 @@ class _SplashScreenState extends State<SplashScreen>
     if (!auth.isAuthenticated) {
       target = const LoginScreen();
     } else if (!auth.isActivated) {
-      target = const PendingActivationScreen();
-    } else if (!auth.hasCompletedSubscriptionSetup) {
-      if (auth.hasSelectedSubscriptionPlan && auth.selectedSubscriptionPlan != null) {
-        // User has selected a plan but hasn't completed setup, go to activation screen
+      // Never been activated - check if payment proof was submitted
+      if (auth.hasSubmittedPaymentProof && auth.selectedSubscriptionPlan != null) {
+        // User submitted payment proof and is waiting for approval - show activation screen
+        target = ActivationScreen(selectedPlan: auth.selectedSubscriptionPlan);
+      } else if (auth.hasSelectedSubscriptionPlan && auth.selectedSubscriptionPlan != null) {
+        // User has selected a plan but hasn't submitted payment proof yet
         target = ActivationScreen(selectedPlan: auth.selectedSubscriptionPlan);
       } else {
-        // User hasn't selected a plan yet, go to subscription screen
+        // User hasn't selected a plan yet or is pending activation after payment
+        target = const PendingActivationScreen();
+      }
+    } else if (!auth.hasCompletedSubscriptionSetup) {
+      // Was activated but subscription setup not completed
+      // Check if payment proof was submitted (app closed during renewal)
+      if (auth.hasSubmittedPaymentProof && auth.selectedSubscriptionPlan != null) {
+        // User submitted payment proof for renewal and is waiting for approval
+        target = ActivationScreen(selectedPlan: auth.selectedSubscriptionPlan);
+      } else if (auth.hasSelectedSubscriptionPlan && auth.selectedSubscriptionPlan != null) {
+        // User has selected a renewal plan but hasn't completed setup
+        target = ActivationScreen(selectedPlan: auth.selectedSubscriptionPlan);
+      } else {
+        // User needs to select a plan - redirect to subscription screen
         target = const SubscriptionScreen();
       }
     } else {
-      // Check if user should see subscription free alert
+      // Active subscription - check if user should see subscription free alert
       if (auth.shouldShowSubscriptionFreeAlert) {
         target = const SubscriptionStatusAlertScreen(
           title: 'Subscription Status Update',

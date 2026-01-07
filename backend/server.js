@@ -298,6 +298,7 @@ const TeacherSchema = new mongoose.Schema({
   restrictedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
   restrictedAt: { type: Date },
   restrictionReason: { type: String },
+  fcmToken: { type: String }, // Firebase Cloud Messaging token for push notifications
 }, { timestamps: true });
 
 const EmailVerificationSchema = new mongoose.Schema({
@@ -344,6 +345,7 @@ const AdminSchema = new mongoose.Schema({
   name: { type: String, required: true },
   companyName: { type: String, required: true },
   role: { type: String, enum: ['admin', 'super-admin'], default: 'admin' },
+  fcmToken: { type: String }, // Firebase Cloud Messaging token for push notifications
 }, { timestamps: true });
 
 // Problem Report Schema for user-submitted issues
@@ -5527,6 +5529,70 @@ app.get('/api/super-admin/stats', verifySuperAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error fetching super admin stats:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Register FCM token for Super Admin
+app.post('/api/super-admin/fcm-token', verifySuperAdmin, async (req, res) => {
+  try {
+    const { fcm_token } = req.body;
+    const adminId = req.user._id;
+
+    if (!fcm_token) {
+      return res.status(400).json({ error: 'FCM token is required' });
+    }
+
+    // Update admin's FCM token
+    const admin = await Admin.findByIdAndUpdate(
+      adminId,
+      { fcmToken: fcm_token },
+      { new: true }
+    );
+
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    console.log(`FCM token registered for admin: ${admin.email}`);
+    res.json({ 
+      message: 'FCM token registered successfully',
+      fcmToken: admin.fcmToken 
+    });
+  } catch (error) {
+    console.error('Error registering FCM token for admin:', error);
+    res.status(500).json({ error: 'Failed to register FCM token' });
+  }
+});
+
+// Register FCM token for Teacher
+app.post('/api/teachers/fcm-token', verifyToken, async (req, res) => {
+  try {
+    const { fcm_token } = req.body;
+    const teacherId = req.user._id;
+
+    if (!fcm_token) {
+      return res.status(400).json({ error: 'FCM token is required' });
+    }
+
+    // Update teacher's FCM token
+    const teacher = await Teacher.findByIdAndUpdate(
+      teacherId,
+      { fcmToken: fcm_token },
+      { new: true }
+    );
+
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    console.log(`FCM token registered for teacher: ${teacher.email}`);
+    res.json({ 
+      message: 'FCM token registered successfully',
+      fcmToken: teacher.fcmToken 
+    });
+  } catch (error) {
+    console.error('Error registering FCM token for teacher:', error);
+    res.status(500).json({ error: 'Failed to register FCM token' });
   }
 });
 
