@@ -273,12 +273,29 @@ mongoose.connection.on('connected', () => {
   console.log('MongoDB connected');
 });
 
+// Timezone utility - Convert UTC timestamps to Asia/Colombo (UTC+5:30)
+const getLocalizedDate = (utcDate) => {
+  if (!utcDate) return null;
+  const date = new Date(utcDate);
+  // Asia/Colombo is UTC+5:30
+  const offset = 5.5 * 60 * 60 * 1000; // 5:30 hours in milliseconds
+  return new Date(date.getTime() + offset);
+};
+
 // Models
 const ClassSchema = new mongoose.Schema({
   name: { type: String, required: true },
   teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', required: true },
   companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin association
 }, { timestamps: true });
+
+ClassSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    if (ret.createdAt) ret.createdAt = getLocalizedDate(ret.createdAt);
+    if (ret.updatedAt) ret.updatedAt = getLocalizedDate(ret.updatedAt);
+    return ret;
+  }
+});
 
 const StudentSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -292,6 +309,15 @@ const StudentSchema = new mongoose.Schema({
   restrictionReason: { type: String },
 }, { timestamps: true });
 
+StudentSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    if (ret.createdAt) ret.createdAt = getLocalizedDate(ret.createdAt);
+    if (ret.updatedAt) ret.updatedAt = getLocalizedDate(ret.updatedAt);
+    if (ret.restrictedAt) ret.restrictedAt = getLocalizedDate(ret.restrictedAt);
+    return ret;
+  }
+});
+
 const AttendanceSchema = new mongoose.Schema({
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' }, // Made optional for migration
@@ -303,6 +329,15 @@ const AttendanceSchema = new mongoose.Schema({
   companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin association
 }, { timestamps: true });
 
+AttendanceSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    if (ret.createdAt) ret.createdAt = getLocalizedDate(ret.createdAt);
+    if (ret.updatedAt) ret.updatedAt = getLocalizedDate(ret.updatedAt);
+    if (ret.date) ret.date = getLocalizedDate(ret.date);
+    return ret;
+  }
+});
+
 const PaymentSchema = new mongoose.Schema({
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
@@ -313,6 +348,22 @@ const PaymentSchema = new mongoose.Schema({
   year: { type: Number }, // Year field for historical payment tracking
   companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin association
 }, { timestamps: true });
+
+// Apply timezone conversion on JSON serialization
+PaymentSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    if (ret.createdAt) {
+      ret.createdAt = getLocalizedDate(ret.createdAt);
+    }
+    if (ret.updatedAt) {
+      ret.updatedAt = getLocalizedDate(ret.updatedAt);
+    }
+    if (ret.date) {
+      ret.date = getLocalizedDate(ret.date);
+    }
+    return ret;
+  }
+});
 
 const TeacherSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -336,11 +387,32 @@ const TeacherSchema = new mongoose.Schema({
   fcmToken: { type: String }, // Firebase Cloud Messaging token for push notifications
 }, { timestamps: true });
 
+TeacherSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    if (ret.createdAt) ret.createdAt = getLocalizedDate(ret.createdAt);
+    if (ret.updatedAt) ret.updatedAt = getLocalizedDate(ret.updatedAt);
+    if (ret.subscriptionStartDate) ret.subscriptionStartDate = getLocalizedDate(ret.subscriptionStartDate);
+    if (ret.subscriptionExpiryDate) ret.subscriptionExpiryDate = getLocalizedDate(ret.subscriptionExpiryDate);
+    if (ret.lastSubscriptionWarningDate) ret.lastSubscriptionWarningDate = getLocalizedDate(ret.lastSubscriptionWarningDate);
+    if (ret.restrictedAt) ret.restrictedAt = getLocalizedDate(ret.restrictedAt);
+    return ret;
+  }
+});
+
 const EmailVerificationSchema = new mongoose.Schema({
   email: { type: String, required: true },
   code: { type: String, required: true },
   expiresAt: { type: Date, required: true },
 }, { timestamps: true });
+
+EmailVerificationSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    if (ret.createdAt) ret.createdAt = getLocalizedDate(ret.createdAt);
+    if (ret.updatedAt) ret.updatedAt = getLocalizedDate(ret.updatedAt);
+    if (ret.expiresAt) ret.expiresAt = getLocalizedDate(ret.expiresAt);
+    return ret;
+  }
+});
 
 // Add TTL index to automatically delete expired codes
 EmailVerificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
@@ -350,6 +422,15 @@ const PasswordResetSchema = new mongoose.Schema({
   resetCode: { type: String, required: true },
   expiresAt: { type: Date, required: true },
 }, { timestamps: true });
+
+PasswordResetSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    if (ret.createdAt) ret.createdAt = getLocalizedDate(ret.createdAt);
+    if (ret.updatedAt) ret.updatedAt = getLocalizedDate(ret.updatedAt);
+    if (ret.expiresAt) ret.expiresAt = getLocalizedDate(ret.expiresAt);
+    return ret;
+  }
+});
 
 // Add TTL index to automatically delete expired reset codes
 PasswordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
@@ -370,6 +451,16 @@ const WebSessionSchema = new mongoose.Schema({
   lastActivity: { type: Date, default: Date.now }, // Last activity timestamp
 }, { timestamps: true });
 
+WebSessionSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    if (ret.createdAt) ret.createdAt = getLocalizedDate(ret.createdAt);
+    if (ret.updatedAt) ret.updatedAt = getLocalizedDate(ret.updatedAt);
+    if (ret.expiresAt) ret.expiresAt = getLocalizedDate(ret.expiresAt);
+    if (ret.lastActivity) ret.lastActivity = getLocalizedDate(ret.lastActivity);
+    return ret;
+  }
+});
+
 // Add TTL index to automatically delete expired sessions
 WebSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
@@ -382,6 +473,14 @@ const AdminSchema = new mongoose.Schema({
   role: { type: String, enum: ['admin', 'super-admin'], default: 'admin' },
   fcmToken: { type: String }, // Firebase Cloud Messaging token for push notifications
 }, { timestamps: true });
+
+AdminSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    if (ret.createdAt) ret.createdAt = getLocalizedDate(ret.createdAt);
+    if (ret.updatedAt) ret.updatedAt = getLocalizedDate(ret.updatedAt);
+    return ret;
+  }
+});
 
 // Problem Report Schema for user-submitted issues
 const ProblemReportSchema = new mongoose.Schema({
@@ -399,6 +498,14 @@ const ProblemReportSchema = new mongoose.Schema({
   }],
 }, { timestamps: true });
 
+ProblemReportSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    if (ret.createdAt) ret.createdAt = getLocalizedDate(ret.createdAt);
+    if (ret.updatedAt) ret.updatedAt = getLocalizedDate(ret.updatedAt);
+    return ret;
+  }
+});
+
 // Feature Request Schema for user-submitted feature requests
 const FeatureRequestSchema = new mongoose.Schema({
   userEmail: { type: String, required: true },
@@ -413,6 +520,14 @@ const FeatureRequestSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'reviewed', 'in-progress', 'completed', 'rejected'], default: 'pending' },
 }, { timestamps: true });
 
+FeatureRequestSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    if (ret.createdAt) ret.createdAt = getLocalizedDate(ret.createdAt);
+    if (ret.updatedAt) ret.updatedAt = getLocalizedDate(ret.updatedAt);
+    return ret;
+  }
+});
+
 // Payment Proof Schema for subscription payment proofs
 const PaymentProofSchema = new mongoose.Schema({
   userEmail: { type: String, required: true },
@@ -426,6 +541,15 @@ const PaymentProofSchema = new mongoose.Schema({
   reviewNotes: { type: String },
   rejectionReason: { type: String }, // Specific reason for rejection
 }, { timestamps: true });
+
+PaymentProofSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    if (ret.createdAt) ret.createdAt = getLocalizedDate(ret.createdAt);
+    if (ret.updatedAt) ret.updatedAt = getLocalizedDate(ret.updatedAt);
+    if (ret.reviewedAt) ret.reviewedAt = getLocalizedDate(ret.reviewedAt);
+    return ret;
+  }
+});
 
 AttendanceSchema.index({ studentId: 1, year: 1, month: 1 });
 
@@ -1767,7 +1891,7 @@ app.get('/api/payments', verifyToken, async (req, res) => {
 
 app.post('/api/payments', verifyToken, async (req, res) => {
   try {
-    const { studentId, classId, amount, type, month, year } = req.body;
+    const { studentId, classId, amount, type, month, year, date } = req.body;
     
     // Convert IDs to ObjectId if they're strings
     let studentObjectId = studentId;
@@ -1780,12 +1904,27 @@ app.post('/api/payments', verifyToken, async (req, res) => {
       classObjectId = new mongoose.Types.ObjectId(classId);
     }
     
-    // Use provided month/year for payment period, but use current date/time for recording timestamp
-    const paymentMonth = month !== undefined ? month : new Date().getMonth() + 1;
-    const paymentYear = year !== undefined ? year : new Date().getFullYear();
+    // Use provided month/year for payment period
+    let paymentMonth = month;
+    let paymentYear = year;
     
-    // Use current date and time for when the payment was recorded
-    const paymentDate = new Date();
+    // Use provided date or current date for when the payment was recorded
+    let paymentDate;
+    if (date) {
+      paymentDate = new Date(date);
+    } else {
+      paymentDate = new Date();
+      paymentMonth = paymentMonth !== undefined ? paymentMonth : paymentDate.getMonth() + 1;
+      paymentYear = paymentYear !== undefined ? paymentYear : paymentDate.getFullYear();
+    }
+    
+    // If date is provided, derive month/year from it if not explicitly provided
+    if (date && !month) {
+      paymentMonth = paymentDate.getMonth() + 1;
+    }
+    if (date && !year) {
+      paymentYear = paymentDate.getFullYear();
+    }
     
     const payment = new Payment({ 
       studentId: studentObjectId, 

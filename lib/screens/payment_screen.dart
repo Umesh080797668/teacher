@@ -24,6 +24,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String _selectedPaymentType = 'full';
   String _selectedMonth = DateTime.now().month.toString();
   String _selectedYear = DateTime.now().year.toString();
+  DateTime _selectedPaymentDate = DateTime.now();
   final TextEditingController _amountController = TextEditingController();
   bool _showForm = false;
   final TextEditingController _searchController = TextEditingController();
@@ -121,6 +122,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _selectedPaymentType,
           month: int.parse(_selectedMonth),
           year: int.parse(_selectedYear),
+          date: _selectedPaymentDate,
         );
 
         setState(() {
@@ -129,6 +131,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _selectedPaymentType = 'full';
           _selectedMonth = DateTime.now().month.toString();
           _selectedYear = DateTime.now().year.toString();
+          _selectedPaymentDate = DateTime.now();
           _amountController.clear();
           _showForm = false;
         });
@@ -514,6 +517,63 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 ),
                                 const SizedBox(height: 12),
 
+                                // Recording Date Picker
+                                GestureDetector(
+                                  onTap: () async {
+                                    final pickedDate = await showDatePicker(
+                                      context: context,
+                                      initialDate: _selectedPaymentDate,
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (pickedDate != null) {
+                                      setState(() {
+                                        _selectedPaymentDate = pickedDate;
+                                      });
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: Theme.of(context).colorScheme.outline,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Recording Date',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _formatPaymentRecordingDate(_selectedPaymentDate),
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Icon(
+                                          Icons.calendar_today,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+
                                 // Payment Type Selection
                                 DropdownButtonFormField<String>(
                                   initialValue: _selectedPaymentType,
@@ -739,8 +799,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 context: context,
                                 builder: (BuildContext context) {
                                   return AlertDialog(
-                                    title: const Text('Delete Payment'),
-                                    content: const Text('Are you sure you want to delete this payment record?'),
+                                    title: Text('Delete Payment', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                                    content: Text('Are you sure you want to delete this payment record?', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                                     actions: [
                                       TextButton(
                                         onPressed: () => Navigator.of(context).pop(),
@@ -909,6 +969,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
     return '${date.year}-$monthName-$day $hour:$minute';
+  }
+
+  String _formatPaymentRecordingDate(DateTime date) {
+    // Format as: 10 January 2026
+    final months = [
+      '', 'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    final monthName = months[date.month];
+    return '${date.day} $monthName ${date.year}';
   }
 
   String _formatPaymentMonth(int? month, int? year) {

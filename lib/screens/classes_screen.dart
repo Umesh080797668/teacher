@@ -329,8 +329,8 @@ class _ClassesScreenState extends State<ClassesScreen> {
                                   context: context,
                                   builder: (BuildContext context) {
                                     return AlertDialog(
-                                      title: const Text('Delete Class'),
-                                      content: Text('Are you sure you want to delete "${classObj.name}"?'),
+                                      title: Text('Delete Class', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                                      content: Text('Are you sure you want to delete "${classObj.name}"?', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                                       actions: [
                                         TextButton(
                                           onPressed: () => Navigator.of(context).pop(),

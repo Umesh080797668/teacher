@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'students_screen.dart';
 import 'attendance_mark_screen.dart';
 import 'attendance_view_screen.dart';
@@ -18,7 +19,6 @@ import '../providers/auth_provider.dart';
 import '../providers/admin_changes_provider.dart';
 import '../services/api_service.dart';
 import '../services/update_service.dart';
-import '../services/restriction_polling_service.dart';
 import '../services/subscription_polling_service.dart';
 import '../models/home_stats.dart';
 import '../widgets/custom_widgets.dart';
@@ -49,9 +49,40 @@ class _HomeScreenState extends State<HomeScreen> {
   final UpdateService _updateService = UpdateService();
   SubscriptionPollingService? _subscriptionPollingService;
   
+  // Track if activation notification has been shown
+  bool _activationNotificationShown = false;
+  
   // Safe references saved in didChangeDependencies
   AuthProvider? _authProvider;
   AdminChangesProvider? _adminChangesProvider;
+
+  /// Load activation notification flag from SharedPreferences
+  Future<void> _loadActivationNotificationFlag() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final teacherId = _authProvider?.teacherId;
+      if (teacherId != null) {
+        _activationNotificationShown = prefs.getBool('activation_notification_shown_$teacherId') ?? false;
+        debugPrint('Loaded activation notification flag: $_activationNotificationShown');
+      }
+    } catch (e) {
+      debugPrint('Error loading activation notification flag: $e');
+    }
+  }
+
+  /// Save activation notification flag to SharedPreferences
+  Future<void> _saveActivationNotificationFlag() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final teacherId = _authProvider?.teacherId;
+      if (teacherId != null) {
+        await prefs.setBool('activation_notification_shown_$teacherId', true);
+        debugPrint('Saved activation notification flag for teacher: $teacherId');
+      }
+    } catch (e) {
+      debugPrint('Error saving activation notification flag: $e');
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -101,6 +132,9 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       }
+      
+      // Load activation notification flag from SharedPreferences
+      _loadActivationNotificationFlag();
       
       // Start subscription polling to detect plan changes from admin
       if (_authProvider?.userEmail != null) {
@@ -225,8 +259,10 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     
-    // Handle account activation (payment approved)
-    if (accountActivated) {
+    // Handle account activation (payment approved) - only show once
+    if (accountActivated && !_activationNotificationShown) {
+      _activationNotificationShown = true;
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Your account has been activated! You can now use all features.'),
@@ -234,6 +270,9 @@ class _HomeScreenState extends State<HomeScreen> {
           duration: Duration(seconds: 3),
         ),
       );
+      
+      // Save flag to SharedPreferences so it persists across app restarts
+      _saveActivationNotificationFlag();
       
       // Update auth provider
       if (_authProvider != null) {
@@ -1919,6 +1958,7 @@ class _SearchResultCard extends StatelessWidget {
       ),
     );
   }
+
 }
 
 class _FeatureCard extends StatefulWidget {

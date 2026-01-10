@@ -451,8 +451,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               final confirm = await showDialog<bool>(
                                 context: context,
                                 builder: (context) => AlertDialog(
-                                  title: Text('$actionText Student'),
-                                  content: Text('Are you sure you want to $action ${student.name}?'),
+                                  title: Text('$actionText Student', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                                  content: Text('Are you sure you want to $action ${student.name}?', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.pop(context, false),
@@ -506,8 +506,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               final confirm = await showDialog<bool>(
                                 context: context,
                                 builder: (context) => AlertDialog(
-                                  title: const Text('Delete Student'),
-                                  content: Text('Are you sure you want to delete ${student.name}?'),
+                                  title: Text('Delete Student', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                                  content: Text('Are you sure you want to delete ${student.name}?', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.pop(context, false),
