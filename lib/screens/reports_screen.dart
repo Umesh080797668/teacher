@@ -5,6 +5,7 @@ import '../providers/reports_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/cache_service.dart';
 import '../widgets/custom_widgets.dart';
+import '../models/class.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -156,6 +157,7 @@ class _AttendanceSummaryTab extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               ...provider.dailyByClass.map((classData) => Card(
+            key: ValueKey('summary-${classData['classId'] ?? classData['className']}'),
             margin: const EdgeInsets.only(bottom: 12),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -353,6 +355,7 @@ class _StudentReportsTabState extends State<_StudentReportsTab> {
                       itemBuilder: (context, index) {
                         final report = filteredReports[index];
                         return Card(
+                          key: ValueKey('report-${report['studentId'] ?? index}'),
                           margin: const EdgeInsets.only(bottom: 12),
                           child: Padding(
                             padding: const EdgeInsets.all(16),
@@ -549,13 +552,13 @@ class _MonthlyOverviewChart extends StatelessWidget {
                   final presentHeight = total > 0 ? (present / total) * 150 : 0.0;
 
                   return Expanded(
+                    key: ValueKey('chart-${stat['month']}'),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Container(
-                            width: 30,
                             height: presentHeight,
                             decoration: const BoxDecoration(
                               color: Colors.green,
@@ -773,6 +776,7 @@ class _PaymentsTabState extends State<_PaymentsTab> {
                         final payments = data['payments'] as List;
                         
                         return Card(
+                          key: ValueKey('payment-group-$studentId'),
                           margin: const EdgeInsets.only(bottom: 12),
                           child: ExpansionTile(
                             title: Text(
@@ -798,11 +802,14 @@ class _PaymentsTabState extends State<_PaymentsTab> {
                                 ),
                               ),
                             ),
-                            children: payments.map<Widget>((payment) {
+                            children: payments.asMap().entries.map<Widget>((entry) {
+                              final payment = entry.value;
+                              final index = entry.key;
                               final date = payment['date'] != null 
                                   ? DateTime.parse(payment['date'])
                                   : null;
                               return ListTile(
+                                key: ValueKey(payment['_id'] ?? payment['id'] ?? 'payment-$studentId-$index'),
                                 leading: Icon(
                                   Icons.check_circle,
                                   color: _getPaymentTypeColor(payment['type']),
@@ -874,6 +881,8 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
   String? _selectedClassId;
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
+  DateTime? _selectedDate;
+  bool _showByDate = false;
 
   @override
   Widget build(BuildContext context) {
@@ -906,35 +915,75 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
             });
           }
         }
-        
-        // Filter flattened earnings by selected class, month, and year
-        final filteredEarnings = flattenedEarnings.where((earning) {
-          final earningClassId = earning['classId']?.toString();
-          final earningMonth = earning['month'] as int?;
-          final earningYear = earning['year'] as int?;
-          
-          final classMatch = _selectedClassId == null || earningClassId == _selectedClassId;
-          final monthMatch = earningMonth == _selectedMonth;
-          final yearMatch = earningYear == _selectedYear;
-          
-          return classMatch && monthMatch && yearMatch;
-        }).toList();
-
-        // Calculate total earnings
-        double totalEarnings = 0;
-        int totalPayments = 0;
-        for (var earning in filteredEarnings) {
-          totalEarnings += (earning['amount'] as num?)?.toDouble() ?? 0.0;
-          totalPayments += (earning['paymentCount'] as int?) ?? 0;
-        }
 
         return Column(
           children: [
+            // View toggle button
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _showByDate = false;
+                          _selectedDate = null;
+                        });
+                      },
+                      icon: Icon(
+                        Icons.calendar_month,
+                        color: !_showByDate ? Theme.of(context).colorScheme.primary : null,
+                      ),
+                      label: Text(
+                        'Monthly View',
+                        style: TextStyle(
+                          color: !_showByDate ? Theme.of(context).colorScheme.primary : null,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: !_showByDate ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : null,
+                        side: BorderSide(
+                          color: !_showByDate ? Theme.of(context).colorScheme.primary : Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _showByDate = true;
+                        });
+                      },
+                      icon: Icon(
+                        Icons.calendar_today,
+                        color: _showByDate ? Theme.of(context).colorScheme.primary : null,
+                      ),
+                      label: Text(
+                        'Daily View',
+                        style: TextStyle(
+                          color: _showByDate ? Theme.of(context).colorScheme.primary : null,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: _showByDate ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : null,
+                        side: BorderSide(
+                          color: _showByDate ? Theme.of(context).colorScheme.primary : Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             // Filters
             Container(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
+                  if (!_showByDate)
                   Row(
                     children: [
                       // Month filter
@@ -991,6 +1040,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  if (!_showByDate)
                   // Class filter
                   DropdownButtonFormField<String>(
                     initialValue: _selectedClassId,
@@ -1016,136 +1066,416 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                         _selectedClassId = value;
                       });
                     },
-                  ),
-                ],
-              ),
-            ),
-
-            // Summary card
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.green.shade400, Colors.green.shade600],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.green.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'Total Earnings',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Rs. ${totalEarnings.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$totalPayments payment${totalPayments != 1 ? 's' : ''}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Earnings list
-            Expanded(
-              child: filteredEarnings.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                  )
+                  else
+                  // Date picker for daily view
+                  GestureDetector(
+                    onTap: () async {
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate ?? DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now(),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: ColorScheme.light(
+                                primary: Theme.of(context).colorScheme.primary,
+                                onPrimary: Colors.white,
+                                surface: Theme.of(context).colorScheme.surface,
+                                onSurface: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (pickedDate != null) {
+                        setState(() {
+                          _selectedDate = pickedDate;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
                         children: [
-                          Icon(
-                            Icons.account_balance_wallet,
-                            size: 64,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No earnings for ${_getMonthName(_selectedMonth)} $_selectedYear',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Theme.of(context).colorScheme.outline,
+                          const Icon(Icons.calendar_today),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _selectedDate == null
+                                  ? 'Select Date'
+                                  : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
+                              style: TextStyle(
+                                color: _selectedDate == null
+                                    ? Colors.grey
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: filteredEarnings.length,
-                      itemBuilder: (context, index) {
-                        final earning = filteredEarnings[index];
-                        
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            leading: Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.school, color: Colors.green),
-                            ),
-                            title: Text(
-                              earning['className'] ?? 'Unknown Class',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${_getMonthName(earning['month'])} ${earning['year']} - ${earning['paymentCount']} payment${earning['paymentCount'] != 1 ? 's' : ''}',
-                            ),
-                            trailing: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.green.withOpacity(0.3)),
-                              ),
-                              child: Text(
-                                'Rs. ${(earning['amount'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'}',
-                                style: const TextStyle(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
                     ),
+                  ),
+                ],
+              ),
+            ),
+            // View content based on selection
+            Expanded(
+              key: ValueKey<String>(_showByDate ? 'daily_$_selectedDate' : 'monthly_${_selectedMonth}_$_selectedYear'),
+              child: _showByDate && _selectedDate != null
+                  ? _buildDailyPaymentViewContent(context, allEarnings, allClasses, provider)
+                  : _buildMonthlyViewContent(context, allEarnings, flattenedEarnings),
             ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildMonthlyViewContent(BuildContext context, List<Map<String, dynamic>> allEarnings, List<Map<String, dynamic>> flattenedEarnings) {
+    // Filter flattened earnings by selected class, month, and year
+    final filteredEarnings = flattenedEarnings.where((earning) {
+      final earningClassId = earning['classId']?.toString();
+      final earningMonth = earning['month'] as int?;
+      final earningYear = earning['year'] as int?;
+      
+      final classMatch = _selectedClassId == null || earningClassId == _selectedClassId;
+      final monthMatch = earningMonth == _selectedMonth;
+      final yearMatch = earningYear == _selectedYear;
+      
+      return classMatch && monthMatch && yearMatch;
+    }).toList();
+
+    // Calculate total earnings
+    double totalEarnings = 0;
+    int totalPayments = 0;
+    for (var earning in filteredEarnings) {
+      totalEarnings += (earning['amount'] as num?)?.toDouble() ?? 0.0;
+      totalPayments += (earning['paymentCount'] as int?) ?? 0;
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Summary card
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.green.shade400, Colors.green.shade600],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.green.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'Total Earnings',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Rs. ${totalEarnings.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$totalPayments payment${totalPayments != 1 ? 's' : ''}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Earnings list
+          if (filteredEarnings.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.account_balance_wallet,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No earnings for ${_getMonthName(_selectedMonth)} $_selectedYear',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: filteredEarnings.length,
+              itemBuilder: (context, index) {
+                final earning = filteredEarnings[index];
+                
+                return Card(
+                  key: ValueKey('monthly-earning-${earning['classId']}-${earning['month']}-${earning['year']}'),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    leading: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.school, color: Colors.green),
+                    ),
+                    title: Text(
+                      earning['className'] ?? 'Unknown Class',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${_getMonthName(earning['month'])} ${earning['year']} - ${earning['paymentCount']} payment${earning['paymentCount'] != 1 ? 's' : ''}',
+                    ),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        'Rs. ${(earning['amount'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'}',
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDailyPaymentViewContent(BuildContext context, List<Map<String, dynamic>> allEarnings, List<Class> allClasses, ReportsProvider provider) {
+    // Get the selected date's payment data
+    final selectedDateStr = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day).toIso8601String().split('T')[0];
+    
+    // Filter payments for the selected date
+    double totalDailyPayments = 0;
+    int paymentCount = 0;
+    final dailyPaymentsByClass = <Map<String, dynamic>>[];
+    
+    // Use the raw payments data from provider
+    final allPayments = provider.payments;
+    for (final payment in allPayments) {
+      final dateVal = payment['date'];
+      if (dateVal != null) {
+        final paymentDate = DateTime.parse(dateVal.toString());
+        final paymentDateStr = paymentDate.toIso8601String().split('T')[0];
+        
+        if (paymentDateStr == selectedDateStr) {
+          final className = payment['className'] ?? 'Unknown Class';
+          final amount = (payment['amount'] as num?)?.toDouble() ?? 0.0;
+          
+          totalDailyPayments += amount;
+          paymentCount++;
+          
+          final existingClass = dailyPaymentsByClass.firstWhere(
+            (item) => item['className'] == className,
+            orElse: () => {
+              'className': className,
+              'amount': 0.0,
+              'count': 0,
+              'payments': <Map<String, dynamic>>[],
+            },
+          );
+          
+          if (!dailyPaymentsByClass.contains(existingClass)) {
+            dailyPaymentsByClass.add(existingClass);
+          }
+          
+          existingClass['amount'] = (existingClass['amount'] as num).toDouble() + amount;
+          existingClass['count'] = (existingClass['count'] as int) + 1;
+          (existingClass['payments'] as List).add(payment);
+        }
+      }
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Daily summary card
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade400, Colors.blue.shade600],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Text(
+                  'Payments on ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Rs. ${totalDailyPayments.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$paymentCount payment${paymentCount != 1 ? 's' : ''}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Daily payments list
+          if (dailyPaymentsByClass.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.receipt,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No payments recorded on this date',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: dailyPaymentsByClass.length,
+              itemBuilder: (context, index) {
+                final classPayment = dailyPaymentsByClass[index];
+                
+                return Card(
+                  key: ValueKey('daily-earning-${classPayment['className']}'),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    leading: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.receipt, color: Colors.blue),
+                    ),
+                    title: Text(
+                      classPayment['className'] ?? 'Unknown Class',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${classPayment['count']} payment${classPayment['count'] != 1 ? 's' : ''}',
+                    ),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        'Rs. ${(classPayment['amount'] as num).toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 

@@ -64,7 +64,8 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     
     // Poll every 10 seconds for real-time attendance updates
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
-      if (mounted && !_isSaving) {  // Don't poll while saving
+      // Don't poll while saving, while user is searching, or if there are unsaved changes
+      if (mounted && !_isSaving && _searchText.isEmpty && !_hasNewlyMarkedAttendance()) {
         final auth = Provider.of<AuthProvider>(context, listen: false);
         final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
         
@@ -75,7 +76,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
           // Reload attendance data
           await _loadAttendanceForDate(_selectedDate, auth.teacherId, studentsProvider.students);
           
-          // Check if attendance data changed
+          // Check if attendance data changed (from external sources, not local changes)
           bool hasChanges = false;
           for (final studentId in _attendanceStatus.keys) {
             if (previousAttendance[studentId] != _attendanceStatus[studentId]) {

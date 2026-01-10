@@ -442,11 +442,15 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            'Teacher ID: ${widget.classObj.teacherId}',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
-                            ),
+                          Consumer<AuthProvider>(
+                            builder: (context, auth, child) {
+                              return Text(
+                                'Teacher ID: ${auth.teacherId}',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
