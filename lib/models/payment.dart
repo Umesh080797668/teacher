@@ -5,6 +5,7 @@ class Payment {
   final double amount;
   final String type; // 'full', 'half', 'free'
   final DateTime date;
+  final DateTime? createdAt;
   final int? month;
   final int? year;
 
@@ -15,12 +16,14 @@ class Payment {
     required this.amount,
     required this.type,
     required this.date,
+    this.createdAt,
     this.month,
     this.year,
   });
 
   factory Payment.fromJson(Map<String, dynamic> json) {
     final date = json['date'] is String ? DateTime.parse(json['date']) : DateTime.now();
+    final createdAt = json['createdAt'] is String ? DateTime.parse(json['createdAt']) : null;
     final month = json['month'] is int ? json['month'] : date.month; // Derive from date if not provided
     final year = json['year'] is int ? json['year'] : date.year; // Derive from date if not provided
     
@@ -47,6 +50,7 @@ class Payment {
       amount: json['amount'] is num ? (json['amount'] as num).toDouble() : 0.0,
       type: json['type'] is String ? json['type'] : '',
       date: date,
+      createdAt: createdAt,
       month: month,
       year: year,
     );

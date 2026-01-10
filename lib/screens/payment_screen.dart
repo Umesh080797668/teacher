@@ -825,7 +825,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
-                              'Recorded: ${_formatPaidDate(payment.date)}',
+                              'Recorded: ${_formatPaidDate(payment.createdAt ?? payment.date)}',
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.outline.withOpacity(0.8),
                                 fontSize: 12,
