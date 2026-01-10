@@ -22,38 +22,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? _selectedStudentId;
   String? _selectedClassId;
   String _selectedPaymentType = 'full';
-  String _selectedMonth = DateTime.now().month.toString();
-  String _selectedYear = DateTime.now().year.toString();
   DateTime _selectedPaymentDate = DateTime.now();
   final TextEditingController _amountController = TextEditingController();
   bool _showForm = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
-
-  final List<Map<String, dynamic>> _months = [
-    {'value': '1', 'label': 'January'},
-    {'value': '2', 'label': 'February'},
-    {'value': '3', 'label': 'March'},
-    {'value': '4', 'label': 'April'},
-    {'value': '5', 'label': 'May'},
-    {'value': '6', 'label': 'June'},
-    {'value': '7', 'label': 'July'},
-    {'value': '8', 'label': 'August'},
-    {'value': '9', 'label': 'September'},
-    {'value': '10', 'label': 'October'},
-    {'value': '11', 'label': 'November'},
-    {'value': '12', 'label': 'December'},
-  ];
-
-  List<Map<String, dynamic>> get _years {
-    final currentYear = DateTime.now().year;
-    final years = <Map<String, dynamic>>[];
-    // Generate last 5 years + current year
-    for (int i = currentYear; i >= currentYear - 5; i--) {
-      years.add({'value': i.toString(), 'label': i.toString()});
-    }
-    return years;
-  }
 
   @override
   void initState() {
@@ -120,8 +93,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _selectedClassId!,
           amount,
           _selectedPaymentType,
-          month: int.parse(_selectedMonth),
-          year: int.parse(_selectedYear),
           date: _selectedPaymentDate,
         );
 
@@ -129,8 +100,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _selectedStudentId = null;
           _selectedClassId = null;
           _selectedPaymentType = 'full';
-          _selectedMonth = DateTime.now().month.toString();
-          _selectedYear = DateTime.now().year.toString();
           _selectedPaymentDate = DateTime.now();
           _amountController.clear();
           _showForm = false;
@@ -441,78 +410,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                         return null;
                                       },
                                     );
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-
-                                // Month Selection
-                                DropdownButtonFormField<String>(
-                                  initialValue: _selectedMonth,
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                  dropdownColor: Theme.of(context).colorScheme.surface,
-                                  decoration: InputDecoration(
-                                    labelText: 'Select Month',
-                                    labelStyle: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                                    ),
-                                    prefixIcon: Icon(
-                                      Icons.calendar_today,
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                    ),
-                                  ),
-                                  items: _months.map((month) {
-                                    return DropdownMenuItem<String>(
-                                      value: month['value'],
-                                      child: Text(
-                                        month['label'],
-                                        style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurface,
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _selectedMonth = value!;
-                                    });
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-
-                                // Year Selection
-                                DropdownButtonFormField<String>(
-                                  initialValue: _selectedYear,
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                  dropdownColor: Theme.of(context).colorScheme.surface,
-                                  decoration: InputDecoration(
-                                    labelText: 'Select Year',
-                                    labelStyle: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                                    ),
-                                    prefixIcon: Icon(
-                                      Icons.date_range,
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                    ),
-                                  ),
-                                  items: _years.map((year) {
-                                    return DropdownMenuItem<String>(
-                                      value: year['value'],
-                                      child: Text(
-                                        year['label'],
-                                        style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurface,
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _selectedYear = value!;
-                                    });
                                   },
                                 ),
                                 const SizedBox(height: 12),
