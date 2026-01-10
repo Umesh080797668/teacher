@@ -1891,7 +1891,7 @@ app.get('/api/payments', verifyToken, async (req, res) => {
 
 app.post('/api/payments', verifyToken, async (req, res) => {
   try {
-    const { studentId, classId, amount, type, month, year } = req.body;
+    const { studentId, classId, amount, type, month, year, recordingDate } = req.body;
     
     // Convert IDs to ObjectId if they're strings
     let studentObjectId = studentId;
@@ -1904,12 +1904,17 @@ app.post('/api/payments', verifyToken, async (req, res) => {
       classObjectId = new mongoose.Types.ObjectId(classId);
     }
     
-    // Use provided month and year, or use current date
+    // Use provided month and year for payment period, or use current date
     const paymentMonth = month || new Date().getMonth() + 1;
     const paymentYear = year || new Date().getFullYear();
     
-    // Create date as first day of the selected month
-    const paymentDate = new Date(paymentYear, paymentMonth - 1, 1);
+    // Use recording date as the main date field, or current date if not provided
+    let paymentDate;
+    if (recordingDate) {
+      paymentDate = new Date(recordingDate);
+    } else {
+      paymentDate = new Date();
+    }
     
     const payment = new Payment({ 
       studentId: studentObjectId, 

@@ -747,6 +747,7 @@ class ApiService {
     String type, {
     int? month,
     int? year,
+    DateTime? recordingDate,
   }) async {
     final response = await _makeRequest(
       'POST',
@@ -758,6 +759,7 @@ class ApiService {
         'type': type,
         if (month != null) 'month': month,
         if (year != null) 'year': year,
+        if (recordingDate != null) 'recordingDate': recordingDate.toIso8601String(),
       },
     );
 

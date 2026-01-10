@@ -24,6 +24,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String _selectedPaymentType = 'full';
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
+  DateTime _selectedRecordingDate = DateTime.now();
   final TextEditingController _amountController = TextEditingController();
   bool _showForm = false;
   final TextEditingController _searchController = TextEditingController();
@@ -96,6 +97,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _selectedPaymentType,
           month: _selectedMonth,
           year: _selectedYear,
+          recordingDate: _selectedRecordingDate,
         );
 
         setState(() {
@@ -104,6 +106,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _selectedPaymentType = 'full';
           _selectedMonth = DateTime.now().month;
           _selectedYear = DateTime.now().year;
+          _selectedRecordingDate = DateTime.now();
           _amountController.clear();
           _showForm = false;
         });
@@ -502,7 +505,72 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // Payment Type Selection
+                                // Recording Date Picker
+                                GestureDetector(
+                                  onTap: () async {
+                                    final pickedDate = await showDatePicker(
+                                      context: context,
+                                      initialDate: _selectedRecordingDate,
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (pickedDate != null) {
+                                      // Add current time to the selected date
+                                      final now = DateTime.now();
+                                      final dateTimeWithCurrentTime = DateTime(
+                                        pickedDate.year,
+                                        pickedDate.month,
+                                        pickedDate.day,
+                                        now.hour,
+                                        now.minute,
+                                        now.second,
+                                      );
+                                      setState(() {
+                                        _selectedRecordingDate = dateTimeWithCurrentTime;
+                                      });
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: Theme.of(context).colorScheme.outline,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Recording Date',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _formatPaymentRecordingDate(_selectedRecordingDate),
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Icon(
+                                          Icons.calendar_today,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
                                 DropdownButtonFormField<String>(
                                   initialValue: _selectedPaymentType,
                                   style: TextStyle(
