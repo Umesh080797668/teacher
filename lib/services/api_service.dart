@@ -745,7 +745,8 @@ class ApiService {
     String classId,
     double amount,
     String type, {
-    DateTime? date,
+    int? month,
+    int? year,
   }) async {
     final response = await _makeRequest(
       'POST',
@@ -755,7 +756,8 @@ class ApiService {
         'classId': classId,
         'amount': amount,
         'type': type,
-        if (date != null) 'date': date.toIso8601String(),
+        if (month != null) 'month': month,
+        if (year != null) 'year': year,
       },
     );
 

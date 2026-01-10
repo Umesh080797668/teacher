@@ -22,7 +22,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? _selectedStudentId;
   String? _selectedClassId;
   String _selectedPaymentType = 'full';
-  DateTime _selectedPaymentDate = DateTime.now();
+  int _selectedMonth = DateTime.now().month;
+  int _selectedYear = DateTime.now().year;
   final TextEditingController _amountController = TextEditingController();
   bool _showForm = false;
   final TextEditingController _searchController = TextEditingController();
@@ -93,14 +94,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _selectedClassId!,
           amount,
           _selectedPaymentType,
-          date: _selectedPaymentDate,
+          month: _selectedMonth,
+          year: _selectedYear,
         );
 
         setState(() {
           _selectedStudentId = null;
           _selectedClassId = null;
           _selectedPaymentType = 'full';
-          _selectedPaymentDate = DateTime.now();
+          _selectedMonth = DateTime.now().month;
+          _selectedYear = DateTime.now().year;
           _amountController.clear();
           _showForm = false;
         });
@@ -414,70 +417,88 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // Recording Date Picker
-                                GestureDetector(
-                                  onTap: () async {
-                                    final pickedDate = await showDatePicker(
-                                      context: context,
-                                      initialDate: _selectedPaymentDate,
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime.now(),
-                                    );
-                                    if (pickedDate != null) {
-                                      // Add current time to the selected date
-                                      final now = DateTime.now();
-                                      final dateTimeWithCurrentTime = DateTime(
-                                        pickedDate.year,
-                                        pickedDate.month,
-                                        pickedDate.day,
-                                        now.hour,
-                                        now.minute,
-                                        now.second,
-                                      );
-                                      setState(() {
-                                        _selectedPaymentDate = dateTimeWithCurrentTime;
-                                      });
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: Theme.of(context).colorScheme.outline,
-                                      ),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Recording Date',
+                                // Month and Year Selection
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: DropdownButtonFormField<int>(
+                                        value: _selectedMonth,
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                        dropdownColor: Theme.of(context).colorScheme.surface,
+                                        decoration: InputDecoration(
+                                          labelText: 'Month',
+                                          labelStyle: TextStyle(
+                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                          ),
+                                          prefixIcon: Icon(
+                                            Icons.calendar_month,
+                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                          ),
+                                        ),
+                                        items: List.generate(12, (index) {
+                                          final months = ['January', 'February', 'March', 'April', 'May', 'June',
+                                                         'July', 'August', 'September', 'October', 'November', 'December'];
+                                          return DropdownMenuItem<int>(
+                                            value: index + 1,
+                                            child: Text(
+                                              months[index],
                                               style: TextStyle(
-                                                fontSize: 12,
-                                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              _formatPaymentRecordingDate(_selectedPaymentDate),
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
                                                 color: Theme.of(context).colorScheme.onSurface,
                                               ),
                                             ),
-                                          ],
-                                        ),
-                                        Icon(
-                                          Icons.calendar_today,
-                                          color: Theme.of(context).colorScheme.primary,
-                                        ),
-                                      ],
+                                          );
+                                        }),
+                                        onChanged: (value) {
+                                          if (value != null) {
+                                            setState(() {
+                                              _selectedMonth = value;
+                                            });
+                                          }
+                                        },
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: DropdownButtonFormField<int>(
+                                        value: _selectedYear,
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                        dropdownColor: Theme.of(context).colorScheme.surface,
+                                        decoration: InputDecoration(
+                                          labelText: 'Year',
+                                          labelStyle: TextStyle(
+                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                          ),
+                                          prefixIcon: Icon(
+                                            Icons.date_range,
+                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                          ),
+                                        ),
+                                        items: List.generate(6, (index) {
+                                          final year = DateTime.now().year - index;
+                                          return DropdownMenuItem<int>(
+                                            value: year,
+                                            child: Text(
+                                              year.toString(),
+                                              style: TextStyle(
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                              ),
+                                            ),
+                                          );
+                                        }),
+                                        onChanged: (value) {
+                                          if (value != null) {
+                                            setState(() {
+                                              _selectedYear = value;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 12),
 
@@ -778,7 +799,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    _formatPaymentMonthYear(payment.date),
+                                    _formatMonthYear(payment.month ?? payment.date.month, payment.year ?? payment.date.year),
                                     style: TextStyle(
                                       color: Theme.of(context).colorScheme.primary,
                                       fontSize: 12,
@@ -878,6 +899,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
     return '${date.year}-$monthName-$day $hour:$minute';
+  }
+
+  String _formatMonthYear(int month, int year) {
+    // Format as: december-2025 (lowercase month-year)
+    final months = [
+      '', 'january', 'february', 'march', 'april', 'may', 'june',
+      'july', 'august', 'september', 'october', 'november', 'december'
+    ];
+    return '${months[month]}-$year';
   }
 
   String _formatPaymentRecordingDate(DateTime date) {
