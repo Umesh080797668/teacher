@@ -424,8 +424,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                       lastDate: DateTime.now(),
                                     );
                                     if (pickedDate != null) {
+                                      // Add current time to the selected date
+                                      final now = DateTime.now();
+                                      final dateTimeWithCurrentTime = DateTime(
+                                        pickedDate.year,
+                                        pickedDate.month,
+                                        pickedDate.day,
+                                        now.hour,
+                                        now.minute,
+                                        now.second,
+                                      );
                                       setState(() {
-                                        _selectedPaymentDate = pickedDate;
+                                        _selectedPaymentDate = dateTimeWithCurrentTime;
                                       });
                                     }
                                   },
@@ -856,7 +866,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   String _formatPaidDate(DateTime date) {
-    // Format as: 2026-January-10 13:00
+    // Format as: 2026-January-10 14:26 (with time and local timezone)
     final months = [
       '', 'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
@@ -869,13 +879,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   String _formatPaymentRecordingDate(DateTime date) {
-    // Format as: 10 January 2026
+    // Format as: 10 January 2026 14:26 (with time)
     final months = [
       '', 'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
     final monthName = months[date.month];
-    return '${date.day} $monthName ${date.year}';
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    return '${date.day} $monthName ${date.year} $hour:$minute';
   }
 
   String _formatPaymentMonth(int? month, int? year) {
