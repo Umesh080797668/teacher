@@ -778,7 +778,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Period: ${_formatPaymentMonth(payment.month, payment.year)}',
+                                    'Recorded: ${_formatPaymentRecordingDate(payment.date)}',
                                     style: TextStyle(
                                       color: Theme.of(context).colorScheme.primary,
                                       fontSize: 12,
@@ -792,7 +792,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
-                              'Recorded: ${_formatPaidDate(payment.createdAt ?? payment.date)}',
+                              'Created: ${_formatPaidDate(payment.createdAt ?? payment.date)}',
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.outline.withOpacity(0.8),
                                 fontSize: 12,

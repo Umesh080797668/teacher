@@ -276,10 +276,10 @@ mongoose.connection.on('connected', () => {
 // Timezone utility - Convert UTC timestamps to Asia/Colombo (UTC+5:30)
 const getLocalizedDate = (utcDate) => {
   if (!utcDate) return null;
+  // Return ISO string which will preserve the actual moment in time
+  // The frontend will display this correctly based on its local timezone
   const date = new Date(utcDate);
-  // Asia/Colombo is UTC+5:30
-  const offset = 5.5 * 60 * 60 * 1000; // 5:30 hours in milliseconds
-  return new Date(date.getTime() + offset);
+  return date.toISOString();
 };
 
 // Models
