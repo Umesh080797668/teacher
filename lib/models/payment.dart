@@ -24,10 +24,26 @@ class Payment {
     final month = json['month'] is int ? json['month'] : date.month; // Derive from date if not provided
     final year = json['year'] is int ? json['year'] : date.year; // Derive from date if not provided
     
+    // Handle classId which could be a string or an object with _id
+    String extractedClassId = '';
+    if (json['classId'] is String) {
+      extractedClassId = json['classId'];
+    } else if (json['classId'] is Map) {
+      extractedClassId = json['classId']['_id'] ?? json['classId']['id'] ?? '';
+    }
+    
+    // Handle studentId which could be a string or an object with _id
+    String extractedStudentId = '';
+    if (json['studentId'] is String) {
+      extractedStudentId = json['studentId'];
+    } else if (json['studentId'] is Map) {
+      extractedStudentId = json['studentId']['_id'] ?? json['studentId']['id'] ?? '';
+    }
+    
     return Payment(
       id: (json['_id'] ?? json['id']) is String ? (json['_id'] ?? json['id']) : '',
-      studentId: json['studentId'] is String ? json['studentId'] : '',
-      classId: json['classId'] is String ? json['classId'] : '',
+      studentId: extractedStudentId,
+      classId: extractedClassId,
       amount: json['amount'] is num ? (json['amount'] as num).toDouble() : 0.0,
       type: json['type'] is String ? json['type'] : '',
       date: date,

@@ -69,10 +69,22 @@ class _RestrictionScreenState extends State<RestrictionScreen> with WidgetsBindi
           _isLoading = false;
         });
 
-        // If no longer restricted, navigate back to main app
+        // If no longer restricted, navigate to login page
         if (!status['isRestricted']) {
           _pollTimer?.cancel();
-          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Your account has been unrestricted. Please log in again.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          // Navigate to login page
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (mounted && context.mounted) {
+            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+          }
         } else {
           setState(() {
             _restrictionReason = status['restrictionReason'];

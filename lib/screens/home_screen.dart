@@ -13,6 +13,7 @@ import 'settings_screen.dart';
 import 'account_selection_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'login_screen.dart';
+import 'restriction_screen.dart';
 import '../providers/auth_provider.dart';
 import '../providers/admin_changes_provider.dart';
 import '../services/api_service.dart';
@@ -57,12 +58,19 @@ class _HomeScreenState extends State<HomeScreen> {
     super.didChangeDependencies();
     // Save provider references for safe access in dispose and callbacks
     final previousAuth = _authProvider;
+    final previousAdminChanges = _adminChangesProvider;
+    
     _authProvider = Provider.of<AuthProvider>(context, listen: false);
     _adminChangesProvider = Provider.of<AdminChangesProvider>(context, listen: false);
     
     // Add listener only once
     if (previousAuth == null && _authProvider != null) {
       _authProvider!.addListener(_onAuthChanged);
+    }
+    
+    // Add admin changes listener only once
+    if (previousAdminChanges == null && _adminChangesProvider != null) {
+      _adminChangesProvider!.addListener(_onAdminChangesDetected);
     }
   }
 
@@ -153,6 +161,47 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     });
+  }
+  
+  /// Handle admin changes detected (restrictions, etc.)
+  void _onAdminChangesDetected() {
+    if (!mounted || _adminChangesProvider == null) return;
+    
+    final adminChanges = _adminChangesProvider!;
+    
+    // Check for restriction changes
+    if (adminChanges.isRestricted) {
+      // Teacher has been restricted - force logout and show restriction screen
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted || !context.mounted) return;
+        
+        debugPrint('Teacher restricted detected - logging out');
+        
+        // Logout the teacher
+        if (_authProvider != null) {
+          await _authProvider!.logout();
+        }
+        
+        // Navigate to restriction screen
+        final teacherId = _authProvider?.teacherId;
+        final restrictionReason = adminChanges.restrictionReason ?? 'Your account has been restricted';
+        
+        if (teacherId != null && mounted && context.mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => RestrictionScreen(
+                teacherId: teacherId,
+                initialReason: restrictionReason,
+              ),
+            ),
+            (route) => false,
+          );
+        } else {
+          // Fallback to login if no teacher ID
+          Navigator.of(context).pushReplacementNamed('/login');
+        }
+      });
+    }
   }
   
   void _handleSubscriptionChange(Map<String, dynamic> status) {

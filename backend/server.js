@@ -875,6 +875,48 @@ async function sendFCMNotificationToAdmin(adminId, title, body, data = {}) {
   }
 }
 
+// Utility function to send FCM notification to student
+async function sendFCMNotificationToStudent(studentId, title, body, data = {}) {
+  try {
+    const student = await Student.findById(studentId);
+    
+    if (!student || !student.fcmToken) {
+      console.log(`No FCM token found for student ${studentId}`);
+      return false;
+    }
+
+    const messaging = admin.messaging();
+    const message = {
+      notification: {
+        title: title,
+        body: body
+      },
+      data: {
+        ...data,
+        timestamp: new Date().toISOString()
+      },
+      token: student.fcmToken
+    };
+
+    const response = await messaging.send(message);
+    console.log(`FCM notification sent to student ${student.email}:`, response);
+    return true;
+  } catch (error) {
+    console.error('Error sending FCM notification to student:', error);
+    return false;
+  }
+}
+
+// Utility function to send FCM notification to multiple students
+async function sendFCMNotificationToStudents(studentIds, title, body, data = {}) {
+  const results = [];
+  for (const studentId of studentIds) {
+    const result = await sendFCMNotificationToStudent(studentId, title, body, data);
+    results.push(result);
+  }
+  return results;
+}
+
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
   try {
@@ -1805,6 +1847,18 @@ app.post('/api/auth/activate-subscription', async (req, res) => {
 
     await teacher.save();
 
+    // Send FCM notification to teacher
+    await sendFCMNotificationToTeacher(
+      teacher._id,
+      'Subscription Activated! 🎉',
+      `Your ${subscriptionType} subscription has been activated. Valid until ${expiryDate.toLocaleDateString()}`,
+      {
+        type: 'subscription_activated',
+        subscriptionType: subscriptionType,
+        expiryDate: expiryDate.toISOString()
+      }
+    ).catch(err => console.log('FCM notification failed:', err));
+
     res.json({
       message: 'Subscription activated successfully',
       subscriptionType: teacher.subscriptionType,
@@ -2032,6 +2086,18 @@ app.post('/api/admin/payment-proofs/:id/review', verifySuperAdmin, async (req, r
         
         await teacher.save();
 
+        // Send FCM notification to teacher
+        await sendFCMNotificationToTeacher(
+          teacher._id,
+          'Subscription Approved! 🎉',
+          `Your payment proof has been approved. Your ${paymentProof.subscriptionType} subscription is now active!`,
+          {
+            type: 'subscription_approved',
+            subscriptionType: paymentProof.subscriptionType,
+            expiryDate: expiryDate.toISOString()
+          }
+        ).catch(err => console.log('FCM notification failed:', err));
+
         // Send confirmation email to teacher
         const mailOptions = {
           from: process.env.EMAIL_USER,
@@ -2064,6 +2130,17 @@ app.post('/api/admin/payment-proofs/:id/review', verifySuperAdmin, async (req, r
         teacher.subscriptionStatus = 'rejected';
         teacher.status = 'inactive';
         await teacher.save();
+
+        // Send FCM notification to teacher about rejection
+        await sendFCMNotificationToTeacher(
+          teacher._id,
+          'Payment Proof Rejected',
+          `Your payment proof was not approved. Reason: ${rejectionReason || notes || 'Please resubmit with correct details'}`,
+          {
+            type: 'subscription_rejected',
+            reason: rejectionReason || notes || 'No reason provided'
+          }
+        ).catch(err => console.log('FCM notification failed:', err));
       }
       
       // Delete the image from Cloudinary
@@ -5494,6 +5571,31 @@ app.put('/api/super-admin/teachers/:teacherId/status', verifySuperAdmin, async (
     teacher.updatedAt = new Date();
     await teacher.save();
     
+    // Send FCM notification to teacher about status change
+    if (status === 'active') {
+      await sendFCMNotificationToTeacher(
+        teacherId,
+        'Account Activated! 🎉',
+        'Your account has been activated. You can now log in and use the app.',
+        {
+          type: 'status_changed',
+          newStatus: status,
+          timestamp: new Date().toISOString()
+        }
+      ).catch(err => console.log('FCM notification failed:', err));
+    } else {
+      await sendFCMNotificationToTeacher(
+        teacherId,
+        'Account Deactivated',
+        'Your account has been deactivated. Contact admin for more information.',
+        {
+          type: 'status_changed',
+          newStatus: status,
+          timestamp: new Date().toISOString()
+        }
+      ).catch(err => console.log('FCM notification failed:', err));
+    }
+    
     res.json({ 
       message: `Teacher ${status === 'active' ? 'activated' : 'deactivated'} successfully`,
       teacher: {
@@ -5535,6 +5637,24 @@ app.post('/api/super-admin/teachers/:teacherId/set-free-options', verifySuperAdm
     
     teacher.updatedAt = new Date();
     await teacher.save();
+
+    // Send FCM notification to teacher
+    const notificationTitle = isLifetime ? 'Free Subscription Granted! 🎁' : 'Free Trial Activated! 🎁';
+    const notificationBody = isLifetime 
+      ? 'Congratulations! You now have a free lifetime subscription to all features.'
+      : `You have been granted a free trial for ${freeDays || 30} days. Enjoy unlimited access!`;
+    
+    await sendFCMNotificationToTeacher(
+      teacherId,
+      notificationTitle,
+      notificationBody,
+      {
+        type: 'free_subscription_granted',
+        subscriptionType: 'free',
+        isLifetime: isLifetime,
+        expiryDate: teacher.subscriptionExpiryDate.toISOString()
+      }
+    ).catch(err => console.log('FCM notification failed:', err));
     
     res.json({ 
       message: `Teacher subscription set to free ${isLifetime ? 'lifetime' : `for ${freeDays || 30} days`} successfully`,
@@ -5579,6 +5699,18 @@ app.post('/api/super-admin/teachers/:teacherId/start-subscription', verifySuperA
       teacher.subscriptionStatus = 'none'; // Requires new payment
       teacher.subscriptionStartDate = null;
       teacher.subscriptionExpiryDate = null;
+
+      // Send FCM notification that they need to pay
+      await sendFCMNotificationToTeacher(
+        teacherId,
+        'Subscription Change Required',
+        `Your subscription has been changed to ${subscriptionType}. Please submit your payment proof to continue.`,
+        {
+          type: 'subscription_change_required',
+          subscriptionType: subscriptionType,
+          action: 'requires_payment'
+        }
+      ).catch(err => console.log('FCM notification failed:', err));
     } else {
       // For new subscriptions or upgrades, just update the type
       teacher.subscriptionStartDate = new Date();
@@ -5593,6 +5725,18 @@ app.post('/api/super-admin/teachers/:teacherId/start-subscription', verifySuperA
       } else if (subscriptionType !== 'free') {
         return res.status(400).json({ error: 'Invalid subscriptionType. Must be "monthly", "yearly", or "free"' });
       }
+
+      // Send FCM notification for subscription upgrade
+      await sendFCMNotificationToTeacher(
+        teacherId,
+        `${subscriptionType.charAt(0).toUpperCase() + subscriptionType.slice(1)} Subscription Activated! 🎉`,
+        `Your ${subscriptionType} subscription is now active. Enjoy unlimited features!`,
+        {
+          type: 'subscription_activated',
+          subscriptionType: subscriptionType,
+          expiryDate: teacher.subscriptionExpiryDate.toISOString()
+        }
+      ).catch(err => console.log('FCM notification failed:', err));
     }
 
     teacher.updatedAt = new Date();
@@ -5887,6 +6031,19 @@ app.post('/api/super-admin/restrict-teacher', verifySuperAdmin, async (req, res)
       return res.status(404).json({ error: 'Teacher not found' });
     }
 
+    // Send FCM notification to teacher about restriction
+    await sendFCMNotificationToTeacher(
+      teacherId,
+      'Account Restricted ⛔',
+      `Your account has been restricted. Reason: ${reason || 'Please contact admin for details'}`,
+      {
+        type: 'restriction',
+        action: 'restricted',
+        isRestricted: 'true',
+        reason: reason || 'No reason provided'
+      }
+    ).catch(err => console.log('FCM notification failed:', err));
+
     // Get all classes taught by this teacher
     const classes = await Class.find({ teacherId: teacher._id });
     const classIds = classes.map(c => c._id);
@@ -5955,6 +6112,18 @@ app.post('/api/super-admin/unrestrict-teacher', verifySuperAdmin, async (req, re
     if (!teacher) {
       return res.status(404).json({ error: 'Teacher not found' });
     }
+
+    // Send FCM notification to teacher for immediate unrestriction
+    await sendFCMNotificationToTeacher(
+      teacherId,
+      'Account Unrestricted',
+      'Your account has been unrestricted. You can now log in again.',
+      {
+        type: 'restriction',
+        action: 'unrestricted',
+        isRestricted: 'false'
+      }
+    ).catch(err => console.log('FCM notification failed:', err));
 
     // Get all classes taught by this teacher
     const classes = await Class.find({ teacherId: teacher._id });
@@ -6132,6 +6301,19 @@ app.post('/api/super-admin/restrict-student', verifySuperAdmin, async (req, res)
       return res.status(404).json({ error: 'Student not found' });
     }
 
+    // Send FCM notification to student
+    await sendFCMNotificationToStudent(
+      studentId,
+      'Account Restricted ⛔',
+      `Your account has been restricted. Reason: ${reason || 'Please contact admin for details'}`,
+      {
+        type: 'restriction',
+        action: 'restricted',
+        isRestricted: 'true',
+        reason: reason || 'No reason provided'
+      }
+    ).catch(err => console.log('FCM notification failed:', err));
+
     res.json({ 
       success: true, 
       message: 'Student restricted successfully',
@@ -6166,6 +6348,18 @@ app.post('/api/super-admin/unrestrict-student', verifySuperAdmin, async (req, re
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
     }
+
+    // Send FCM notification to student
+    await sendFCMNotificationToStudent(
+      studentId,
+      'Account Unrestricted! ✅',
+      'Your account restriction has been removed. You can now access the app again.',
+      {
+        type: 'restriction',
+        action: 'unrestricted',
+        isRestricted: 'false'
+      }
+    ).catch(err => console.log('FCM notification failed:', err));
 
     res.json({ 
       success: true, 
@@ -6238,6 +6432,20 @@ app.post('/api/teacher/restrict-student', verifyTeacher, async (req, res) => {
       { new: true }
     ).populate('classId', 'name');
 
+    // Send FCM notification to student
+    await sendFCMNotificationToStudent(
+      studentId,
+      'Restricted by Teacher',
+      `You have been restricted in ${updatedStudent.classId.name || 'your class'}. Reason: ${reason || 'No reason provided'}`,
+      {
+        type: 'restriction',
+        action: 'restricted',
+        isRestricted: 'true',
+        reason: reason || 'Restricted by teacher',
+        className: updatedStudent.classId.name
+      }
+    ).catch(err => console.log('FCM notification failed:', err));
+
     res.json({ 
       success: true, 
       message: 'Student restricted successfully',
@@ -6286,6 +6494,19 @@ app.post('/api/teacher/unrestrict-student', verifyTeacher, async (req, res) => {
       },
       { new: true }
     ).populate('classId', 'name');
+
+    // Send FCM notification to student
+    await sendFCMNotificationToStudent(
+      studentId,
+      'Unrestricted! ✅',
+      `Your restriction in ${updatedStudent.classId.name || 'your class'} has been removed. You can now participate again.`,
+      {
+        type: 'restriction',
+        action: 'unrestricted',
+        isRestricted: 'false',
+        className: updatedStudent.classId.name
+      }
+    ).catch(err => console.log('FCM notification failed:', err));
 
     res.json({ 
       success: true, 
