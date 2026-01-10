@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/subscription_polling_service.dart';
+import '../services/api_service.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
+import 'payment_rejected_screen.dart';
 
 class PendingActivationScreen extends StatefulWidget {
   const PendingActivationScreen({super.key});
@@ -14,20 +17,98 @@ class PendingActivationScreen extends StatefulWidget {
 class _PendingActivationScreenState extends State<PendingActivationScreen> {
   bool _isCheckingStatus = false;
   late AuthProvider _auth;
+  SubscriptionPollingService? _subscriptionPollingService;
 
   @override
   void initState() {
     super.initState();
     _auth = Provider.of<AuthProvider>(context, listen: false);
     _auth.addListener(_onAuthChanged);
-    // Start checking status periodically
-    _startStatusChecking();
+    // Start HTTP polling for real-time updates
+    _initializeSubscriptionPolling();
   }
 
   @override
   void dispose() {
     _auth.removeListener(_onAuthChanged);
+    _subscriptionPollingService?.stopPolling();
+    _subscriptionPollingService?.dispose();
     super.dispose();
+  }
+
+  void _initializeSubscriptionPolling() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.userEmail != null) {
+      _subscriptionPollingService = SubscriptionPollingService(
+        pollingInterval: const Duration(seconds: 3),
+        userEmail: auth.userEmail,
+        onStatusChanged: _handleSubscriptionStatusChange,
+      );
+      // Start polling in the background
+      _subscriptionPollingService?.startPolling();
+    }
+  }
+
+  void _handleSubscriptionStatusChange(Map<String, dynamic> status) {
+    if (!mounted) return;
+
+    final isActive = status['isActive'] as bool? ?? false;
+    final paymentRejected = status['_paymentRejected'] as bool? ?? false;
+    final rejectionReason = status['paymentProofRejectionReason'] as String?;
+
+    // Handle payment rejection - navigate to rejection screen
+    if (paymentRejected && rejectionReason != null) {
+      debugPrint('Payment was rejected in real-time!');
+      _subscriptionPollingService?.stopPolling();
+      
+      // Clear payment submission status
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      auth.clearPaymentProofSubmitted();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your payment proof was rejected by the admin.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => PaymentRejectedScreen(
+                rejectionReason: rejectionReason,
+              ),
+            ),
+          );
+        }
+      });
+      return;
+    }
+
+    // Handle account activation - navigate to home
+    if (isActive) {
+      debugPrint('Account was activated in real-time!');
+      _subscriptionPollingService?.stopPolling();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your account has been activated! Welcome!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            (route) => false,
+          );
+        }
+      });
+    }
   }
 
   void _onAuthChanged() {
@@ -38,37 +119,6 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
         (route) => false,
       );
     }
-  }
-
-  void _startStatusChecking() {
-    // Check status every 10 seconds to see if account has been activated
-    Future.delayed(const Duration(seconds: 10), () async {
-      if (!mounted) return;
-
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      if (auth.isAuthenticated) {
-        setState(() => _isCheckingStatus = true);
-        try {
-          await auth.checkStatusNow();
-          // If status changed and user is now activated, the auth provider listener
-          // in home screen will handle navigation
-        } catch (e) {
-          debugPrint('Error checking status: $e');
-        } finally {
-          if (mounted) {
-            setState(() => _isCheckingStatus = false);
-          }
-        }
-      }
-
-      // Continue checking if still not activated
-      if (mounted) {
-        final auth = Provider.of<AuthProvider>(context, listen: false);
-        if (!auth.isActivated) {
-          _startStatusChecking();
-        }
-      }
-    });
   }
 
   @override

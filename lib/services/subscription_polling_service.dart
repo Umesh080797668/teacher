@@ -72,6 +72,22 @@ class SubscriptionPollingService {
   bool _hasStatusChanged(Map<String, dynamic> newStatus) {
     if (_lastStatus == null) return true;
 
+    // Check for payment proof rejection
+    final oldPaymentProofStatus = _lastStatus!['paymentProofStatus'] as String?;
+    final newPaymentProofStatus = newStatus['paymentProofStatus'] as String?;
+    
+    if (oldPaymentProofStatus != newPaymentProofStatus) {
+      if (newPaymentProofStatus == 'rejected') {
+        debugPrint('Payment proof was rejected!');
+        newStatus['_paymentRejected'] = true;
+        return true;
+      } else if (newPaymentProofStatus == 'approved') {
+        debugPrint('Payment proof was approved!');
+        newStatus['_paymentApproved'] = true;
+        return true;
+      }
+    }
+
     // Check for subscription type change
     if (_lastStatus!['subscriptionType'] != newStatus['subscriptionType']) {
       // Special handling: detect upgrade from free to paid plan

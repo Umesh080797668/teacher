@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/subscription_polling_service.dart';
 import 'pending_activation_screen.dart';
 import 'subscription_upgrade_alert_screen.dart';
+import 'payment_rejected_screen.dart';
 
 class ActivationScreen extends StatefulWidget {
   final String? selectedPlan;
@@ -81,6 +82,40 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
     final newSubscriptionType = status['subscriptionType'] as String?;
     final isActive = status['isActive'] as bool? ?? false;
+    final paymentRejected = status['_paymentRejected'] as bool? ?? false;
+    final paymentApproved = status['_paymentApproved'] as bool? ?? false;
+    final rejectionReason = status['paymentProofRejectionReason'] as String?;
+
+    // Handle payment rejection - navigate to rejection screen
+    if (paymentRejected && rejectionReason != null) {
+      debugPrint('Payment was rejected in real-time!');
+      _subscriptionPollingService?.stopPolling();
+      
+      // Clear payment submission status
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      auth.clearPaymentProofSubmitted();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your payment proof was rejected by the admin.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => PaymentRejectedScreen(
+                rejectionReason: rejectionReason,
+              ),
+            ),
+          );
+        }
+      });
+      return;
+    }
 
     // Check if subscription status has changed to paid or updated
     if (_currentSubscriptionType != newSubscriptionType) {

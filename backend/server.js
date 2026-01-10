@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
+const admin = require('firebase-admin');
 require('dotenv').config();
 
 // Configure Cloudinary
@@ -19,7 +20,41 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// Initialize Firebase Admin SDK
+// Try to initialize with credentials from environment variable
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log('Firebase Admin SDK initialized with service account credentials');
+  } catch (error) {
+    console.error('Failed to initialize Firebase with service account:', error.message);
+    // Try to use default credentials (useful for local development or Cloud Run)
+    try {
+      admin.initializeApp({
+        projectId: process.env.FIREBASE_PROJECT_ID || 'eduverse-teacher-app'
+      });
+      console.log('Firebase Admin SDK initialized with default credentials');
+    } catch (err) {
+      console.error('Failed to initialize Firebase Admin SDK:', err.message);
+    }
+  }
+} else {
+  // Use default credentials (Application Default Credentials)
+  try {
+    admin.initializeApp({
+      projectId: process.env.FIREBASE_PROJECT_ID || 'eduverse-teacher-app'
+    });
+    console.log('Firebase Admin SDK initialized with Application Default Credentials');
+  } catch (error) {
+    console.error('Failed to initialize Firebase Admin SDK:', error.message);
+  }
+}
+
 const app = express();
+
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
@@ -763,6 +798,82 @@ app.use(async (req, res, next) => {
     res.status(500).json({ error: 'Database connection failed' });
   }
 });
+
+// Utility function to send FCM notification to teacher
+async function sendFCMNotificationToTeacher(teacherId, title, body, data = {}) {
+  try {
+    const teacher = await Teacher.findById(teacherId);
+    
+    if (!teacher || !teacher.fcmToken) {
+      console.log(`No FCM token found for teacher ${teacherId}`);
+      return false;
+    }
+
+    const messaging = admin.messaging();
+    const message = {
+      notification: {
+        title: title,
+        body: body
+      },
+      data: {
+        ...data,
+        timestamp: new Date().toISOString()
+      },
+      token: teacher.fcmToken
+    };
+
+    const response = await messaging.send(message);
+    console.log(`FCM notification sent to teacher ${teacher.email}:`, response);
+    return true;
+  } catch (error) {
+    console.error('Error sending FCM notification:', error);
+    return false;
+  }
+}
+
+// Utility function to send FCM notification to multiple teachers
+async function sendFCMNotificationToTeachers(teacherIds, title, body, data = {}) {
+  const results = [];
+  
+  for (const teacherId of teacherIds) {
+    const result = await sendFCMNotificationToTeacher(teacherId, title, body, data);
+    results.push({ teacherId, success: result });
+  }
+  
+  return results;
+}
+
+// Utility function to send FCM notification to admin
+async function sendFCMNotificationToAdmin(adminId, title, body, data = {}) {
+  try {
+    const admin_user = await Admin.findById(adminId);
+    
+    if (!admin_user || !admin_user.fcmToken) {
+      console.log(`No FCM token found for admin ${adminId}`);
+      return false;
+    }
+
+    const messaging = admin.messaging();
+    const message = {
+      notification: {
+        title: title,
+        body: body
+      },
+      data: {
+        ...data,
+        timestamp: new Date().toISOString()
+      },
+      token: admin_user.fcmToken
+    };
+
+    const response = await messaging.send(message);
+    console.log(`FCM notification sent to admin ${admin_user.email}:`, response);
+    return true;
+  } catch (error) {
+    console.error('Error sending FCM notification to admin:', error);
+    return false;
+  }
+}
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
@@ -6519,6 +6630,54 @@ app.get('/api/teachers/:teacherId/admin-changes', verifyToken, async (req, res) 
   } catch (error) {
     console.error('Error checking teacher admin changes:', error);
     res.status(500).json({ error: 'Failed to check admin changes', message: error.message });
+  }
+});
+
+// Test FCM Notification endpoint
+app.post('/api/test/send-notification', verifyToken, async (req, res) => {
+  try {
+    const { receiverId, receiverType = 'teacher', title, body } = req.body;
+
+    if (!receiverId || !title || !body) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: receiverId, title, body' 
+      });
+    }
+
+    let success = false;
+    let message = '';
+
+    if (receiverType === 'teacher') {
+      success = await sendFCMNotificationToTeacher(
+        receiverId,
+        title,
+        body,
+        { testNotification: 'true', timestamp: new Date().toISOString() }
+      );
+      message = success ? 'Test notification sent to teacher' : 'Failed to send notification';
+    } else if (receiverType === 'admin') {
+      success = await sendFCMNotificationToAdmin(
+        receiverId,
+        title,
+        body,
+        { testNotification: 'true', timestamp: new Date().toISOString() }
+      );
+      message = success ? 'Test notification sent to admin' : 'Failed to send notification';
+    } else {
+      return res.status(400).json({ error: 'Invalid receiverType. Use "teacher" or "admin"' });
+    }
+
+    res.json({ 
+      success,
+      message,
+      details: { receiverId, receiverType, title, body }
+    });
+  } catch (error) {
+    console.error('Error testing FCM notification:', error);
+    res.status(500).json({ 
+      error: 'Failed to send test notification',
+      details: error.message
+    });
   }
 });
 
