@@ -778,11 +778,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Recorded: ${_formatPaymentRecordingDate(payment.date)}',
+                                    _formatPaymentMonthYear(payment.date),
                                     style: TextStyle(
                                       color: Theme.of(context).colorScheme.primary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Recorded: ${_formatPaidDate(payment.date)}',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.outline,
+                                      fontSize: 11,
                                     ),
                                   ),
                                 ],
@@ -791,13 +799,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           ),
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              _formatPaidDate(payment.date),
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.outline.withOpacity(0.8),
-                                fontSize: 12,
-                              ),
-                            ),
+                            child: SizedBox.shrink(),
                           ),
                           trailing: Text(
                             'LKR ${payment.amount.toStringAsFixed(2)}',
@@ -888,6 +890,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
     return '${date.day} $monthName ${date.year} $hour:$minute';
+  }
+
+  String _formatPaymentMonthYear(DateTime date) {
+    // Format as: january-2026 (lowercase month-year)
+    final months = [
+      '', 'january', 'february', 'march', 'april', 'may', 'june',
+      'july', 'august', 'september', 'october', 'november', 'december'
+    ];
+    final monthName = months[date.month];
+    return '$monthName-${date.year}';
   }
 
   String _formatPaymentMonth(int? month, int? year) {
