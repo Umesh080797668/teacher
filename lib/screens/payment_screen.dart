@@ -8,6 +8,7 @@ import '../providers/auth_provider.dart';
 import '../models/student.dart';
 import '../models/class.dart' as class_model;
 import '../widgets/custom_widgets.dart';
+import 'package:intl/intl.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -222,7 +223,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   final currentMonth = DateTime.now().month;
                   final currentYear = DateTime.now().year;
                   final monthlyPayments = provider.payments.where((p) => 
-                    p.date.month == currentMonth && p.date.year == currentYear
+                    p.month == currentMonth && p.year == currentYear
                   ).toList();
                   
                   final totalRevenue = monthlyPayments.fold<double>(0, (sum, payment) => sum + payment.amount);
@@ -808,14 +809,27 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                       fontSize: 14,
                                     ),
                                   ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Period: ${_formatPaymentMonth(payment.month, payment.year)}',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ],
                               );
                             },
                           ),
-                          subtitle: Text(
-                            '${payment.date.day}/${payment.date.month}/${payment.date.year}',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.outline,
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Recorded: ${_formatPaidDate(payment.date)}',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.outline.withOpacity(0.8),
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                           trailing: Text(
@@ -882,6 +896,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
       default:
         return type;
     }
+  }
+
+  String _formatPaidDate(DateTime date) {
+    // Format as: 2026-January-10 13:00
+    final months = [
+      '', 'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    final monthName = months[date.month];
+    final day = date.day.toString().padLeft(2, '0');
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    return '${date.year}-$monthName-$day $hour:$minute';
+  }
+
+  String _formatPaymentMonth(int? month, int? year) {
+    // Format as: 2025-December
+    if (month == null || year == null) return '';
+    final months = [
+      '', 'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    final monthName = months[month];
+    return '$year-$monthName';
   }
 }
 

@@ -1780,16 +1780,22 @@ app.post('/api/payments', verifyToken, async (req, res) => {
       classObjectId = new mongoose.Types.ObjectId(classId);
     }
     
-    // Ensure month is set - derive from current date if not provided
+    // Use provided month/year for payment period, but use current date/time for recording timestamp
     const paymentMonth = month !== undefined ? month : new Date().getMonth() + 1;
-    
-    // Ensure year is set - derive from current date if not provided
     const paymentYear = year !== undefined ? year : new Date().getFullYear();
     
-    // Create date from month and year if provided, otherwise use current date
-    const paymentDate = new Date(paymentYear, paymentMonth - 1, 1);
+    // Use current date and time for when the payment was recorded
+    const paymentDate = new Date();
     
-    const payment = new Payment({ studentId: studentObjectId, classId: classObjectId, amount, type, month: paymentMonth, year: paymentYear, date: paymentDate });
+    const payment = new Payment({ 
+      studentId: studentObjectId, 
+      classId: classObjectId, 
+      amount, 
+      type, 
+      month: paymentMonth, 
+      year: paymentYear, 
+      date: paymentDate 
+    });
     await payment.save();
     res.status(201).json(payment);
   } catch (error) {
