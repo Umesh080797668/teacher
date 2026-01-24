@@ -3345,12 +3345,13 @@ app.get('/api/home/stats', verifyToken, async (req, res) => {
 
     let classIds = null;
     let studentIds = null;
+    let teacherDoc = null;
     if (teacherId) {
       // Find teacher by teacherId string and get their classes and students
       console.log('Filtering home stats for teacherId:', teacherId);
-      const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
-      if (teacher) {
-        const classes = await Class.find({ teacherId: teacher._id });
+      teacherDoc = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+      if (teacherDoc) {
+        const classes = await Class.find({ teacherId: teacherDoc._id });
         classIds = classes.map(c => c._id);
         const students = await Student.find({ classId: { $in: classIds } });
         studentIds = students.map(s => s._id);
@@ -3472,12 +3473,14 @@ app.get('/api/home/stats', verifyToken, async (req, res) => {
 
     // Calculate classes trend (New classes this month)
     const classesThisMonthQuery = {
-      teacherId: teacher._id,
       createdAt: {
         $gte: new Date(currentYear, currentMonth, 1), 
         $lt: new Date(currentYear, currentMonth + 1, 1)
       }
     };
+    if (teacherDoc) {
+      classesThisMonthQuery.teacherId = teacherDoc._id;
+    }
     const newClassesCount = await Class.countDocuments(classesThisMonthQuery);
     const classesTrend = `+${newClassesCount}`;
     const classesPositive = newClassesCount > 0;
