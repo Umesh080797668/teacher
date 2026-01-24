@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:intl/intl.dart';
+import 'pdf_viewer_screen.dart';
 import '../providers/reports_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/classes_provider.dart';
+import '../providers/students_provider.dart';
+import '../providers/payment_provider.dart';
 import '../services/cache_service.dart';
+import '../services/data_export_service.dart';
+import '../services/api_service.dart';
 import '../widgets/custom_widgets.dart';
 import '../models/class.dart';
 
@@ -39,6 +46,134 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     super.dispose();
   }
 
+  void _showMonthlyReportDialog(BuildContext context) {
+    int selectedMonth = DateTime.now().month;
+    int selectedYear = DateTime.now().year;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Download Monthly Report'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Select Month and Year for the report:'),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          value: selectedMonth,
+                          decoration: const InputDecoration(labelText: 'Month'),
+                          items: List.generate(12, (index) {
+                            return DropdownMenuItem(
+                              value: index + 1,
+                              child: Text(DateFormat('MMMM').format(DateTime(2022, index + 1))),
+                            );
+                          }),
+                          onChanged: (val) => setState(() => selectedMonth = val!),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          value: selectedYear,
+                          decoration: const InputDecoration(labelText: 'Year'),
+                          items: List.generate(10, (index) {
+                            final year = DateTime.now().year - 5 + index;
+                            return DropdownMenuItem(
+                              value: year,
+                              child: Text(year.toString()),
+                            );
+                          }),
+                          onChanged: (val) => setState(() => selectedYear = val!),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    _generateReport(selectedMonth, selectedYear);
+                  },
+                  child: const Text('Download'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _generateReport(int month, int year) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final teacherId = auth.teacherId;
+      
+      final classesProvider = Provider.of<ClassesProvider>(context, listen: false);
+      final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
+      final paymentProvider = Provider.of<PaymentProvider>(context, listen: false);
+      
+      await Future.wait([
+        classesProvider.loadClasses(teacherId: teacherId),
+        studentsProvider.loadStudents(teacherId: teacherId),
+        paymentProvider.loadPayments(teacherId: teacherId),
+      ]);
+      
+      // Fetch attendance for the month
+      final attendanceRecords = await ApiService.getAttendance(
+        teacherId: teacherId,
+        month: month,
+        year: year,
+      );
+
+      final filePath = await DataExportService.generateMonthlyReport(
+        month: month,
+        year: year,
+        classes: classesProvider.classes,
+        students: studentsProvider.students,
+        payments: paymentProvider.payments,
+        attendanceRecords: attendanceRecords,
+      );
+      
+      if (mounted) {
+        Navigator.pop(context); 
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Report saved to $filePath'), backgroundColor: Colors.green),
+        );
+
+        Navigator.push(
+          context, 
+          MaterialPageRoute(builder: (context) => PdfViewerScreen(filePath: filePath, title: 'Monthly Report - $month/$year'))
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Failed to generate report: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final reportsProvider = Provider.of<ReportsProvider>(context, listen: false);
@@ -46,6 +181,13 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Scaffold(
       appBar: AppBar(
         title: const Text('Reports'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Download Monthly Report',
+            onPressed: () => _showMonthlyReportDialog(context),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

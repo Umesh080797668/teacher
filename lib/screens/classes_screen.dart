@@ -139,6 +139,8 @@ class _ClassesScreenState extends State<ClassesScreen> {
         elevation: 0,
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+        actions: [
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

@@ -37,6 +37,8 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> with Single
     return Scaffold(
       appBar: AppBar(
         title: const Text('View Attendance'),
+        actions: [
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

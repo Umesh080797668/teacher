@@ -124,22 +124,22 @@ class _SplashScreenState extends State<SplashScreen>
       target = const LoginScreen();
     } else if (!auth.isActivated) {
       // Never been activated - check if payment proof was submitted
-      if (auth.hasSubmittedPaymentProof && auth.selectedSubscriptionPlan != null) {
-        // User submitted payment proof and is waiting for approval - show activation screen
-        target = ActivationScreen(selectedPlan: auth.selectedSubscriptionPlan);
+      if (auth.hasSubmittedPaymentProof) {
+        // User submitted payment proof and is waiting for approval
+        target = const PendingActivationScreen();
       } else if (auth.hasSelectedSubscriptionPlan && auth.selectedSubscriptionPlan != null) {
         // User has selected a plan but hasn't submitted payment proof yet
         target = ActivationScreen(selectedPlan: auth.selectedSubscriptionPlan);
       } else {
-        // User hasn't selected a plan yet or is pending activation after payment
-        target = const PendingActivationScreen();
+        // User hasn't selected a plan yet
+        target = const SubscriptionScreen();
       }
     } else if (!auth.hasCompletedSubscriptionSetup) {
       // Was activated but subscription setup not completed
       // Check if payment proof was submitted (app closed during renewal)
-      if (auth.hasSubmittedPaymentProof && auth.selectedSubscriptionPlan != null) {
+      if (auth.hasSubmittedPaymentProof) {
         // User submitted payment proof for renewal and is waiting for approval
-        target = ActivationScreen(selectedPlan: auth.selectedSubscriptionPlan);
+        target = const PendingActivationScreen();
       } else if (auth.hasSelectedSubscriptionPlan && auth.selectedSubscriptionPlan != null) {
         // User has selected a renewal plan but hasn't completed setup
         target = ActivationScreen(selectedPlan: auth.selectedSubscriptionPlan);

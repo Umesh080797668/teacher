@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -23,13 +24,35 @@ import 'providers/admin_changes_provider.dart';
 import 'services/background_update_service.dart';
 import 'services/background_backup_service.dart';
 import 'services/notification_service.dart';
+import 'services/connectivity_service.dart';
+import 'widgets/offline_banner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   
   // Initialize Firebase
-  await Firebase.initializeApp();
+  try {
+    if (kIsWeb) {
+      // For web, Firebase SDK needs to be initialized with config
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: "AIzaSyCQ0y34Rn0HK2PAABM9by117eGTK-O0Mfg",
+          authDomain: "eduverse-teacher-app.firebaseapp.com",
+          projectId: "eduverse-teacher-app",
+          storageBucket: "eduverse-teacher-app.firebasestorage.app",
+          messagingSenderId: "722907877028",
+          appId: "1:722907877028:web:f75189df4ee478dfe42031",
+          measurementId: "G-J65GXF20BL",
+        ),
+      );
+    } else {
+      // For mobile, initialize with default options
+      await Firebase.initializeApp();
+    }
+  } catch (e) {
+    print('Firebase initialization error: $e');
+  }
   
   // Initialize notification service with FCM
   await NotificationService().initialize();
@@ -62,11 +85,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final ReportsProvider reportsProvider;
   late final ThemeProvider themeProvider;
   late final AdminChangesProvider adminChangesProvider;
+  late final ConnectivityService connectivityService;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Initialize services
+    connectivityService = ConnectivityService();
 
     // Initialize providers
     authProvider = AuthProvider();
@@ -81,6 +108,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    connectivityService.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -114,6 +142,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     
     return MultiProvider(
       providers: [
+        StreamProvider<bool>(
+          create: (_) => connectivityService.connectionStatus,
+          initialData: true,
+        ),
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider.value(value: studentsProvider),
         ChangeNotifierProvider.value(value: attendanceProvider),
@@ -138,6 +170,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             themeMode: themeProvider.isDarkMode
                 ? ThemeMode.dark
                 : ThemeMode.light,
+            builder: (context, child) {
+              return Column(
+                children: [
+                  const OfflineBanner(),
+                  Expanded(child: child ?? const SizedBox()),
+                ],
+              );
+            },
             home: const SplashScreen(),
             routes: {
               '/login': (context) => const LoginScreen(),

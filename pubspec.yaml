@@ -61,10 +61,14 @@ dependencies:
   flutter_dotenv: ^5.1.0
   workmanager: ^0.7.0
   file_picker: ^8.1.4
-  share_plus: ^10.1.2
+  share_plus: ^10.1.4
   flutter_email_sender: ^6.0.3
 
   path: any
+  connectivity_plus: ^7.0.0
+  csv: ^6.0.0
+  pdf: ^3.11.3
+  flutter_pdfview: ^1.4.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

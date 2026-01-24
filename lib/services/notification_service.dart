@@ -153,15 +153,17 @@ class NotificationService {
       final prefs = await SharedPreferences.getInstance();
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
 
-      // Initialize local notifications
-      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const initSettings = InitializationSettings(android: androidSettings);
-      
-      await _localNotifications.initialize(
-        initSettings,
-        onDidReceiveNotificationResponse: _onNotificationTapped,
-        onDidReceiveBackgroundNotificationResponse: _onBackgroundAction,
-      );
+      // Initialize local notifications (Android/iOS only)
+      if (!kIsWeb) {
+        const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+        const initSettings = InitializationSettings(android: androidSettings);
+        
+        await _localNotifications.initialize(
+          initSettings,
+          onDidReceiveNotificationResponse: _onNotificationTapped,
+          onDidReceiveBackgroundNotificationResponse: _onBackgroundAction,
+        );
+      }
 
       // Create notification channels
       await _createNotificationChannels();
@@ -183,6 +185,8 @@ class NotificationService {
 
   /// Create notification channels for Android
   Future<void> _createNotificationChannels() async {
+    if (kIsWeb) return; // Web doesn't need Android notification channels
+    
     final androidPlugin = _localNotifications
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
@@ -286,6 +290,12 @@ class NotificationService {
   /// Request notification permissions
   Future<void> _requestPermissions() async {
     try {
+      if (kIsWeb) {
+        // Web doesn't need android permissions
+        debugPrint('Skipping Android permissions on web');
+        return;
+      }
+
       // Request FCM permissions
       final settings = await _firebaseMessaging.requestPermission(
         alert: true,
@@ -309,15 +319,17 @@ class NotificationService {
   /// Set up Firebase Cloud Messaging
   Future<void> _setupFirebaseMessaging() async {
     try {
-      // Register background message handler FIRST - must be called before other Firebase setup
-      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      if (!kIsWeb) {
+        // Mobile-specific setup
+        await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        
+        FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      }
       
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
       // Get FCM token
       _fcmToken = await _firebaseMessaging.getToken();
       debugPrint('FCM Token: $_fcmToken');

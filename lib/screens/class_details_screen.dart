@@ -38,11 +38,11 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
 
     try {
       print('DEBUG: Loading students for class ${widget.classObj.id}');
-      
+
       // Try to load students for this specific class
       final classStudents = await ApiService.getStudentsByClass(widget.classObj.id);
       print('DEBUG: Loaded ${classStudents.length} students from class endpoint');
-      
+
       if (classStudents.isNotEmpty) {
         // If we got students from the class endpoint, use them
         studentsProvider.setStudents(classStudents);
@@ -51,7 +51,7 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
         print('DEBUG: Class endpoint returned no students, loading all teacher students');
         await studentsProvider.loadStudents(teacherId: auth.teacherId);
       }
-      
+
       // Load attendance data
       await attendanceProvider.loadAttendance(teacherId: auth.teacherId);
     } catch (e) {
@@ -66,15 +66,14 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
   List<Student> _getStudentsInClass() {
     final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
     final students = studentsProvider.students;
-    
+
     // If students have classId set, filter by it
     final studentsWithClassId = students.where((s) => s.classId != null).toList();
-    
+
     if (studentsWithClassId.isNotEmpty) {
       // Filter by classId if available
-      final classStudents = studentsWithClassId
-          .where((student) => student.classId == widget.classObj.id)
-          .toList();
+      final classStudents =
+          studentsWithClassId.where((student) => student.classId == widget.classObj.id).toList();
       print('DEBUG: Showing ${classStudents.length} students with classId filter');
       return classStudents;
     } else {
@@ -95,12 +94,12 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
     int presentCount = 0;
 
     for (final student in studentsInClass) {
-      final studentAttendance = attendanceProvider.attendance
-          .where((record) => record.studentId == student.id)
-          .toList();
+      final studentAttendance =
+          attendanceProvider.attendance.where((record) => record.studentId == student.id).toList();
 
       totalAttendanceRecords += studentAttendance.length;
-      presentCount += studentAttendance.where((record) => record.status.toLowerCase() == 'present').length;
+      presentCount +=
+          studentAttendance.where((record) => record.status.toLowerCase() == 'present').length;
     }
 
     return totalAttendanceRecords > 0 ? (presentCount / totalAttendanceRecords) * 100 : 0.0;
@@ -108,7 +107,7 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
 
   Future<void> _editClass() async {
     final nameController = TextEditingController(text: widget.classObj.name);
-    
+
     final result = await showDialog<String>(
       context: context,
       builder: (BuildContext context) {
@@ -194,7 +193,7 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
     final nameController = TextEditingController();
     final emailController = TextEditingController();
     final studentIdController = TextEditingController();
-    
+
     // Generate student ID automatically (same format as students screen)
     final timestamp = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
     final random = (DateTime.now().microsecondsSinceEpoch % 1000).toString().padLeft(3, '0');
@@ -226,9 +225,11 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                       labelText: 'Student ID (Auto-generated)',
                       labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       helperText: 'Generated automatically',
-                      helperStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7)),
+                      helperStyle: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7)),
                       filled: true,
-                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                      fillColor:
+                          Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
                       border: OutlineInputBorder(
                         borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                       ),
@@ -236,7 +237,8 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                         borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                       ),
                       disabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
+                        borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
                       ),
                     ),
                   ),
@@ -254,7 +256,8 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                         borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                        borderSide:
+                            BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
                       ),
                     ),
                     validator: (value) {
@@ -278,7 +281,8 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                         borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                        borderSide:
+                            BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
                       ),
                     ),
                     keyboardType: TextInputType.emailAddress,
@@ -320,11 +324,11 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
           studentIdController.text.trim(), // Use auto-generated ID
           widget.classObj.id,
         );
-        
+
         // Reload students to ensure the new student appears with correct classId
         final auth = Provider.of<AuthProvider>(context, listen: false);
         await studentsProvider.loadStudents(teacherId: auth.teacherId);
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -437,9 +441,9 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                           Text(
                             widget.classObj.name,
                             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
-                            ),
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                ),
                           ),
                           const SizedBox(height: 4),
                           Consumer<AuthProvider>(
@@ -447,8 +451,11 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                               return Text(
                                 'Teacher ID: ${auth.teacherId}',
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
-                                ),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer
+                                          .withOpacity(0.7),
+                                    ),
                               );
                             },
                           ),
@@ -499,8 +506,8 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                 final filteredStudents = studentsInClass.where((student) {
                   if (_searchQuery.isEmpty) return true;
                   return student.name.toLowerCase().contains(_searchQuery) ||
-                    (student.email?.toLowerCase().contains(_searchQuery) ?? false) ||
-                    (student.studentId.toLowerCase().contains(_searchQuery) ?? false);
+                      (student.email?.toLowerCase().contains(_searchQuery) ?? false) ||
+                      (student.studentId.toLowerCase().contains(_searchQuery) ?? false);
                 }).toList();
 
                 if (studentsProvider.isLoading) {
@@ -524,8 +531,8 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                         Text(
                           'No students found',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -533,8 +540,8 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                               ? 'Add students to get started'
                               : 'Try a different search term',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
                         ),
                       ],
                     ),
@@ -555,16 +562,24 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                               final confirm = await showDialog<bool>(
                                 context: context,
                                 builder: (context) => AlertDialog(
-                                  title: const Text('Delete Student'),
-                                  content: Text('Are you sure you want to delete ${student.name} from this class?'),
+                                  title: Text('Delete Student',
+                                      style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface)),
+                                  content: Text(
+                                      'Are you sure you want to delete ${student.name} from this class?',
+                                      style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface)),
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('Cancel'),
+                                      child: Text('Cancel',
+                                          style: TextStyle(
+                                              color: Theme.of(context).colorScheme.primary)),
                                     ),
                                     TextButton(
                                       onPressed: () => Navigator.pop(context, true),
-                                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                      child:
+                                          const Text('Delete', style: TextStyle(color: Colors.red)),
                                     ),
                                   ],
                                 ),
@@ -572,22 +587,44 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
 
                               if (confirm == true && context.mounted) {
                                 try {
+                                  // Show loading dialog while deleting
+                                  if (context.mounted) {
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (context) => AlertDialog(
+                                        content: Row(
+                                          children: [
+                                            const CircularProgressIndicator(),
+                                            const SizedBox(width: 16),
+                                            const Text('Deleting student...'),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }
+
                                   await Provider.of<StudentsProvider>(context, listen: false)
                                       .deleteStudent(student.id);
+
                                   if (context.mounted) {
+                                    Navigator.pop(context); // Close loading dialog
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text('Student deleted successfully'),
                                         backgroundColor: Colors.green,
+                                        duration: Duration(seconds: 2),
                                       ),
                                     );
                                   }
                                 } catch (e) {
                                   if (context.mounted) {
+                                    Navigator.pop(context); // Close loading dialog
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('Failed to delete student: $e'),
+                                        content: Text('Failed to delete student: ${e.toString()}'),
                                         backgroundColor: Colors.red,
+                                        duration: const Duration(seconds: 3),
                                       ),
                                     );
                                   }
@@ -606,56 +643,56 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
                           contentPadding: const EdgeInsets.all(16),
-                        leading: CircleAvatar(
-                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                          radius: 24,
-                          child: Text(
-                            student.name.isNotEmpty ? student.name[0].toUpperCase() : '?',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          student.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'ID: ${student.studentId}',
+                          leading: CircleAvatar(
+                            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                            radius: 24,
+                            child: Text(
+                              student.name.isNotEmpty ? student.name[0].toUpperCase() : '?',
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.outline,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (student.email != null && student.email!.isNotEmpty)
+                          ),
+                          title: Text(
+                            student.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Text(
-                                student.email!,
+                                'ID: ${student.studentId}',
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.outline,
                                 ),
                               ),
-                          ],
+                              if (student.email != null && student.email!.isNotEmpty)
+                                Text(
+                                  student.email!,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.outline,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          trailing: Icon(
+                            Icons.chevron_right,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => StudentDetailsScreen(student: student),
+                              ),
+                            );
+                          },
                         ),
-                        trailing: Icon(
-                          Icons.chevron_right,
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => StudentDetailsScreen(student: student),
-                            ),
-                          );
-                        },
                       ),
-                    ),
                     );
                   },
                 );
@@ -719,8 +756,8 @@ class _StatCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-            ),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
           ),
         ],
       ),

@@ -259,6 +259,26 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       }
     }
 
+    // Auto-mark unmarked students as Absent
+    // Only applies if a specific class is selected to avoid mass-marking all students as absent accidentally
+    final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
+    bool autoMarked = false;
+    
+    if (_selectedClassId != null && studentsProvider.students.isNotEmpty) {
+      for (var student in studentsProvider.students) {
+        // If student is not in _attendanceStatus (no local selection)
+        // AND not in _preExistingAttendance (not previously saved)
+        if (!_attendanceStatus.containsKey(student.id) && !_preExistingAttendance.containsKey(student.id)) {
+          _attendanceStatus[student.id] = 'absent';
+          autoMarked = true;
+        }
+      }
+      
+      if (autoMarked && mounted) {
+        setState(() {}); // Update UI to reflect auto-marked absent
+      }
+    }
+
     // Check if there are any changes to save (new marks or deletions)
     if (!_hasNewlyMarkedAttendance()) {
       ScaffoldMessenger.of(context).showSnackBar(

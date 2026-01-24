@@ -8,7 +8,6 @@ import '../providers/auth_provider.dart';
 import '../models/student.dart';
 import '../models/class.dart' as class_model;
 import '../widgets/custom_widgets.dart';
-import 'package:intl/intl.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -181,6 +180,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
         elevation: 0,
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+        actions: [
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -744,7 +745,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           orElse: () => Student(id: '', name: '', studentId: ''),
                         );
                         return student.name.toLowerCase().contains(_searchText) ||
-                               (student.studentId.toLowerCase().contains(_searchText) ?? false);
+                               student.studentId.toLowerCase().contains(_searchText);
                       }).toList();
 
                 if (filteredPayments.isEmpty) {
@@ -990,26 +991,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return '${date.day} $monthName ${date.year} $hour:$minute';
   }
 
-  String _formatPaymentMonthYear(DateTime date) {
-    // Format as: january-2026 (lowercase month-year)
-    final months = [
-      '', 'january', 'february', 'march', 'april', 'may', 'june',
-      'july', 'august', 'september', 'october', 'november', 'december'
-    ];
-    final monthName = months[date.month];
-    return '$monthName-${date.year}';
-  }
 
-  String _formatPaymentMonth(int? month, int? year) {
-    // Format as: 2025-December
-    if (month == null || year == null) return '';
-    final months = [
-      '', 'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    final monthName = months[month];
-    return '$year-$monthName';
-  }
 }
 
 class _StatCard extends StatelessWidget {

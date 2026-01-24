@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eduverse Teacher Panel - User Agreement</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header .subtitle {
+            font-size: 1.3em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .version-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 20px;
+            border-radius: 25px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+
+        .content {
+            padding: 50px 40px;
+        }
+
+        .important-notice {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 8px;
+        }
+
+        .important-notice h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .section {
+            margin-bottom: 50px;
+            page-break-inside: avoid;
+        }
+
+        .section h2 {
+            color: #2c3e50;
+            font-size: 2em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .section h3 {
+            color: #34495e;
+            font-size: 1.5em;
+            margin: 30px 0 15px;
+            padding-left: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section h4 {
+            color: #555;
+            font-size: 1.2em;
+            margin: 20px 0 10px;
+        }
+
+        .section p {
+            margin: 15px 0;
+            text-align: justify;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 40px;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        .highlight-box {
+            background: #e3f2fd;
+            border-left: 5px solid #2196F3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .highlight-box.warning {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+        }
+
+        .highlight-box.danger {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+
+        .highlight-box.success {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+
+        .numbered-section {
+            counter-reset: article-counter;
+        }
+
+        .article {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            counter-increment: article-counter;
+        }
+
+        .article h3::before {
+            content: "Article " counter(article-counter) ": ";
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .signature-section {
+            margin: 50px 0;
+            padding: 30px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+
+        .signature-line {
+            border-top: 2px solid #333;
+            margin-top: 50px;
+            padding-top: 10px;
+        }
+
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .footer p {
+            margin: 10px 0;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .definition-list dt {
+            font-weight: bold;
+            color: #667eea;
+            margin-top: 15px;
+        }
+
+        .definition-list dd {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+
+            .section {
+                page-break-inside: avoid;
+            }
+        }
+
+        .toc {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+            border-left: 5px solid #667eea;
+        }
+
+        .toc h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            border: none;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .toc li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .toc li:last-child {
+            border-bottom: none;
+        }
+
+        .toc a {
+            color: #2c3e50;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: block;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .toc a:hover {
+            background: rgba(102, 126, 234, 0.1);
+            padding-left: 20px;
+        }
+
+        .effective-date {
+            text-align: center;
+            font-size: 1.1em;
+            color: #666;
+            font-style: italic;
+            margin: 30px 0;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .acceptance-box {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 10px;
+        }
+
+        .acceptance-box h3 {
+            color: #2e7d32;
+            border: none;
+            margin: 0 0 15px 0;
+            padding: 0;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        .contact-info {
+            background: #f5f7fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .contact-info h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>⚖️ User Agreement</h1>
+            <p class="subtitle">Eduverse Teacher Panel</p>
+            <div class="version-badge">Version 1.0 | Effective January 2026</div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="effective-date">
+                <strong>Effective Date:</strong> January 1, 2026<br>
+                <strong>Last Updated:</strong> January 20, 2026
+            </div>
+
+            <div class="important-notice">
+                <h3>⚠️ IMPORTANT - PLEASE READ CAREFULLY</h3>
+                <p><strong>This User Agreement ("Agreement") is a legal contract between you ("User," "you," or "your") and Eduverse Education Solutions ("Eduverse," "we," "us," or "our"). By downloading, installing, accessing, or using the Eduverse Teacher Panel mobile application ("App"), you agree to be bound by this Agreement. If you do not agree to these terms, do not use the App.</strong></p>
+            </div>
+
+            <!-- Table of Contents -->
+            <div class="toc">
+                <h2>📑 Table of Contents</h2>
+                <ul>
+                    <li><a href="#definitions">1. Definitions</a></li>
+                    <li><a href="#acceptance">2. Acceptance of Terms</a></li>
+                    <li><a href="#description">3. Service Description</a></li>
+                    <li><a href="#eligibility">4. User Eligibility</a></li>
+                    <li><a href="#account">5. Account Registration and Security</a></li>
+                    <li><a href="#subscription">6. Subscription and Payment</a></li>
+                    <li><a href="#user-obligations">7. User Obligations and Conduct</a></li>
+                    <li><a href="#data-privacy">8. Data Privacy and Protection</a></li>
+                    <li><a href="#intellectual-property">9. Intellectual Property Rights</a></li>
+                    <li><a href="#service-availability">10. Service Availability and Modifications</a></li>
+                    <li><a href="#limitation-liability">11. Limitation of Liability</a></li>
+                    <li><a href="#warranties">12. Warranties and Disclaimers</a></li>
+                    <li><a href="#indemnification">13. Indemnification</a></li>
+                    <li><a href="#termination">14. Termination</a></li>
+                    <li><a href="#dispute-resolution">15. Dispute Resolution</a></li>
+                    <li><a href="#governing-law">16. Governing Law</a></li>
+                    <li><a href="#changes">17. Changes to Agreement</a></li>
+                    <li><a href="#general">18. General Provisions</a></li>
+                    <li><a href="#contact">19. Contact Information</a></li>
+                </ul>
+            </div>
+
+            <!-- Definitions -->
+            <div class="section numbered-section" id="definitions">
+                <h2>1. Definitions</h2>
+                <p>For the purposes of this Agreement, the following terms shall have the meanings set forth below:</p>
+                
+                <dl class="definition-list">
+                    <dt>"App" or "Application"</dt>
+                    <dd>Refers to the Eduverse Teacher Panel mobile application available on iOS and Android platforms, including all updates, modifications, and related services.</dd>
+                    
+                    <dt>"Service" or "Services"</dt>
+                    <dd>Refers to all features, functionalities, content, and services provided through the App, including but not limited to attendance tracking, student management, payment processing, and reporting features.</dd>
+                    
+                    <dt>"User," "You," or "Your"</dt>
+                    <dd>Refers to any individual or entity that downloads, accesses, or uses the App.</dd>
+                    
+                    <dt>"User Data" or "Your Data"</dt>
+                    <dd>Refers to all information, content, and data that you input, upload, or generate while using the App, including student information, attendance records, payment records, and personal information.</dd>
+                    
+                    <dt>"Account"</dt>
+                    <dd>Refers to the registered user account created to access and use the Services.</dd>
+                    
+                    <dt>"Subscription"</dt>
+                    <dd>Refers to the paid plan or tier that grants access to specific features and services within the App.</dd>
+                    
+                    <dt>"Institution"</dt>
+                    <dd>Refers to any educational organization, school, college, university, or tutoring center for which you use the App.</dd>
+                    
+                    <dt>"Student Data"</dt>
+                    <dd>Refers to personally identifiable information about students entered into the App, including names, contact information, attendance records, and payment information.</dd>
+                </dl>
+            </div>
+
+            <!-- Acceptance of Terms -->
+            <div class="section numbered-section" id="acceptance">
+                <h2>2. Acceptance of Terms</h2>
+                
+                <div class="article">
+                    <h3>Binding Agreement</h3>
+                    <p>By creating an account, downloading, installing, accessing, or using the App in any way, you acknowledge that you have read, understood, and agree to be bound by this Agreement and our Privacy Policy, which is incorporated herein by reference.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Continued Use</h3>
+                    <p>Your continued use of the App following any changes to this Agreement constitutes your acceptance of such changes. If you do not agree with any modifications, you must immediately stop using the App and delete it from your device.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Authority to Agree</h3>
+                    <p>You represent and warrant that you have the legal authority to enter into this Agreement. If you are using the App on behalf of an institution or organization, you represent that you have the authority to bind that entity to this Agreement.</p>
+                </div>
+
+                <div class="acceptance-box">
+                    <h3>✓ By Using the App, You Agree To:</h3>
+                    <ul>
+                        <li>Comply with all terms and conditions of this Agreement</li>
+                        <li>Use the App only for lawful purposes</li>
+                        <li>Protect student data and maintain confidentiality</li>
+                        <li>Pay all applicable fees for subscription services</li>
+                        <li>Not violate any intellectual property rights</li>
+                        <li>Accept all risks associated with use of the App</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Service Description -->
+            <div class="section numbered-section" id="description">
+                <h2>3. Service Description</h2>
+
+                <div class="article">
+                    <h3>Overview</h3>
+                    <p>Eduverse Teacher Panel is a comprehensive mobile application designed to help teachers and educational professionals manage classroom activities, including:</p>
+                    <ul>
+                        <li>Student registration and profile management</li>
+                        <li>Class creation and organization</li>
+                        <li>Daily attendance tracking and recording</li>
+                        <li>Payment and fee management</li>
+                        <li>Report generation and analytics</li>
+                        <li>Data backup and synchronization</li>
+                        <li>Multi-device access</li>
+                        <li>Offline functionality</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Service Limitations</h3>
+                    <p>We provide the Services "as is" and reserve the right to:</p>
+                    <ul>
+                        <li>Modify, suspend, or discontinue any feature at any time</li>
+                        <li>Impose usage limits on certain features</li>
+                        <li>Require subscription for access to premium features</li>
+                        <li>Perform scheduled and unscheduled maintenance</li>
+                        <li>Update the App to improve functionality and security</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Subscription Tiers</h3>
+                    <p>The App offers different subscription levels with varying features and limitations:</p>
+                    <table>
+                        <tr>
+                            <th>Plan</th>
+                            <th>Features</th>
+                            <th>Limitations</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Free</strong></td>
+                            <td>Basic attendance tracking, up to 50 students, limited reports</td>
+                            <td>No data export, limited history, ads displayed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Basic</strong></td>
+                            <td>Up to 200 students, payment tracking, basic reports, no ads</td>
+                            <td>Limited report customization, 6-month history</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Professional</strong></td>
+                            <td>Unlimited students, advanced reports, data export, priority support</td>
+                            <td>Single user only</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Institution</strong></td>
+                            <td>All features, multi-user access, API access, custom branding</td>
+                            <td>Requires minimum 5 users</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Eligibility -->
+            <div class="section numbered-section" id="eligibility">
+                <h2>4. User Eligibility</h2>
+
+                <div class="article">
+                    <h3>Age Requirement</h3>
+                    <p>You must be at least 18 years of age to create an account and use the App. By using the App, you represent and warrant that you meet this age requirement.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Professional Use</h3>
+                    <p>The App is intended for use by:</p>
+                    <ul>
+                        <li>Licensed teachers and educators</li>
+                        <li>Educational administrators</li>
+                        <li>Private tutors and instructors</li>
+                        <li>Training and coaching professionals</li>
+                        <li>Educational institutions and their authorized representatives</li>
+                    </ul>
+                    <p>Use of the App for any other purpose may violate this Agreement.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Geographic Restrictions</h3>
+                    <p>The Services are controlled and operated from our facilities in [Jurisdiction]. We make no representation that the App is appropriate or available for use in all locations. Access to the App from territories where its contents are illegal is prohibited.</p>
+                </div>
+
+                <div class="highlight-box warning">
+                    <h4>⚠️ Prohibited Users</h4>
+                    <p>You may not use the App if:</p>
+                    <ul>
+                        <li>You are under 18 years of age</li>
+                        <li>You have been previously banned from using the App</li>
+                        <li>Your account has been terminated for violating this Agreement</li>
+                        <li>You are accessing the App from a prohibited jurisdiction</li>
+                        <li>You cannot legally enter into this Agreement</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Account Registration -->
+            <div class="section numbered-section" id="account">
+                <h2>5. Account Registration and Security</h2>
+
+                <div class="article">
+                    <h3>Account Creation</h3>
+                    <p>To use most features of the App, you must create an account by providing:</p>
+                    <ul>
+                        <li>Valid email address</li>
+                        <li>Secure password</li>
+                        <li>Full name</li>
+                        <li>Institution or organization name (if applicable)</li>
+                        <li>Contact information</li>
+                    </ul>
+                    <p>You agree to provide accurate, current, and complete information during registration and to update such information to keep it accurate, current, and complete.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Account Security</h3>
+                    <p>You are responsible for:</p>
+                    <ul>
+                        <li>Maintaining the confidentiality of your account credentials</li>
+                        <li>All activities that occur under your account</li>
+                        <li>Notifying us immediately of any unauthorized use of your account</li>
+                        <li>Ensuring your password meets security requirements</li>
+                        <li>Logging out from shared or public devices</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Email Verification</h3>
+                    <p>You must verify your email address by clicking the verification link sent to your registered email. Failure to verify your email may result in limited access to certain features.</p>
+                </div>
+
+                <div class="article">
+                    <h3>One Account Per User</h3>
+                    <p>You may only create one account per email address. Creating multiple accounts to circumvent service limitations or for fraudulent purposes is strictly prohibited and may result in termination of all accounts.</p>
+                </div>
+
+                <div class="highlight-box danger">
+                    <h4>🚨 Security Recommendations</h4>
+                    <ul>
+                        <li>Use a strong password with at least 8 characters, including uppercase, lowercase, numbers, and symbols</li>
+                        <li>Never share your password with anyone</li>
+                        <li>Enable two-factor authentication when available</li>
+                        <li>Regularly review linked devices and active sessions</li>
+                        <li>Report suspicious activity immediately</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Subscription and Payment -->
+            <div class="section numbered-section" id="subscription">
+                <h2>6. Subscription and Payment</h2>
+
+                <div class="article">
+                    <h3>Subscription Plans</h3>
+                    <p>Certain features of the App require a paid subscription. Subscription fees are charged on a monthly or annual basis, as selected during purchase. All fees are stated in U.S. Dollars (USD) unless otherwise indicated.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Payment Authorization</h3>
+                    <p>By providing payment information, you:</p>
+                    <ul>
+                        <li>Authorize us to charge your payment method for all fees incurred</li>
+                        <li>Represent that you are authorized to use the payment method</li>
+                        <li>Agree to pay all charges at the prices in effect when incurred</li>
+                        <li>Accept responsibility for all charges made through your account</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Automatic Renewal</h3>
+                    <p>Subscriptions automatically renew at the end of each billing period unless you cancel before the renewal date. You will be charged the then-current subscription fee. We will notify you of any fee increases before they take effect.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Cancellation and Refunds</h3>
+                    <p><strong>Cancellation:</strong> You may cancel your subscription at any time through the App settings or by contacting support. Cancellation takes effect at the end of the current billing period.</p>
+                    <p><strong>Refunds:</strong> Subscription fees are non-refundable except as required by law or as explicitly stated in our Refund Policy. We do not provide refunds for partial months or years of service.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Free Trials</h3>
+                    <p>We may offer free trial periods for certain subscription plans. At the end of the trial, you will be automatically charged unless you cancel before the trial ends. We reserve the right to limit trial eligibility to one per user.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Price Changes</h3>
+                    <p>We reserve the right to change subscription fees at any time. We will provide at least 30 days' notice of any price increases. Your continued use of the App after the price change takes effect constitutes acceptance of the new price.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Taxes</h3>
+                    <p>All fees are exclusive of applicable taxes (e.g., sales, use, VAT, GST). You are responsible for paying all such taxes associated with your subscription.</p>
+                </div>
+            </div>
+
+            <!-- User Obligations -->
+            <div class="section numbered-section" id="user-obligations">
+                <h2>7. User Obligations and Conduct</h2>
+
+                <div class="article">
+                    <h3>Acceptable Use</h3>
+                    <p>You agree to use the App only for lawful purposes and in accordance with this Agreement. You specifically agree NOT to:</p>
+                    <ul>
+                        <li>Use the App in any way that violates applicable laws or regulations</li>
+                        <li>Impersonate any person or entity or misrepresent your affiliation</li>
+                        <li>Engage in unauthorized access or attempts to gain unauthorized access</li>
+                        <li>Interfere with or disrupt the App or servers</li>
+                        <li>Introduce viruses, malware, or other harmful code</li>
+                        <li>Attempt to reverse engineer, decompile, or disassemble the App</li>
+                        <li>Use automated systems (bots, scrapers) to access the App</li>
+                        <li>Remove copyright, trademark, or other proprietary notices</li>
+                        <li>Share your account credentials with others</li>
+                        <li>Use the App for competitive analysis or benchmarking</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Data Accuracy</h3>
+                    <p>You are solely responsible for:</p>
+                    <ul>
+                        <li>The accuracy and legality of all data you input into the App</li>
+                        <li>Ensuring you have permission to collect and process student data</li>
+                        <li>Compliance with all applicable data protection laws</li>
+                        <li>Maintaining backups of your data</li>
+                        <li>Verifying attendance records and payment information</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Consent and Authorization</h3>
+                    <p>You represent and warrant that:</p>
+                    <ul>
+                        <li>You have obtained all necessary consents to collect and process student data</li>
+                        <li>You have the authority to enter student information into the App</li>
+                        <li>You comply with all applicable privacy laws (FERPA, GDPR, COPPA, etc.)</li>
+                        <li>You will notify affected parties of data breaches as required by law</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Professional Standards</h3>
+                    <p>You agree to:</p>
+                    <ul>
+                        <li>Use the App in a professional and ethical manner</li>
+                        <li>Maintain the confidentiality of student information</li>
+                        <li>Not use student data for purposes other than education</li>
+                        <li>Follow your institution's policies and guidelines</li>
+                        <li>Respect the privacy rights of students and parents</li>
+                    </ul>
+                </div>
+
+                <div class="highlight-box danger">
+                    <h4>🚫 Prohibited Activities</h4>
+                    <p>The following activities are strictly prohibited and may result in immediate termination:</p>
+                    <ul>
+                        <li>Selling, renting, or sharing your account access</li>
+                        <li>Using the App to harass, abuse, or harm others</li>
+                        <li>Collecting student data for unauthorized purposes</li>
+                        <li>Circumventing security features or usage limitations</li>
+                        <li>Creating derivative works based on the App</li>
+                        <li>Using the App for illegal activities</li>
+                        <li>Spamming or sending unsolicited communications</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Data Privacy -->
+            <div class="section numbered-section" id="data-privacy">
+                <h2>8. Data Privacy and Protection</h2>
+
+                <div class="article">
+                    <h3>Privacy Policy</h3>
+                    <p>Your use of the App is governed by our Privacy Policy, which explains how we collect, use, store, and protect your information. By using the App, you consent to our data practices as described in the Privacy Policy.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Data Collection</h3>
+                    <p>We collect the following types of information:</p>
+                    <ul>
+                        <li><strong>Account Information:</strong> Name, email, password, institution details</li>
+                        <li><strong>User Data:</strong> Student records, attendance data, payment records</li>
+                        <li><strong>Usage Data:</strong> App interactions, features used, time spent</li>
+                        <li><strong>Device Information:</strong> Device type, OS version, IP address</li>
+                        <li><strong>Location Data:</strong> Approximate location (if enabled)</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Data Usage</h3>
+                    <p>We use collected data to:</p>
+                    <ul>
+                        <li>Provide and maintain the Services</li>
+                        <li>Process payments and generate receipts</li>
+                        <li>Send notifications and updates</li>
+                        <li>Improve App functionality and user experience</li>
+                        <li>Provide customer support</li>
+                        <li>Detect and prevent fraud or abuse</li>
+                        <li>Comply with legal obligations</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Data Security</h3>
+                    <p>We implement industry-standard security measures to protect your data, including:</p>
+                    <ul>
+                        <li>Encryption of data in transit and at rest</li>
+                        <li>Secure authentication protocols</li>
+                        <li>Regular security audits and updates</li>
+                        <li>Access controls and monitoring</li>
+                        <li>Secure data centers with redundancy</li>
+                    </ul>
+                    <p>However, no method of transmission or storage is 100% secure, and we cannot guarantee absolute security.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Data Retention</h3>
+                    <p>We retain your data for as long as:</p>
+                    <ul>
+                        <li>Your account is active</li>
+                        <li>Necessary to provide Services</li>
+                        <li>Required by law or regulation</li>
+                        <li>Needed to resolve disputes or enforce agreements</li>
+                    </ul>
+                    <p>You may request deletion of your data at any time, subject to legal retention requirements.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Data Portability</h3>
+                    <p>You have the right to:</p>
+                    <ul>
+                        <li>Access your data at any time</li>
+                        <li>Export your data in common formats (CSV, PDF, JSON)</li>
+                        <li>Transfer your data to another service</li>
+                        <li>Request correction of inaccurate data</li>
+                        <li>Request deletion of your data</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Third-Party Sharing</h3>
+                    <p>We do not sell your personal information. We may share data with:</p>
+                    <ul>
+                        <li><strong>Service Providers:</strong> Cloud hosting, payment processing, analytics</li>
+                        <li><strong>Legal Authorities:</strong> When required by law or to protect rights</li>
+                        <li><strong>Business Transfers:</strong> In case of merger, acquisition, or sale</li>
+                    </ul>
+                    <p>All third parties are contractually obligated to protect your data.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Student Data Protection</h3>
+                    <p>We treat student data with special care and comply with:</p>
+                    <ul>
+                        <li><strong>FERPA:</strong> Family Educational Rights and Privacy Act (US)</li>
+                        <li><strong>COPPA:</strong> Children's Online Privacy Protection Act (US)</li>
+                        <li><strong>GDPR:</strong> General Data Protection Regulation (EU)</li>
+                        <li>Other applicable data protection laws</li>
+                    </ul>
+                    <p>We never use student data for advertising or marketing purposes.</p>
+                </div>
+
+                <div class="highlight-box success">
+                    <h4>✓ Your Data Rights</h4>
+                    <p>You have the following rights regarding your data:</p>
+                    <ul>
+                        <li><strong>Access:</strong> View all data we have about you</li>
+                        <li><strong>Correction:</strong> Update inaccurate or incomplete data</li>
+                        <li><strong>Deletion:</strong> Request deletion of your data</li>
+                        <li><strong>Export:</strong> Download your data in portable format</li>
+                        <li><strong>Objection:</strong> Object to certain data processing</li>
+                        <li><strong>Restriction:</strong> Limit how we use your data</li>
+                    </ul>
+                    <p>To exercise these rights, contact us at privacy@eduverse.com</p>
+                </div>
+            </div>
+
+            <!-- Intellectual Property -->
+            <div class="section numbered-section" id="intellectual-property">
+                <h2>9. Intellectual Property Rights</h2>
+
+                <div class="article">
+                    <h3>Our Intellectual Property</h3>
+                    <p>The App and all content, features, and functionality, including but not limited to:</p>
+                    <ul>
+                        <li>Software code and architecture</li>
+                        <li>User interface design and graphics</li>
+                        <li>Logos, trademarks, and branding</li>
+                        <li>Text, images, and multimedia content</li>
+                        <li>Algorithms and methodologies</li>
+                        <li>Documentation and tutorials</li>
+                    </ul>
+                    <p>...are owned by Eduverse or its licensors and are protected by copyright, trademark, patent, trade secret, and other intellectual property laws.</p>
+                </div>
+
+                <div class="article">
+                    <h3>License Grant</h3>
+                    <p>Subject to your compliance with this Agreement, we grant you a limited, non-exclusive, non-transferable, revocable license to:</p>
+                    <ul>
+                        <li>Download and install the App on devices you own or control</li>
+                        <li>Access and use the Services for your personal or institutional purposes</li>
+                        <li>Create and share reports generated by the App</li>
+                    </ul>
+                    <p>This license does not include any right to:</p>
+                    <ul>
+                        <li>Resell or commercialize the Services</li>
+                        <li>Modify, adapt, or create derivative works</li>
+                        <li>Reverse engineer or decompile the App</li>
+                        <li>Remove proprietary notices or labels</li>
+                        <li>Use the Services in a competing product</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Your Content</h3>
+                    <p>You retain all rights to data and content you upload to the App ("Your Content"). By using the App, you grant us a worldwide, non-exclusive, royalty-free license to:</p>
+                    <ul>
+                        <li>Use, store, and process Your Content to provide Services</li>
+                        <li>Create backups and derivatives for service delivery</li>
+                        <li>Display Your Content within your account</li>
+                        <li>Use anonymized, aggregated data for analytics and improvements</li>
+                    </ul>
+                    <p>This license terminates when you delete Your Content or close your account, except for archival copies retained for legal purposes.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Trademarks</h3>
+                    <p>"Eduverse," "Eduverse Teacher Panel," and associated logos are trademarks of Eduverse Education Solutions. You may not use these marks without our prior written permission.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Copyright Infringement</h3>
+                    <p>If you believe any content in the App infringes your copyright, please contact us at copyright@eduverse.com with:</p>
+                    <ul>
+                        <li>Description of the copyrighted work</li>
+                        <li>Location of the infringing material</li>
+                        <li>Your contact information</li>
+                        <li>Statement of good faith belief</li>
+                        <li>Statement under penalty of perjury</li>
+                        <li>Physical or electronic signature</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Service Availability -->
+            <div class="section numbered-section" id="service-availability">
+                <h2>10. Service Availability and Modifications</h2>
+
+                <div class="article">
+                    <h3>Service Availability</h3>
+                    <p>We strive to provide reliable and continuous service, but we do not guarantee:</p>
+                    <ul>
+                        <li>Uninterrupted or error-free operation</li>
+                        <li>Specific uptime percentages</li>
+                        <li>Compatibility with all devices or OS versions</li>
+                        <li>Freedom from bugs, viruses, or defects</li>
+                        <li>Accuracy or reliability of information</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Maintenance and Downtime</h3>
+                    <p>We may perform scheduled and emergency maintenance that may temporarily limit or suspend access to the Services. We will attempt to provide advance notice of scheduled maintenance but are not obligated to do so.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Service Modifications</h3>
+                    <p>We reserve the right to:</p>
+                    <ul>
+                        <li>Modify, suspend, or discontinue any feature at any time</li>
+                        <li>Add new features or functionality</li>
+                        <li>Change the appearance or operation of the App</li>
+                        <li>Impose usage limits or restrictions</li>
+                        <li>Remove features with or without notice</li>
+                    </ul>
+                    <p>We are not liable for any modification, suspension, or discontinuation of Services.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Updates and Upgrades</h3>
+                    <p>We may release updates to improve functionality, security, or compatibility. You agree to install updates when they become available. Failure to update may result in reduced functionality or security vulnerabilities.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Beta Features</h3>
+                    <p>We may offer beta or experimental features. These features are provided "as is" without warranty and may be modified or removed at any time. Beta features should not be used for critical operations.</p>
+                </div>
+            </div>
+
+            <!-- Limitation of Liability -->
+            <div class="section numbered-section" id="limitation-liability">
+                <h2>11. Limitation of Liability</h2>
+
+                <div class="article">
+                    <h3>Disclaimer</h3>
+                    <p><strong>TO THE MAXIMUM EXTENT PERMITTED BY LAW:</strong></p>
+                    <p>IN NO EVENT SHALL EDUVERSE, ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, OR AFFILIATES BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO:</p>
+                    <ul>
+                        <li>Loss of profits, revenue, or data</li>
+                        <li>Loss of business opportunities</li>
+                        <li>Service interruptions or delays</li>
+                        <li>Data corruption or loss</li>
+                        <li>Unauthorized access to your account</li>
+                        <li>Errors or inaccuracies in content</li>
+                        <li>Third-party actions or omissions</li>
+                    </ul>
+                    <p>...WHETHER BASED ON WARRANTY, CONTRACT, TORT, OR ANY OTHER LEGAL THEORY, AND WHETHER OR NOT WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Maximum Liability</h3>
+                    <p>OUR TOTAL LIABILITY TO YOU FOR ALL CLAIMS ARISING FROM OR RELATED TO THIS AGREEMENT OR USE OF THE APP SHALL NOT EXCEED THE GREATER OF:</p>
+                    <ul>
+                        <li>The total amount you paid to us in the 12 months preceding the claim, or</li>
+                        <li>$100 USD</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>User Responsibility</h3>
+                    <p>You acknowledge and agree that:</p>
+                    <ul>
+                        <li>You use the App at your own risk</li>
+                        <li>You are solely responsible for maintaining backups of your data</li>
+                        <li>We are not responsible for data loss due to user error or device failure</li>
+                        <li>We are not liable for actions taken based on App data or reports</li>
+                        <li>You should verify critical information independently</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Jurisdictional Limitations</h3>
+                    <p>Some jurisdictions do not allow limitation of liability for certain damages. In such jurisdictions, our liability is limited to the maximum extent permitted by law.</p>
+                </div>
+
+                <div class="highlight-box danger">
+                    <h4>⚠️ IMPORTANT LIABILITY NOTICE</h4>
+                    <p>This limitation of liability is a fundamental element of the basis of the bargain between you and Eduverse. The Services would not be provided without such limitations. These limitations shall apply notwithstanding any failure of essential purpose of any limited remedy.</p>
+                </div>
+            </div>
+
+            <!-- Warranties and Disclaimers -->
+            <div class="section numbered-section" id="warranties">
+                <h2>12. Warranties and Disclaimers</h2>
+
+                <div class="article">
+                    <h3>Your Warranties</h3>
+                    <p>You represent and warrant that:</p>
+                    <ul>
+                        <li>You have the legal capacity to enter into this Agreement</li>
+                        <li>All information provided is accurate and truthful</li>
+                        <li>You have all necessary rights and permissions to use the App</li>
+                        <li>You have obtained necessary consents for student data collection</li>
+                        <li>Your use complies with all applicable laws and regulations</li>
+                        <li>You will not violate any third-party rights</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Disclaimer of Warranties</h3>
+                    <p><strong>THE APP AND SERVICES ARE PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO:</strong></p>
+                    <ul>
+                        <li>Warranties of merchantability</li>
+                        <li>Fitness for a particular purpose</li>
+                        <li>Non-infringement</li>
+                        <li>Accuracy or completeness</li>
+                        <li>Uninterrupted or error-free operation</li>
+                        <li>Security or virus-free operation</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>No Professional Advice</h3>
+                    <p>The App does not provide legal, financial, educational, or professional advice. Any information provided is for general informational purposes only. You should consult appropriate professionals for specific advice.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Third-Party Services</h3>
+                    <p>The App may integrate with or link to third-party services. We do not endorse, warrant, or assume responsibility for any third-party services, products, or content. Your use of third-party services is at your own risk and subject to their terms.</p>
+                </div>
+            </div>
+
+            <!-- Indemnification -->
+            <div class="section numbered-section" id="indemnification">
+                <h2>13. Indemnification</h2>
+
+                <div class="article">
+                    <h3>Your Indemnification Obligations</h3>
+                    <p>You agree to indemnify, defend, and hold harmless Eduverse, its officers, directors, employees, agents, affiliates, and partners from and against any and all claims, liabilities, damages, losses, costs, expenses, or fees (including reasonable attorneys' fees) arising from:</p>
+                    <ul>
+                        <li>Your use or misuse of the App</li>
+                        <li>Your violation of this Agreement</li>
+                        <li>Your violation of any law or regulation</li>
+                        <li>Your infringement of any third-party rights</li>
+                        <li>Your Content or data uploaded to the App</li>
+                        <li>Your unauthorized collection or processing of student data</li>
+                        <li>Any claim that Your Content caused harm to a third party</li>
+                        <li>Your negligence or willful misconduct</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Defense and Settlement</h3>
+                    <p>We reserve the right to assume the exclusive defense and control of any matter subject to indemnification by you. You agree to cooperate with our defense and not to settle any matter without our prior written consent.</p>
+                </div>
+            </div>
+
+            <!-- Termination -->
+            <div class="section numbered-section" id="termination">
+                <h2>14. Termination</h2>
+
+                <div class="article">
+                    <h3>Termination by You</h3>
+                    <p>You may terminate this Agreement and close your account at any time by:</p>
+                    <ul>
+                        <li>Using the account deletion feature in Settings, or</li>
+                        <li>Contacting support at support@eduverse.com</li>
+                    </ul>
+                    <p>Upon termination, your access to paid features will cease immediately, and any remaining subscription period will not be refunded unless required by law.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Termination by Us</h3>
+                    <p>We may suspend or terminate your account and access to the Services immediately, without notice or liability, for any reason, including:</p>
+                    <ul>
+                        <li>Violation of this Agreement</li>
+                        <li>Fraudulent activity or payment disputes</li>
+                        <li>Abusive or inappropriate conduct</li>
+                        <li>Legal or regulatory requirements</li>
+                        <li>Extended period of inactivity</li>
+                        <li>Request by law enforcement</li>
+                        <li>Risk to security or integrity of the Services</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Effects of Termination</h3>
+                    <p>Upon termination of your account:</p>
+                    <ul>
+                        <li>Your right to access and use the App immediately ceases</li>
+                        <li>You will no longer have access to Your Content</li>
+                        <li>We may delete Your Content after a grace period (typically 30 days)</li>
+                        <li>Outstanding fees remain due and payable</li>
+                        <li>Provisions intended to survive termination shall continue in effect</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Data Retrieval</h3>
+                    <p>Before your account is deleted, we recommend exporting your data. We will provide a grace period (typically 30 days) during which you can request a copy of your data. After this period, we cannot guarantee data recovery.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Survival</h3>
+                    <p>The following sections survive termination:</p>
+                    <ul>
+                        <li>User Obligations and Conduct</li>
+                        <li>Intellectual Property Rights</li>
+                        <li>Limitation of Liability</li>
+                        <li>Warranties and Disclaimers</li>
+                        <li>Indemnification</li>
+                        <li>Dispute Resolution</li>
+                        <li>Governing Law</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Dispute Resolution -->
+            <div class="section numbered-section" id="dispute-resolution">
+                <h2>15. Dispute Resolution</h2>
+
+                <div class="article">
+                    <h3>Informal Resolution</h3>
+                    <p>Before filing a claim, you agree to attempt to resolve the dispute informally by contacting us at disputes@eduverse.com. We will attempt to resolve the dispute through good-faith negotiation for at least 30 days.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Binding Arbitration</h3>
+                    <p>If informal resolution fails, you agree that any dispute arising from this Agreement will be resolved through binding arbitration rather than in court, except:</p>
+                    <ul>
+                        <li>Small claims court actions within jurisdictional limits</li>
+                        <li>Claims seeking injunctive relief for intellectual property infringement</li>
+                    </ul>
+                    <p>Arbitration shall be conducted by a neutral arbitrator in accordance with the rules of the American Arbitration Association (AAA). The arbitrator's decision is final and binding.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Class Action Waiver</h3>
+                    <p><strong>YOU AND EDUVERSE AGREE THAT DISPUTES WILL BE RESOLVED ON AN INDIVIDUAL BASIS. YOU WAIVE ANY RIGHT TO PARTICIPATE IN A CLASS ACTION LAWSUIT OR CLASS-WIDE ARBITRATION.</strong></p>
+                </div>
+
+                <div class="article">
+                    <h3>Arbitration Costs</h3>
+                    <p>Each party will bear its own costs of arbitration. If you prevail in arbitration and are awarded more than the last written settlement offer, we will pay your reasonable attorneys' fees.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Opt-Out of Arbitration</h3>
+                    <p>You may opt out of this arbitration agreement by sending written notice to legal@eduverse.com within 30 days of first accepting this Agreement. The notice must include your name, address, and a clear statement that you opt out of the arbitration agreement.</p>
+                </div>
+            </div>
+
+            <!-- Governing Law -->
+            <div class="section numbered-section" id="governing-law">
+                <h2>16. Governing Law</h2>
+
+                <div class="article">
+                    <h3>Applicable Law</h3>
+                    <p>This Agreement is governed by and construed in accordance with the laws of [Jurisdiction], without regard to its conflict of law provisions.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Jurisdiction and Venue</h3>
+                    <p>Any legal action or proceeding arising under this Agreement will be brought exclusively in the federal or state courts located in [County, State], and you consent to personal jurisdiction and venue in such courts.</p>
+                </div>
+
+                <div class="article">
+                    <h3>International Users</h3>
+                    <p>If you access the App from outside [Country], you are responsible for compliance with local laws. We make no representation that the App is appropriate or available for use in all locations.</p>
+                </div>
+            </div>
+
+            <!-- Changes to Agreement -->
+            <div class="section numbered-section" id="changes">
+                <h2>17. Changes to Agreement</h2>
+
+                <div class="article">
+                    <h3>Right to Modify</h3>
+                    <p>We reserve the right to modify this Agreement at any time. We will notify you of material changes by:</p>
+                    <ul>
+                        <li>Posting the updated Agreement in the App</li>
+                        <li>Sending email notification to your registered address</li>
+                        <li>Displaying a prominent notice in the App</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Effective Date of Changes</h3>
+                    <p>Changes become effective 30 days after notification, except:</p>
+                    <ul>
+                        <li>Changes required by law take effect immediately</li>
+                        <li>New features or benefits may take effect immediately</li>
+                        <li>Changes for legal, security, or safety reasons may take effect immediately</li>
+                    </ul>
+                </div>
+
+                <div class="article">
+                    <h3>Acceptance of Changes</h3>
+                    <p>Your continued use of the App after changes take effect constitutes acceptance of the modified Agreement. If you do not agree to changes, you must stop using the App and close your account before the changes take effect.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Version History</h3>
+                    <p>Previous versions of this Agreement are archived and available upon request.</p>
+                </div>
+            </div>
+
+            <!-- General Provisions -->
+            <div class="section numbered-section" id="general">
+                <h2>18. General Provisions</h2>
+
+                <div class="article">
+                    <h3>Entire Agreement</h3>
+                    <p>This Agreement, together with the Privacy Policy and any supplemental terms, constitutes the entire agreement between you and Eduverse regarding the App and supersedes all prior agreements and understandings.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Severability</h3>
+                    <p>If any provision of this Agreement is found to be invalid or unenforceable, the remaining provisions will remain in full force and effect. The invalid provision will be modified to the minimum extent necessary to make it valid and enforceable.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Waiver</h3>
+                    <p>Our failure to enforce any right or provision of this Agreement will not constitute a waiver of that right or provision. Any waiver must be in writing and signed by an authorized representative.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Assignment</h3>
+                    <p>You may not assign or transfer this Agreement or any rights granted hereunder without our prior written consent. We may assign this Agreement to any affiliate or successor without restriction.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Force Majeure</h3>
+                    <p>We are not liable for any failure or delay in performance due to causes beyond our reasonable control, including natural disasters, war, terrorism, labor disputes, or internet failures.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Independent Contractors</h3>
+                    <p>The relationship between you and Eduverse is that of independent contractors. This Agreement does not create a partnership, agency, employment, or joint venture relationship.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Third-Party Beneficiaries</h3>
+                    <p>This Agreement is for the benefit of you and Eduverse only. No third party has any right to enforce any provision of this Agreement.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Notices</h3>
+                    <p>All notices to you will be sent to your registered email address. Notices to us should be sent to legal@eduverse.com or:</p>
+                    <div class="contact-info">
+                        <p>
+                            <strong>Eduverse Education Solutions</strong><br>
+                            Legal Department<br>
+                            [Street Address]<br>
+                            [City, State ZIP]<br>
+                            [Country]
+                        </p>
+                    </div>
+                </div>
+
+                <div class="article">
+                    <h3>Language</h3>
+                    <p>This Agreement is written in English. Any translations are provided for convenience only. In case of conflict, the English version prevails.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Export Controls</h3>
+                    <p>The App may be subject to export control laws. You agree not to export or re-export the App to any prohibited country or person in violation of applicable laws.</p>
+                </div>
+
+                <div class="article">
+                    <h3>Government Users</h3>
+                    <p>If you are a U.S. government user, the App is "commercial computer software" and "commercial computer software documentation" with "Restricted Rights" as defined in applicable regulations.</p>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="section numbered-section" id="contact">
+                <h2>19. Contact Information</h2>
+
+                <div class="contact-info">
+                    <h4>General Inquiries</h4>
+                    <p><strong>Email:</strong> support@eduverse.com</p>
+                    <p><strong>Website:</strong> www.eduverse.com</p>
+                    <p><strong>Phone:</strong> +1-800-EDUVERSE (enterprise customers only)</p>
+                </div>
+
+                <div class="contact-info">
+                    <h4>Legal Matters</h4>
+                    <p><strong>Email:</strong> legal@eduverse.com</p>
+                    <p><strong>Address:</strong></p>
+                    <p>
+                        Eduverse Education Solutions<br>
+                        Legal Department<br>
+                        [Street Address]<br>
+                        [City, State ZIP]<br>
+                        [Country]
+                    </p>
+                </div>
+
+                <div class="contact-info">
+                    <h4>Privacy Concerns</h4>
+                    <p><strong>Email:</strong> privacy@eduverse.com</p>
+                </div>
+
+                <div class="contact-info">
+                    <h4>Billing and Subscriptions</h4>
+                    <p><strong>Email:</strong> billing@eduverse.com</p>
+                </div>
+
+                <div class="contact-info">
+                    <h4>Security Issues</h4>
+                    <p><strong>Email:</strong> security@eduverse.com</p>
+                </div>
+            </div>
+
+            <!-- Acknowledgment -->
+            <div class="signature-section">
+                <h3>📋 Acknowledgment and Acceptance</h3>
+                <p><strong>By using the Eduverse Teacher Panel app, you acknowledge that:</strong></p>
+                <ul>
+                    <li>You have read and understood this User Agreement</li>
+                    <li>You agree to be bound by all terms and conditions</li>
+                    <li>You accept the limitations of liability and disclaimers</li>
+                    <li>You consent to data collection and processing as described</li>
+                    <li>You have the authority to enter into this Agreement</li>
+                    <li>You will comply with all applicable laws and regulations</li>
+                </ul>
+
+                <div class="highlight-box success">
+                    <h4>✓ Electronic Signature</h4>
+                    <p>Your electronic acceptance (by clicking "I Agree," creating an account, or using the App) constitutes your legally binding electronic signature and is equivalent to your handwritten signature.</p>
+                </div>
+
+                <div style="margin-top: 40px;">
+                    <p><strong>Agreement Version:</strong> 1.0</p>
+                    <p><strong>Effective Date:</strong> January 1, 2026</p>
+                    <p><strong>Last Updated:</strong> January 20, 2026</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <h3>Eduverse Education Solutions</h3>
+            <p>© 2026 Eduverse Education Solutions. All rights reserved.</p>
+            <p>This is a legal document. Please read it carefully.</p>
+            <br>
+            <p>Questions about this Agreement? Contact: <a href="mailto:legal@eduverse.com">legal@eduverse.com</a></p>
+            <p>Visit us at <a href="https://www.eduverse.com">www.eduverse.com</a></p>
+            <br>
+            <p><small>This document may be updated periodically. Check our website for the latest version.</small></p>
+        </div>
+    </div>
+</body>
+</html>

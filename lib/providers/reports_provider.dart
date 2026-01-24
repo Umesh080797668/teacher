@@ -205,7 +205,14 @@ class ReportsProvider with ChangeNotifier {
     for (final cls in _allClasses) {
       final classStudents = _allStudents.where((s) => s.classId == cls.id).toList();
       final studentsList = classStudents.map((student) {
-        final attendanceIndex = _dailyAttendance.indexWhere((a) => a.studentId == student.id);
+        // Try to find attendance by student.id first, then by student.studentId (enrollment ID)
+        var attendanceIndex = _dailyAttendance.indexWhere((a) => a.studentId == student.id);
+        
+        // If not found, try with the student's enrollment ID
+        if (attendanceIndex == -1) {
+          attendanceIndex = _dailyAttendance.indexWhere((a) => a.studentId == student.studentId);
+        }
+        
         final hasAttendance = attendanceIndex != -1;
         final attendance = hasAttendance ? _dailyAttendance[attendanceIndex] : null;
 

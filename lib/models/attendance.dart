@@ -20,11 +20,19 @@ class Attendance {
   });
 
   factory Attendance.fromJson(Map<String, dynamic> json) {
+    // Handle student id extraction if student field is populated object
+    String extractedStudentId = '';
+    var studentData = json['studentId'] ?? json['student_id'] ?? json['student'];
+    
+    if (studentData is String) {
+      extractedStudentId = studentData;
+    } else if (studentData is Map) {
+      extractedStudentId = studentData['_id'] ?? studentData['id'] ?? '';
+    }
+
     return Attendance(
       id: (json['_id'] ?? json['id']) is String ? (json['_id'] ?? json['id']) : '',
-      studentId: (json['studentId'] ?? json['student_id'] ?? json['student']) is String 
-          ? (json['studentId'] ?? json['student_id'] ?? json['student']) 
-          : '',
+      studentId: extractedStudentId,
       date: json['date'] is String ? DateTime.parse(json['date']) : DateTime.now(),
       session: json['session'] is String ? json['session'] : '',
       status: json['status'] is String ? json['status'] : 'unknown',

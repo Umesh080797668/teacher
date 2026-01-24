@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart'; // For Clipboard
+import 'package:url_launcher/url_launcher.dart'; // For calling/emailing
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -28,29 +31,24 @@ class _ActivationScreenState extends State<ActivationScreen> {
   bool _screenJustLoaded = true; // Track if screen just loaded to prevent immediate nav
   SubscriptionPollingService? _subscriptionPollingService;
   String? _currentSubscriptionType;
+  int? _fileSize; // Store file size in bytes
 
   @override
   void initState() {
     super.initState();
     _selectedPlan = widget.selectedPlan;
     _initializeSubscriptionPolling();
+    _restoreSavedState();
     
     // Check if payment proof was already submitted (user returning after app closed)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       if (auth.hasSubmittedPaymentProof) {
-        setState(() {
-          _isPaymentSubmitted = true;
-        });
-        
-        // Show message that payment is being reviewed
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Your payment proof is being reviewed by the admin. You will be notified once approved.'),
-            backgroundColor: Colors.blue,
-            duration: Duration(seconds: 4),
-          ),
-        );
+        if (mounted) {
+           Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const PendingActivationScreen()),
+          );
+        }
       }
     });
     
@@ -83,7 +81,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
     final newSubscriptionType = status['subscriptionType'] as String?;
     final isActive = status['isActive'] as bool? ?? false;
     final paymentRejected = status['_paymentRejected'] as bool? ?? false;
-    final paymentApproved = status['_paymentApproved'] as bool? ?? false;
     final rejectionReason = status['paymentProofRejectionReason'] as String?;
 
     // Handle payment rejection - navigate to rejection screen
@@ -173,15 +170,110 @@ class _ActivationScreenState extends State<ActivationScreen> {
     }
   }
 
-  Future<void> _pickPaymentProof() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+  Future<void> _restoreSavedState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Restore selected plan if not provided by widget
+      if (_selectedPlan == null) {
+        final savedPlan = prefs.getString('temp_selected_plan');
+        if (savedPlan != null) {
+          setState(() {
+            _selectedPlan = savedPlan;
+          });
+        }
+      }
 
-    if (image != null) {
-      setState(() {
-        _paymentProof = File(image.path);
-      });
+      // Restore payment proof logic
+      final path = prefs.getString('temp_payment_proof_path');
+      if (path != null) {
+        final file = File(path);
+        if (await file.exists()) {
+          final size = await file.length();
+          if (mounted) {
+            setState(() {
+              _paymentProof = file;
+              _fileSize = size;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error restoring state: $e');
     }
+  }
+
+  Future<void> _pickPaymentProof({required ImageSource source}) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      // Added imageQuality to compress the image
+      final XFile? image = await picker.pickImage(
+        source: source,
+        imageQuality: 70, 
+        maxWidth: 1920,
+        maxHeight: 1920,
+      );
+
+      if (image != null) {
+        final file = File(image.path);
+        final size = await file.length();
+        
+        setState(() {
+          _paymentProof = file;
+          _fileSize = size;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take a Photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickPaymentProof(source: ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickPaymentProof(source: ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   Future<void> _submitPaymentProof() async {
@@ -193,6 +285,30 @@ class _ActivationScreenState extends State<ActivationScreen> {
           duration: Duration(seconds: 3),
         ),
       );
+      return;
+    }
+
+    // Check internet connection first
+    bool hasConnection = false;
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        hasConnection = true;
+      }
+    } catch (_) {
+      hasConnection = false;
+    }
+
+    if (!hasConnection) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No internet connection. Please check your network and try again.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
       return;
     }
 
@@ -220,21 +336,46 @@ class _ActivationScreenState extends State<ActivationScreen> {
         // Save payment proof submission status so user returns to this screen if app closes
         await auth.markPaymentProofSubmitted();
         
+        // Clear temp storage
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('temp_payment_proof_path');
+        await prefs.remove('temp_selected_plan');
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Payment proof submitted successfully! Please wait for admin approval...'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 5),
+            duration: Duration(seconds: 2),
           ),
         );
+
+        // Navigate to Pending Activation Screen
+        if (mounted) {
+          _subscriptionPollingService?.stopPolling();
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const PendingActivationScreen()),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Failed to submit payment proof: $e');
       if (mounted) {
+        String errorMessage = 'Failed to submit payment proof';
+        if (e.toString().contains('Network error')) {
+           errorMessage = 'Network error. Please check your connection.';
+        } else if (e.toString().contains('413')) {
+           errorMessage = 'Image too large. Please select a smaller image.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit payment proof: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            action: SnackBarAction(
+               label: 'Retry',
+               onPressed: _submitPaymentProof,
+               textColor: Colors.white,
+            ),
             duration: const Duration(seconds: 5),
           ),
         );
@@ -246,6 +387,54 @@ class _ActivationScreenState extends State<ActivationScreen> {
         });
       }
     }
+  }
+
+  Future<bool> _onWillPop() async {
+    if (_isSendingEmail) {
+      final shouldExit = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Cancel Upload?'),
+          content: const Text('Uploading payment proof. Are you sure you want to cancel?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('No'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Yes'),
+            ),
+          ],
+        ),
+      );
+      return shouldExit ?? false;
+    }
+
+    if (_paymentProof != null) {
+       final shouldExit = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Discard Changes?'),
+          content: const Text('You have attached a payment proof but haven\'t submitted it. Do you want to discard it and leave?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Stay'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Discard'),
+            ),
+          ],
+        ),
+      );
+      if (shouldExit != true) return false;
+    }
+    
+    // Stop polling
+    _subscriptionPollingService?.stopPolling();
+    return true;
   }
 
   @override
@@ -308,11 +497,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
     }
 
     return WillPopScope(
-      onWillPop: () async {
-        // Stop polling when leaving screen
-        _subscriptionPollingService?.stopPolling();
-        return true;
-      },
+      onWillPop: _onWillPop,
       child: Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
@@ -321,10 +506,10 @@ class _ActivationScreenState extends State<ActivationScreen> {
         foregroundColor: Theme.of(context).colorScheme.onSurface,
         leading: widget.selectedPlan != null ? IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            // Stop polling before navigating
-            _subscriptionPollingService?.stopPolling();
-            Navigator.of(context).pop();
+          onPressed: () async {
+            if (await _onWillPop()) {
+               if (context.mounted) Navigator.of(context).pop();
+            }
           },
         ) : null,
         automaticallyImplyLeading: widget.selectedPlan == null,
@@ -397,10 +582,12 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
             // Monthly Plan
             GestureDetector(
-              onTap: () {
+              onTap: () async {
                 setState(() {
                   _selectedPlan = 'monthly';
                 });
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('temp_selected_plan', 'monthly');
               },
               child: Container(
                 margin: const EdgeInsets.only(bottom: 16),
@@ -482,10 +669,12 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
             // Yearly Plan
             GestureDetector(
-              onTap: () {
+              onTap: () async {
                 setState(() {
                   _selectedPlan = 'yearly';
                 });
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('temp_selected_plan', 'yearly');
               },
               child: Container(
                 margin: const EdgeInsets.only(bottom: 16),
@@ -582,7 +771,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
             const SizedBox(height: 32),
 
-            // Payment Instructions
+            // Payment Details & Instructions
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -611,7 +800,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Payment Process',
+                        'Payment Details',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -621,6 +810,37 @@ class _ActivationScreenState extends State<ActivationScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  
+                  // Bank Details Box
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Bank Transfer',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildBankDetailRow(context, 'Bank', 'Commercial Bank'),
+                        const SizedBox(height: 4),
+                        _buildBankDetailRow(context, 'Branch', 'Colombo'),
+                        const SizedBox(height: 4),
+                        _buildBankDetailRow(context, 'Account Name', 'Attendance App'),
+                        const SizedBox(height: 4),
+                        _buildBankDetailRow(context, 'Account No', '1234567890'),
+                      ],
+                    ),
+                  ),
+
                   _buildPaymentStep(
                     context,
                     '1',
@@ -663,7 +883,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
@@ -707,32 +927,87 @@ class _ActivationScreenState extends State<ActivationScreen> {
                           color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
                         ),
                       ),
-                      child: Row(
+                      child: Column(
                         children: [
-                          Icon(
-                            Icons.image,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Payment proof attached',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w500,
+                          Row(
+                            children: [
+                              Container(
+                                width: 50, 
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4),
+                                  image: DecorationImage(
+                                    image: FileImage(_paymentProof!),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Payment proof attached',
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    if (_fileSize != null)
+                                      Text(
+                                        _formatFileSize(_fileSize!),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Remove Image?'),
+                                      content: const Text('Are you sure you want to remove the selected payment proof?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, false), 
+                                          child: const Text('Cancel')
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, true), 
+                                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                          child: const Text('Remove')
+                                        ),
+                                      ],
+                                    ),
+                                  );
+
+                                  if (confirm == true) {
+                                    final prefs = await SharedPreferences.getInstance();
+                                    await prefs.remove('temp_payment_proof_path');
+                                    setState(() {
+                                      _paymentProof = null;
+                                      _fileSize = null;
+                                    });
+                                  }
+                                },
+                                tooltip: 'Remove Image',
+                                icon: Icon(
+                                  Icons.close,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _paymentProof = null;
-                              });
-                            },
-                            icon: Icon(
-                              Icons.close,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                            ),
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: _showImageSourceDialog,
+                            icon: const Icon(Icons.refresh, size: 16),
+                            label: const Text('Change Image'),
                           ),
                         ],
                       ),
@@ -764,8 +1039,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: _pickPaymentProof,
-                        icon: const Icon(Icons.photo_library),
+                        onPressed: _showImageSourceDialog,
+                        icon: const Icon(Icons.add_a_photo),
                         label: const Text('Attach Payment Proof'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -812,24 +1087,37 @@ class _ActivationScreenState extends State<ActivationScreen> {
             const SizedBox(height: 16),
 
             // Contact Support
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  // TODO: Implement contact support
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Contact support feature coming soon'),
-                    ),
+             Center(
+              child: TextButton.icon(
+                onPressed: () async {
+                  final Uri emailLaunchUri = Uri(
+                    scheme: 'mailto',
+                    path: 'support@attendanceapp.com', // Replace with actual email
+                    queryParameters: const {'subject': 'Subscription Support Request'},
                   );
+                  
+                  try {
+                    if (await canLaunchUrl(emailLaunchUri)) {
+                      await launchUrl(emailLaunchUri);
+                    } else {
+                       if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Could not open email client')),
+                        );
+                       }
+                    }
+                  } catch (e) {
+                    debugPrint('Error launching email: $e');
+                  }
                 },
-                child: Text(
-                  'Need help? Contact Support',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                icon: const Icon(Icons.help_outline),
+                label: const Text('Need help? Contact Support'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ),
+
           ],
         ),
       ),
@@ -921,6 +1209,49 @@ class _ActivationScreenState extends State<ActivationScreen> {
       );
     }
   }
+
+Widget _buildBankDetailRow(BuildContext context, String label, String value) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(
+        label,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        ),
+      ),
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SelectableText(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          if (value.isNotEmpty)
+            InkWell(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: value));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$label copied to clipboard'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: Icon(
+                  Icons.copy,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+        ],
+      ),
+    ],
+  );
+}
 
   @override
   void dispose() {
