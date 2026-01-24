@@ -768,10 +768,27 @@ class _PaymentsTabState extends State<_PaymentsTab> {
           final paymentClassId = payment['classId']?.toString();
           final matchesClass = _selectedClassId == null || paymentClassId == _selectedClassId;
           
-          final paymentDate = payment['date'] != null ? DateTime.parse(payment['date']) : null;
-          final matchesMonth = paymentDate != null && 
-                               paymentDate.month == _selectedMonth && 
-                               paymentDate.year == _selectedYear;
+          // Check for explicit month/year fields first (billing period), fallback to transaction date
+          int? paymentMonth;
+          int? paymentYear;
+
+          if (payment['month'] != null) {
+            paymentMonth = payment['month'] is int ? payment['month'] : int.tryParse(payment['month'].toString());
+          }
+          
+          if (payment['year'] != null) {
+            paymentYear = payment['year'] is int ? payment['year'] : int.tryParse(payment['year'].toString());
+          }
+
+          if (paymentMonth == null || paymentYear == null) {
+            final paymentDate = payment['date'] != null ? DateTime.parse(payment['date']) : null;
+            if (paymentDate != null) {
+              paymentMonth ??= paymentDate.month;
+              paymentYear ??= paymentDate.year;
+            }
+          }
+
+          final matchesMonth = paymentMonth == _selectedMonth && paymentYear == _selectedYear;
           return matchesClass && matchesMonth;
         }).toList();
 
@@ -950,6 +967,11 @@ class _PaymentsTabState extends State<_PaymentsTab> {
                               final date = payment['date'] != null 
                                   ? DateTime.parse(payment['date'])
                                   : null;
+                              
+                              String dateText = date != null
+                                  ? DateFormat('dd/MM/yyyy').format(date)
+                                  : 'No date';
+
                               return ListTile(
                                 key: ValueKey(payment['_id'] ?? payment['id'] ?? 'payment-$studentId-$index'),
                                 leading: Icon(
@@ -963,9 +985,7 @@ class _PaymentsTabState extends State<_PaymentsTab> {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  date != null
-                                      ? '${date.day}/${date.month}/${date.year}'
-                                      : 'No date',
+                                  dateText,
                                 ),
                                 trailing: Text(
                                   'Rs. ${(payment['amount'] as num).toStringAsFixed(2)}',
