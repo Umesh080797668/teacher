@@ -3456,21 +3456,31 @@ app.get('/api/home/stats', verifyToken, async (req, res) => {
     const paymentTrend = `${paymentDiff >= 0 ? '+' : ''}${paymentDiff.toFixed(1)}%`;
     const paymentPositive = paymentDiff >= 0;
 
-    // Calculate student trend (simple indicator)
-    const studentsTrend = totalStudents > 10
-      ? `+${Math.round(totalStudents * 0.05)}`
-      : totalStudents > 5
-      ? `+${Math.round(totalStudents * 0.1)}`
-      : `+${totalStudents}`;
-    const studentsPositive = true;
+    // Calculate student trend (New students this month)
+    const studentsThisMonthQuery = {
+      createdAt: {
+        $gte: new Date(currentYear, currentMonth, 1),
+        $lt: new Date(currentYear, currentMonth + 1, 1)
+      }
+    };
+    if (classIds) {
+      studentsThisMonthQuery.classId = { $in: classIds };
+    }
+    const newStudentsCount = await Student.countDocuments(studentsThisMonthQuery);
+    const studentsTrend = `+${newStudentsCount}`;
+    const studentsPositive = newStudentsCount > 0;
 
-    // Calculate classes trend (simple indicator based on total)
-    const classesTrend = totalClasses > 5
-      ? '+1'
-      : totalClasses > 0
-      ? `+${totalClasses}`
-      : '0';
-    const classesPositive = totalClasses > 0;
+    // Calculate classes trend (New classes this month)
+    const classesThisMonthQuery = {
+      teacherId: teacher._id,
+      createdAt: {
+        $gte: new Date(currentYear, currentMonth, 1), 
+        $lt: new Date(currentYear, currentMonth + 1, 1)
+      }
+    };
+    const newClassesCount = await Class.countDocuments(classesThisMonthQuery);
+    const classesTrend = `+${newClassesCount}`;
+    const classesPositive = newClassesCount > 0;
 
     res.json({
       totalStudents,
