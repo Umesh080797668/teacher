@@ -307,6 +307,8 @@ const StudentSchema = new mongoose.Schema({
   restrictedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
   restrictedAt: { type: Date },
   restrictionReason: { type: String },
+  hasFaceData: { type: Boolean, default: false },
+  faceEmbedding: { type: [Number], default: [] }, // Array of 128/512 float values
 }, { timestamps: true });
 
 StudentSchema.set('toJSON', {
@@ -1239,6 +1241,10 @@ app.put('/api/students/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
     
+    console.log(`[PUT] Updating student ${id}`);
+    if (updateData.hasFaceData) console.log(`  - Updating face data (hasFaceData: true)`);
+    if (updateData.faceEmbedding) console.log(`  - Face embedding length: ${updateData.faceEmbedding.length}`);
+
     // Convert classId to ObjectId if it's a string
     if (updateData.classId && typeof updateData.classId === 'string' && updateData.classId.match(/^[0-9a-fA-F]{24}$/)) {
       updateData.classId = new mongoose.Types.ObjectId(updateData.classId);

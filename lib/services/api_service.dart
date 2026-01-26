@@ -599,13 +599,28 @@ class ApiService {
     String? email,
     String? classId,
   ) async {
+    final Map<String, dynamic> body = {
+      'name': name,
+      'email': email,
+      'classId': classId,
+    };
+
+    final response = await _makeRequest(
+      'PUT',
+      '/api/students/$studentId',
+      body: body,
+    );
+
+    return Student.fromJson(json.decode(response.body));
+  }
+
+  static Future<Student> updateFaceData(String studentId, List<double> embedding) async {
     final response = await _makeRequest(
       'PUT',
       '/api/students/$studentId',
       body: {
-        'name': name,
-        'email': email,
-        'classId': classId,
+        'hasFaceData': true,
+        'faceEmbedding': embedding
       },
     );
 

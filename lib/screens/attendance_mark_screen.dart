@@ -9,8 +9,8 @@ import '../providers/classes_provider.dart';
 import '../providers/students_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/custom_widgets.dart';
+import 'face_attendance_scanner_screen.dart';
 import 'login_screen.dart';
-import '../providers/attendance_provider.dart';
 
 class AttendanceMarkScreen extends StatefulWidget {
   const AttendanceMarkScreen({super.key});
@@ -44,9 +44,13 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     // Load classes first
     await Provider.of<ClassesProvider>(context, listen: false).loadClasses(teacherId: auth.teacherId);
     
+    if (!mounted) return;
+
     // Load students
     await _loadStudentsForClass(null); // Load all students initially
     
+    if (!mounted) return;
+
     // Get the current students list
     final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
     
@@ -379,6 +383,38 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     }
   }
 
+  void _openFaceScanner() {
+    final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
+    final students = studentsProvider.students;
+
+    if (students.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No students available to scan')),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FaceAttendanceScannerScreen(
+          students: students,
+          onStudentIdentified: (student) {
+            setState(() {
+              _attendanceStatus[student.id] = 'present';
+            });
+            // Optional: show a small toast or just vibrate
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Marked Present: ${student.name}'),
+                duration: const Duration(seconds: 1),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _pollingTimer?.cancel();
@@ -395,6 +431,13 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         elevation: 0,
         backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.face),
+            tooltip: 'Scan Face',
+            onPressed: _openFaceScanner,
+          ),
+        ],
       ),
       body: Column(
         children: [

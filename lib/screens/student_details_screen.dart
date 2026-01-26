@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../providers/students_provider.dart';
 import '../providers/classes_provider.dart';
 import '../widgets/custom_widgets.dart';
+import 'face_registration_screen.dart';
 
 class StudentDetailsScreen extends StatefulWidget {
   final Student student;
@@ -112,6 +113,13 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
+    // Get latest student data from provider to reflect changes like face registration
+    final studentsProvider = Provider.of<StudentsProvider>(context);
+    final currentStudent = studentsProvider.students.cast<Student?>().firstWhere(
+      (s) => s?.id == widget.student.id,
+      orElse: () => widget.student,
+    ) ?? widget.student;
+
     return Scaffold(
       backgroundColor: isDark ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.surface,
       appBar: AppBar(
@@ -120,6 +128,18 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
         backgroundColor: isDark ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.primaryContainer,
         foregroundColor: isDark ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onPrimaryContainer,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.face),
+            onPressed: currentStudent.hasFaceData 
+              ? null // Disable if already registered
+              : () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FaceRegistrationScreen(student: currentStudent),
+                  ),
+                ),
+            tooltip: currentStudent.hasFaceData ? 'Face Already Registered' : 'Register Face',
+          ),
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: _showEditStudentDialog,

@@ -42,6 +42,15 @@ class StudentsProvider with ChangeNotifier {
     }
   }
 
+  Future<void> updateFaceData(String studentId, List<double> embedding) async {
+    final updatedStudent = await ApiService.updateFaceData(studentId, embedding);
+    final index = _students.indexWhere((s) => s.id == studentId);
+    if (index != -1) {
+      _students[index] = updatedStudent;
+      notifyListeners();
+    }
+  }
+
   Future<void> deleteStudent(String studentId) async {
     await ApiService.deleteStudent(studentId);
     _students.removeWhere((s) => s.id == studentId);

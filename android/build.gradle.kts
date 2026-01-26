@@ -17,7 +17,7 @@ allprojects {
     }
 }
 
-// Configure all subprojects to use Java 1.8 and compileSdk 36 for compatibility
+// Configure all subprojects to use Java 17 and compileSdk 36 for compatibility
 subprojects {
     afterEvaluate {
         if (project.hasProperty("android")) {
@@ -25,8 +25,8 @@ subprojects {
             androidExtension.apply {
                 compileSdkVersion(36)
                 compileOptions {
-                    sourceCompatibility = JavaVersion.VERSION_1_8
-                    targetCompatibility = JavaVersion.VERSION_1_8
+                    sourceCompatibility = JavaVersion.VERSION_17
+                    targetCompatibility = JavaVersion.VERSION_17
                 }
             }
         }

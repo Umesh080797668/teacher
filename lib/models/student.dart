@@ -8,6 +8,8 @@ class Student {
   final bool isRestricted;
   final String? restrictionReason;
   final DateTime? restrictedAt;
+  final bool hasFaceData;
+  final List<double>? faceEmbedding;
 
   Student({
     required this.id,
@@ -19,6 +21,8 @@ class Student {
     this.isRestricted = false,
     this.restrictionReason,
     this.restrictedAt,
+    this.hasFaceData = false,
+    this.faceEmbedding,
   });
 
   factory Student.fromJson(Map<String, dynamic> json) {
@@ -40,6 +44,10 @@ class Student {
       isRestricted: json['isRestricted'] is bool ? json['isRestricted'] : false,
       restrictionReason: json['restrictionReason'] is String ? json['restrictionReason'] : null,
       restrictedAt: json['restrictedAt'] != null ? DateTime.parse(json['restrictedAt'].toString()) : null,
+      hasFaceData: json['hasFaceData'] is bool ? json['hasFaceData'] : false,
+      faceEmbedding: json['faceEmbedding'] != null 
+          ? List<double>.from(json['faceEmbedding'].map((e) => e.toDouble()))
+          : null,
     );
   }
 
@@ -49,6 +57,8 @@ class Student {
       'email': email,
       'studentId': studentId,
       'classId': classId,
+      'hasFaceData': hasFaceData,
+      'faceEmbedding': faceEmbedding,
     };
   }
 }
