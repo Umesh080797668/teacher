@@ -120,7 +120,9 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Check auth state and navigate accordingly
     Widget target;
-    if (!auth.isAuthenticated) {
+    if (auth.isGuest) {
+       target = const HomeScreen();
+    } else if (!auth.isAuthenticated) {
       target = const LoginScreen();
     } else if (!auth.isActivated) {
       // Never been activated - check if payment proof was submitted

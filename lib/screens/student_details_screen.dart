@@ -47,6 +47,54 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
     });
 
     try {
+      if (widget.student.id.startsWith('guest_student_')) {
+          await Future.delayed(const Duration(milliseconds: 500)); // Simulate delay
+          List<Attendance> attendance = [
+            Attendance(
+              id: 'guest_att_1',
+              studentId: widget.student.id,
+              date: DateTime.now().subtract(const Duration(days: 1)),
+              session: 'Morning',
+              status: 'Present',
+              month: DateTime.now().month,
+              year: DateTime.now().year,
+            ),
+             Attendance(
+              id: 'guest_att_2',
+              studentId: widget.student.id,
+              date: DateTime.now().subtract(const Duration(days: 2)),
+              session: 'Morning',
+              status: 'Present',
+              month: DateTime.now().month,
+              year: DateTime.now().year,
+            ),
+             Attendance(
+              id: 'guest_att_3',
+              studentId: widget.student.id,
+              date: DateTime.now().subtract(const Duration(days: 5)),
+              session: 'Morning',
+              status: 'Absent',
+              month: DateTime.now().month,
+              year: DateTime.now().year,
+            ),
+          ];
+          
+          attendance.sort((a, b) => b.date.compareTo(a.date));
+
+          final stats = <String, int>{};
+          for (final record in attendance) {
+            final status = record.status.toLowerCase().trim();
+            stats[status] = (stats[status] ?? 0) + 1;
+          }
+
+          setState(() {
+            _studentAttendance = attendance;
+            _attendanceStats = stats;
+            _isLoadingAttendance = false;
+          });
+          return;
+      }
+
       final attendance = await ApiService.getAttendance(studentId: widget.student.id);
 
       // Sort attendance by date descending (most recent first)
@@ -85,6 +133,31 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
     });
 
     try {
+      if (widget.student.id.startsWith('guest_student_')) {
+          await Future.delayed(const Duration(milliseconds: 500)); // Simulate delay
+          List<Payment> payments = [
+            Payment(
+              id: 'guest_pay_1',
+              studentId: widget.student.id,
+              classId: widget.student.classId ?? 'guest_class_1',
+              amount: 50.0,
+              type: 'full',
+              date: DateTime.now().subtract(const Duration(days: 5)),
+              month: DateTime.now().month,
+              year: DateTime.now().year,
+            )
+          ];
+
+           // Sort payments by date descending (most recent first)
+          payments.sort((a, b) => b.date.compareTo(a.date));
+          
+           setState(() {
+            _studentPayments = payments;
+            _isLoadingPayments = false;
+          });
+          return;
+      }
+
       final payments = await ApiService.getPayments(studentId: widget.student.id);
 
       // Sort payments by date descending (most recent first)

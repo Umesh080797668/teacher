@@ -116,7 +116,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _loadData();
       
       // Start admin changes polling (covers restrictions and other admin actions)
-      if (_authProvider?.teacherId != null && _adminChangesProvider != null) {
+      // Do not poll for guest users
+      if (_authProvider?.teacherId != null && !(_authProvider!.isGuest) && _adminChangesProvider != null) {
         _adminChangesProvider!.startPolling(
           context: context,
           userId: _authProvider!.teacherId!,
@@ -166,6 +167,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted || _authProvider == null) return;
     
     final auth = _authProvider!;
+
+    // Don't perform redirects in guest mode
+    if (auth.isGuest) return;
     
     // Schedule navigation for next frame to avoid state changes during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -526,6 +530,45 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
+      if (auth.isGuest) {
+         // Mock Home Data
+         await Future.delayed(const Duration(milliseconds: 500)); // Simulate delay
+         final stats = HomeStats(
+            totalStudents: 30,
+            todayAttendancePercentage: 85.0,
+            totalClasses: 2,
+            paymentStatusPercentage: 70.0,
+            studentsTrend: '+2%',
+            attendanceTrend: '-5%',
+            classesTrend: '0',
+            paymentTrend: '+10%',
+         );
+         final activities = [
+            RecentActivity(
+              id: '1',
+              type: 'attendance',
+              title: 'Attendance Marked',
+              subtitle: 'Mathematics 101 - 25 present',
+              timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
+            ),
+             RecentActivity(
+              id: '2',
+              type: 'payment',
+              title: 'Payment Received',
+              subtitle: 'John Doe - \$50.00',
+              timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+            ),
+         ];
+          setState(() {
+            _stats = stats;
+            _activities = activities;
+            if (!silent) {
+              _isLoading = false;
+            }
+          });
+          return;
+      }
+
       final teacherId = auth.teacherId;
 
       final stats = await ApiService.getHomeStats(teacherId: teacherId);
@@ -770,7 +813,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       floatingActionButton: Consumer<AuthProvider>(
         builder: (context, auth, child) {
-          if (auth.isGuest) return const SizedBox.shrink();
+          // Allow guest to see the button to test simulation
           return FloatingActionButton.extended(
             onPressed: () {
               Navigator.push(
@@ -1216,8 +1259,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   SliverToBoxAdapter(
                     child: Consumer<AuthProvider>(
                       builder: (context, auth, child) {
-                        if (auth.isGuest) return const SizedBox.shrink();
-
                         if (_isLoading) {
                           return Padding(
                             padding: const EdgeInsets.symmetric(
@@ -1406,29 +1447,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                   : 'Manage class schedules',
                               icon: Icons.class_rounded,
                               color: const Color(0xFF00796B),
-                              onTap: auth.isGuest
-                                  ? () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Please login to manage classes',
-                                          ),
-                                          backgroundColor: Colors.orange,
-                                        ),
-                                      );
-                                    }
-                                  : () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const ClassesScreen(),
-                                        ),
-                                      );
-                                    },
-                              isDisabled: auth.isGuest,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ClassesScreen(),
+                                  ),
+                                );
+                              },
+                              isDisabled: false,
                             );
                           },
                         ),
@@ -1441,29 +1469,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                   : 'Manage student records',
                               icon: Icons.people_rounded,
                               color: const Color(0xFF6750A4),
-                              onTap: auth.isGuest
-                                  ? () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Please login to manage students',
-                                          ),
-                                          backgroundColor: Colors.orange,
-                                        ),
-                                      );
-                                    }
-                                  : () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const StudentsScreen(),
-                                        ),
-                                      );
-                                    },
-                              isDisabled: auth.isGuest,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const StudentsScreen(),
+                                  ),
+                                );
+                              },
+                              isDisabled: false,
                             );
                           },
                         ),
@@ -1474,29 +1489,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               subtitle: 'Record daily attendance',
                               icon: Icons.check_circle_rounded,
                               color: const Color(0xFF00BFA5),
-                              onTap: auth.isGuest
-                                  ? () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Please login to mark attendance',
-                                          ),
-                                          backgroundColor: Colors.orange,
-                                        ),
-                                      );
-                                    }
-                                  : () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const AttendanceMarkScreen(),
-                                        ),
-                                      );
-                                    },
-                              isDisabled: auth.isGuest,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AttendanceMarkScreen(),
+                                  ),
+                                );
+                              },
+                              isDisabled: false,
                             );
                           },
                         ),
@@ -1507,29 +1509,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               subtitle: 'Manage payments and fees',
                               icon: Icons.payment_rounded,
                               color: const Color(0xFF6200EE),
-                              onTap: auth.isGuest
-                                  ? () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Please login to manage payments',
-                                          ),
-                                          backgroundColor: Colors.orange,
-                                        ),
-                                      );
-                                    }
-                                  : () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const PaymentScreen(),
-                                        ),
-                                      );
-                                    },
-                              isDisabled: auth.isGuest,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const PaymentScreen(),
+                                  ),
+                                );
+                              },
+                              isDisabled: false,
                             );
                           },
                         ),
@@ -1540,29 +1529,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               subtitle: 'Check attendance history',
                               icon: Icons.analytics_rounded,
                               color: const Color(0xFFFF6F00),
-                              onTap: auth.isGuest
-                                  ? () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Please login to view attendance records',
-                                          ),
-                                          backgroundColor: Colors.orange,
-                                        ),
-                                      );
-                                    }
-                                  : () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const AttendanceViewScreen(),
-                                        ),
-                                      );
-                                    },
-                              isDisabled: auth.isGuest,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AttendanceViewScreen(),
+                                  ),
+                                );
+                              },
+                              isDisabled: false,
                             );
                           },
                         ),
@@ -1575,29 +1551,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                   : 'Generate reports',
                               icon: Icons.assessment_rounded,
                               color: const Color(0xFFD32F2F),
-                              onTap: auth.isGuest
-                                  ? () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Please login to generate reports',
-                                          ),
-                                          backgroundColor: Colors.orange,
-                                        ),
-                                      );
-                                    }
-                                  : () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const ReportsScreen(),
-                                        ),
-                                      );
-                                    },
-                              isDisabled: auth.isGuest,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ReportsScreen(),
+                                  ),
+                                );
+                              },
+                              isDisabled: false,
                             );
                           },
                         ),

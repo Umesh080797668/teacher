@@ -240,10 +240,41 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('user_email');
     await prefs.remove('user_name');
     
+    // Reset all subscription/account related flags in prefs
+    await prefs.setBool('is_activated', true);
+    await prefs.setBool('account_inactive', false);
+    await prefs.setBool('subscription_expired', false);
+    await prefs.setBool('subscription_expiring_soon', false);
+    await prefs.setBool('has_completed_subscription_setup', true);
+    await prefs.setBool('is_subscription_free', false);
+    
+    // Persist mock teacher data to ensure consistency on restart
+    await prefs.setString('teacher_id', 'guest_teacher_id');
+    final guestData = {
+      'name': 'Guest Teacher',
+      'email': 'guest@example.com',
+      'subscriptionStatus': 'active',
+      'subscriptionType': 'premium',
+      'status': 'active', // Important for consistency check
+    };
+    await prefs.setString('teacher_data', json.encode(guestData));
+
     _isLoggedIn = false;
     _isGuest = true;
     _userEmail = null;
-    _userName = 'Guest';
+    _userName = 'Guest Teacher';
+    
+    // Reset flags in memory
+    _isActivated = true;
+    _accountInactive = false;
+    _subscriptionExpired = false;
+    _subscriptionExpiringSoon = false;
+    _isWarningScreenShown = false;
+    _hasCompletedSubscriptionSetup = true;
+    _isSubscriptionFree = false;
+    
+    _teacherId = 'guest_teacher_id';
+    _teacherData = guestData;
     notifyListeners();
   }
 

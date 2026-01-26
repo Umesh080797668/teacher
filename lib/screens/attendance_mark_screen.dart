@@ -137,6 +137,23 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     try {
       debugPrint('DEBUG: Loading attendance for ${students.length} students on ${date.toString().split(' ')[0]}');
       
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (auth.isGuest) {
+          // Mock data for guest
+           setState(() {
+            _attendanceStatus.clear();
+            _preExistingAttendance.clear();
+             for (var student in students) {
+               // Randomly assign status for demo
+               if (student.id.hashCode % 2 == 0) {
+                 _attendanceStatus[student.id] = 'present';
+                 _preExistingAttendance[student.id] = 'present';
+               }
+             }
+          });
+          return;
+      }
+
       if (students.isEmpty) {
         debugPrint('DEBUG: No students to load attendance for');
         setState(() {
@@ -302,20 +319,81 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     _stopPolling();
 
     try {
+      if (auth.isGuest) {
+        await Future.delayed(const Duration(seconds: 1)); // Simulate network saving
+        int markedCount = 0;
+        int deletedCount = 0;
+         // Process newly marked or changed attendance
+        final entries = _attendanceStatus.entries.toList();
+        for (var entry in entries) {
+           final preExisting = _preExistingAttendance[entry.key];
+           if (preExisting == null || preExisting != entry.value) {
+             markedCount++;
+           }
+        }
+         // Process deleted (unmarked) attendance
+        for (var studentId in _preExistingAttendance.keys) {
+          if (!_attendanceStatus.containsKey(studentId)) {
+             deletedCount++;
+          }
+        }
+
+        if (mounted) {
+           String message = '';
+           if (markedCount > 0 && deletedCount > 0) {
+             message = 'Marked: $markedCount, Unmarked: $deletedCount (Simulation)';
+           } else if (markedCount > 0) {
+             message = 'Attendance marked for $markedCount student${markedCount > 1 ? "s" : ""} (Simulation)';
+           } else if (deletedCount > 0) {
+             message = 'Attendance unmarked for $deletedCount student${deletedCount > 1 ? "s" : ""} (Simulation)';
+           }
+           ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(message)),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+           // Reload attendance data to reflect the newly marked attendance (update preExisting)
+          setState(() {
+            _attendanceStatus.forEach((key, value) {
+              _preExistingAttendance[key] = value;
+            });
+             // Handle deletions from preExisting
+              _preExistingAttendance.removeWhere((key, value) => !_attendanceStatus.containsKey(key));
+          });
+        }
+        return;
+      }
+
       int markedCount = 0;
       int deletedCount = 0;
       
       // Process newly marked or changed attendance
       final entries = _attendanceStatus.entries.toList();
+      final providerAuth = Provider.of<AuthProvider>(context, listen: false);
+      
       for (var entry in entries) {
         final preExisting = _preExistingAttendance[entry.key];
         if (preExisting == null || preExisting != entry.value) {
-          await ApiService.markAttendance(
-            entry.key,
-            _selectedDate,
-            'daily',
-            entry.value,
-          );
+          if (providerAuth.isGuest) {
+            // Mock mark attendance
+            await Future.delayed(const Duration(milliseconds: 100)); // Simulate delay
+          } else {
+            await ApiService.markAttendance(
+              entry.key,
+              _selectedDate,
+              'daily',
+              entry.value,
+            );
+          }
           markedCount++;
         }
       }
@@ -323,16 +401,22 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       // Process deleted (unmarked) attendance
       for (var studentId in _preExistingAttendance.keys) {
         if (!_attendanceStatus.containsKey(studentId)) {
-          // Send empty status to delete the record
-          await ApiService.markAttendance(
-            studentId,
-            _selectedDate,
-            'daily',
-            '', // Empty status triggers deletion in backend
-          );
+          if (providerAuth.isGuest) {
+            // Mock delete attendance
+            await Future.delayed(const Duration(milliseconds: 100)); // Simulate delay
+          } else {
+            // Send empty status to delete the record
+            await ApiService.markAttendance(
+              studentId,
+              _selectedDate,
+              'daily',
+              '', // Empty status triggers deletion in backend
+            );
+          }
           deletedCount++;
         }
       }
+
 
       if (mounted) {
         String message = '';
