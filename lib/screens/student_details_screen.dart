@@ -655,9 +655,12 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(
-            'Edit Student',
+        builder: (context, setState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          return AlertDialog(
+            backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+            title: Text(
+              'Edit Student',
             style: TextStyle(
               color: Theme.of(context).brightness == Brightness.dark
                   ? Colors.white
@@ -833,7 +836,8 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
               child: const Text('Update'),
             ),
           ],
-        ),
+        );
+        },
       ),
     );
   }

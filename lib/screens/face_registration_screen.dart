@@ -293,19 +293,32 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Registration Complete'),
-            content: const Text('Biometric data secured.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop(); 
-                  Navigator.of(context).pop(); 
-                },
-                child: const Text('Finish'),
-              )
-            ],
-          ),
+          builder: (ctx) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return AlertDialog(
+              backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+              title: Text(
+                'Registration Complete',
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+              ),
+              content: Text(
+                'Biometric data secured.',
+                style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop(); 
+                    Navigator.of(context).pop(); 
+                  },
+                  child: Text(
+                    'Finish',
+                    style: TextStyle(color: isDark ? Colors.blueAccent : Colors.blue),
+                  ),
+                )
+              ],
+            );
+          },
         );
       }
     } catch (e) {
