@@ -44,9 +44,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
     try {
-      await paymentProvider.loadPayments(teacherId: auth.teacherId);
-      await studentsProvider.loadStudents(teacherId: auth.teacherId);
-      await classesProvider.loadClasses(teacherId: auth.teacherId);
+      // Load all data in parallel for faster response
+      await Future.wait([
+        paymentProvider.loadPayments(teacherId: auth.teacherId),
+        studentsProvider.loadStudents(teacherId: auth.teacherId),
+        classesProvider.loadClasses(teacherId: auth.teacherId),
+      ]);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,5 +1,8 @@
+import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
+import '../services/cache_service.dart';
 import '../models/attendance.dart';
 import '../models/student.dart';
 import '../models/class.dart';
@@ -34,9 +37,11 @@ class ReportsProvider with ChangeNotifier {
   List<Student> get allStudents => _allStudents;
   List<Class> get allClasses => _allClasses;
 
-  Future<void> loadReports({String? teacherId}) async {
-    _isLoading = true;
-    notifyListeners();
+  Future<void> loadReports({String? teacherId, bool silent = false}) async {
+    if (!silent) {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     try {
       if (teacherId == 'guest_teacher_id') {
@@ -87,20 +92,67 @@ class ReportsProvider with ChangeNotifier {
               Student(id: 'guest_student_2', name: 'Jane Smith', studentId: 'ST002', createdAt: DateTime.now(), classId: 'guest_class_1'),
            ];
 
+           _isLoading = false;
            notifyListeners();
            return;
       }
 
-      await Future.wait([
-        _loadAttendanceSummary(teacherId: teacherId),
-        _loadStudentReports(teacherId: teacherId),
-        _loadMonthlyStats(teacherId: teacherId),
-        _loadDailyByClass(teacherId: teacherId),
-        _loadMonthlyByClass(teacherId: teacherId),
-        _loadPayments(teacherId: teacherId),
-        _loadStudentsAndClasses(teacherId: teacherId),
-        _loadMonthlyEarningsByClass(teacherId: teacherId),
-      ]);
+      // Load cached data first for instant display
+      if (!silent && teacherId != null) {
+        try {
+          final cachedData = await CacheService.getOfflineCachedData('reports_$teacherId');
+          if (cachedData != null) {
+            final reportsJson = json.decode(cachedData);
+            _attendanceSummary = reportsJson['attendanceSummary'] ?? {};
+            _studentReports = List<Map<String, dynamic>>.from(reportsJson['studentReports'] ?? []);
+            _monthlyStats = List<Map<String, dynamic>>.from(reportsJson['monthlyStats'] ?? []);
+            _dailyByClass = List<Map<String, dynamic>>.from(reportsJson['dailyByClass'] ?? []);
+            _monthlyByClass = List<Map<String, dynamic>>.from(reportsJson['monthlyByClass'] ?? []);
+            _payments = List<Map<String, dynamic>>.from(reportsJson['payments'] ?? []);
+            _monthlyEarningsByClass = List<Map<String, dynamic>>.from(reportsJson['monthlyEarningsByClass'] ?? []);
+            
+            _isLoading = false;
+            notifyListeners();
+            debugPrint('✓ Loaded cached reports instantly');
+          }
+        } catch (e) {
+          debugPrint('Error loading cached reports: $e');
+        }
+      }
+
+      // Fetch fresh data with timeout
+      try {
+        await Future.wait([
+          _loadAttendanceSummary(teacherId: teacherId),
+          _loadStudentReports(teacherId: teacherId),
+          _loadMonthlyStats(teacherId: teacherId),
+          _loadDailyByClass(teacherId: teacherId),
+          _loadMonthlyByClass(teacherId: teacherId),
+          _loadPayments(teacherId: teacherId),
+          _loadStudentsAndClasses(teacherId: teacherId),
+          _loadMonthlyEarningsByClass(teacherId: teacherId),
+        ]).timeout(const Duration(seconds: 5));
+
+        // Cache for next time
+        if (teacherId != null) {
+          final reportsData = {
+            'attendanceSummary': _attendanceSummary,
+            'studentReports': _studentReports,
+            'monthlyStats': _monthlyStats,
+            'dailyByClass': _dailyByClass,
+            'monthlyByClass': _monthlyByClass,
+            'payments': _payments,
+            'monthlyEarningsByClass': _monthlyEarningsByClass,
+          };
+          CacheService.cacheOfflineData('reports_$teacherId', json.encode(reportsData));
+        }
+        
+        debugPrint('✓ Loaded fresh reports data');
+      } on TimeoutException {
+        debugPrint('⚠️ Reports loading timed out, using cached data if available');
+      } catch (e) {
+        debugPrint('⚠️ Error loading reports: $e');
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -195,9 +247,11 @@ class ReportsProvider with ChangeNotifier {
   }
 
   // Load daily attendance data for a specific date
-  Future<void> loadDailyAttendance(DateTime date, {String? teacherId}) async {
-    _isDailyLoading = true;
-    notifyListeners();
+  Future<void> loadDailyAttendance(DateTime date, {String? teacherId, bool silent = false}) async {
+    if (!silent) {
+      _isDailyLoading = true;
+      notifyListeners();
+    }
 
     try {
       if (teacherId == 'guest_teacher_id') {
@@ -253,30 +307,74 @@ class ReportsProvider with ChangeNotifier {
       // Get the year and month from the selected date
       final year = date.year;
       final month = date.month;
-
-      // Fetch attendance, students, and classes
-      final attendanceList = await ApiService.getAttendance(
-        teacherId: teacherId,
-        month: month,
-        year: year,
-      );
-      final studentsList = await ApiService.getStudents(teacherId: teacherId);
-      final classesList = await ApiService.getClasses(teacherId: teacherId);
-
-      // Filter attendance for the specific date
       final selectedDateStr = DateTime(date.year, date.month, date.day).toIso8601String().split('T')[0];
-      _dailyAttendance = attendanceList.where((attendance) {
-        final attendanceDateStr = attendance.date.toIso8601String().split('T')[0];
-        return attendanceDateStr == selectedDateStr;
-      }).toList();
 
-      _allStudents = studentsList;
-      _allClasses = classesList;
-    } catch (e) {
-      debugPrint('Error loading daily attendance: $e');
-      _dailyAttendance = [];
-      _allStudents = [];
-      _allClasses = [];
+      // Load cached data first for instant display
+      if (!silent && teacherId != null) {
+        try {
+          final cacheKey = 'daily_attendance_${teacherId}_$selectedDateStr';
+          final cachedData = await CacheService.getOfflineCachedData(cacheKey);
+          if (cachedData != null) {
+            final dailyJson = json.decode(cachedData);
+            _dailyAttendance = (dailyJson['attendance'] as List)
+                .map((json) => Attendance.fromJson(json)).toList();
+            _allStudents = (dailyJson['students'] as List)
+                .map((json) => Student.fromJson(json)).toList();
+            _allClasses = (dailyJson['classes'] as List)
+                .map((json) => Class.fromJson(json)).toList();
+            
+            _isDailyLoading = false;
+            notifyListeners();
+            debugPrint('✓ Loaded cached daily attendance instantly');
+          }
+        } catch (e) {
+          debugPrint('Error loading cached daily attendance: $e');
+        }
+      }
+
+      // Fetch attendance, students, and classes in parallel with timeout
+      try {
+        final results = await Future.wait([
+          ApiService.getAttendance(teacherId: teacherId, month: month, year: year),
+          ApiService.getStudents(teacherId: teacherId),
+          ApiService.getClasses(teacherId: teacherId),
+        ]).timeout(const Duration(seconds: 5));
+
+        final attendanceList = results[0] as List<Attendance>;
+        final studentsList = results[1] as List<Student>;
+        final classesList = results[2] as List<Class>;
+
+        // Filter attendance for the specific date
+        _dailyAttendance = attendanceList.where((attendance) {
+          final attendanceDateStr = attendance.date.toIso8601String().split('T')[0];
+          return attendanceDateStr == selectedDateStr;
+        }).toList();
+
+        _allStudents = studentsList;
+        _allClasses = classesList;
+
+        // Cache for next time
+        if (teacherId != null) {
+          final cacheKey = 'daily_attendance_${teacherId}_$selectedDateStr';
+          final dailyData = {
+            'attendance': _dailyAttendance.map((a) => a.toJson()).toList(),
+            'students': _allStudents.map((s) => s.toJson()).toList(),
+            'classes': _allClasses.map((c) => c.toJson()).toList(),
+          };
+          CacheService.cacheOfflineData(cacheKey, json.encode(dailyData));
+        }
+        
+        debugPrint('✓ Loaded fresh daily attendance data');
+      } on TimeoutException {
+        debugPrint('⚠️ Daily attendance loading timed out, using cached data if available');
+      } catch (e) {
+        debugPrint('Error loading daily attendance: $e');
+        if (_dailyAttendance.isEmpty || _allStudents.isEmpty || _allClasses.isEmpty) {
+          _dailyAttendance = [];
+          _allStudents = [];
+          _allClasses = [];
+        }
+      }
     } finally {
       _isDailyLoading = false;
       notifyListeners();
