@@ -1,10 +1,8 @@
 import 'package:camera/camera.dart';
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:provider/provider.dart';
 import '../models/student.dart';
 import '../services/face_recognition_service.dart';
 
@@ -36,7 +34,6 @@ class _FaceAttendanceScannerScreenState extends State<FaceAttendanceScannerScree
   
   bool _isDetecting = false;
   bool _isCameraInitialized = false;
-  Student? _lastIdentifiedStudent;
   DateTime _lastIdentificationTime = DateTime.fromMillisecondsSinceEpoch(0);
   String _statusMessage = 'Point camera at student';
   final double _threshold = 0.8; // Distance threshold (tunable)
@@ -204,7 +201,6 @@ class _FaceAttendanceScannerScreenState extends State<FaceAttendanceScannerScree
   }
 
   void _onStudentFound(Student student) {
-    _lastIdentifiedStudent = student;
     _lastIdentificationTime = DateTime.now();
     
     if (mounted) {

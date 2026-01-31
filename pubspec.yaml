@@ -38,11 +38,9 @@ dependencies:
   provider: ^6.1.2
   shared_preferences: ^2.2.3
   flutter_secure_storage: ^9.2.2
-  crypto: ^3.0.3
   intl: ^0.19.0
   google_fonts: ^6.2.1
   fl_chart: ^0.69.0
-  animations: ^2.0.11
   flutter_slidable: ^3.1.1
   path_provider: ^2.1.2
   permission_handler: ^11.3.1
@@ -53,9 +51,7 @@ dependencies:
   dio: ^5.4.1
   shimmer: ^3.0.0
   mobile_scanner: ^5.2.3
-  socket_io_client: ^2.0.3+1
   install_plugin: ^2.1.0
-  open_file: ^3.3.2
   flutter_local_notifications: ^17.2.2
   firebase_core: ^3.8.1
   firebase_messaging: ^15.1.5
@@ -63,7 +59,6 @@ dependencies:
   workmanager: ^0.7.0
   file_picker: ^8.1.4
   share_plus: ^10.1.4
-  flutter_email_sender: ^6.0.3
 
   path: any
   connectivity_plus: ^7.0.0

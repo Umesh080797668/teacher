@@ -82,7 +82,7 @@ class AdminChangesProvider with ChangeNotifier {
     _restrictionDetails = details;
     _lastChangeDetected = 'RESTRICTION_CHANGED';
     
-    print('AdminChangesProvider: Restriction changed - $_isRestricted');
+    debugPrint('AdminChangesProvider: Restriction changed - $_isRestricted');
     notifyListeners();
   }
 
@@ -96,7 +96,7 @@ class AdminChangesProvider with ChangeNotifier {
     _subscriptionDetails = details;
     _lastChangeDetected = 'SUBSCRIPTION_CHANGED';
     
-    print('AdminChangesProvider: Subscription changed - $_subscriptionStatus');
+    debugPrint('AdminChangesProvider: Subscription changed - $_subscriptionStatus');
     notifyListeners();
   }
 
@@ -106,7 +106,7 @@ class AdminChangesProvider with ChangeNotifier {
     _statusDetails = details;
     _lastChangeDetected = 'STATUS_CHANGED';
     
-    print('AdminChangesProvider: Status changed - $_userStatus');
+    debugPrint('AdminChangesProvider: Status changed - $_userStatus');
     notifyListeners();
   }
 
@@ -115,7 +115,7 @@ class AdminChangesProvider with ChangeNotifier {
     _classesChanged = details['classes'];
     _lastChangeDetected = 'CLASSES_CHANGED';
     
-    print('AdminChangesProvider: Classes changed');
+    debugPrint('AdminChangesProvider: Classes changed');
     notifyListeners();
   }
 
@@ -123,7 +123,7 @@ class AdminChangesProvider with ChangeNotifier {
   void _handleCriticalChange(String message) {
     _lastChangeDetected = message;
     
-    print('AdminChangesProvider: Critical change detected - $message');
+    debugPrint('AdminChangesProvider: Critical change detected - $message');
     notifyListeners();
   }
 

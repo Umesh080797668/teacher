@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/student.dart';
 import '../models/attendance.dart';
@@ -10,6 +10,31 @@ import '../models/class.dart';
 import '../models/payment.dart';
 import '../models/home_stats.dart';
 import 'cache_service.dart';
+
+// Helper functions for parsing JSON in separate isolates
+List<Student> _parseStudents(String responseBody) {
+  final parsed = json.decode(responseBody) as List<dynamic>;
+  return parsed.map<Student>((json) => Student.fromJson(json)).toList();
+}
+
+List<Attendance> _parseAttendance(String responseBody) {
+  final parsed = json.decode(responseBody) as List<dynamic>;
+  return parsed.map<Attendance>((json) => Attendance.fromJson(json)).toList();
+}
+
+List<RecentActivity> _parseRecentActivities(String responseBody) {
+  final parsed = json.decode(responseBody) as List<dynamic>;
+  return parsed.map<RecentActivity>((json) => RecentActivity.fromJson(json)).toList();
+}
+
+Map<String, dynamic> _parseAttendanceSummary(String responseBody) {
+  return json.decode(responseBody) as Map<String, dynamic>;
+}
+
+List<Map<String, dynamic>> _parseListMap(String responseBody) {
+  final parsed = json.decode(responseBody) as List<dynamic>;
+  return parsed.cast<Map<String, dynamic>>();
+}
 
 class ApiException implements Exception {
   final String message;
@@ -29,11 +54,48 @@ class ApiService {
     // Add more URLs if available for load balancing
   ];
   static int _currentUrlIndex = 0;
+  static final Map<String, DateTime> _urlHealthStatus = {};
+  static final Map<String, int> _urlFailureCount = {};
+  static const int maxFailuresBeforeSkip = 3;
+  static const Duration healthCheckInterval = Duration(minutes: 5);
 
   static String get baseUrl {
-    // Round-robin load balancing
-    _currentUrlIndex = (_currentUrlIndex + 1) % baseUrls.length;
+    // Advanced load balancing with health checking
+    DateTime now = DateTime.now();
+    
+    // Try to find a healthy URL
+    for (int i = 0; i < baseUrls.length; i++) {
+      _currentUrlIndex = (_currentUrlIndex + 1) % baseUrls.length;
+      String url = baseUrls[_currentUrlIndex];
+      
+      int failures = _urlFailureCount[url] ?? 0;
+      DateTime? lastCheck = _urlHealthStatus[url];
+      
+      // Skip if too many failures and not enough time has passed
+      if (failures >= maxFailuresBeforeSkip && lastCheck != null) {
+        if (now.difference(lastCheck) < healthCheckInterval) {
+          continue;
+        }
+      }
+      
+      return url;
+    }
+    
+    // If all URLs are unhealthy, reset and try first one
+    _urlFailureCount.clear();
+    _urlHealthStatus.clear();
+    _currentUrlIndex = 0;
     return baseUrls[_currentUrlIndex];
+  }
+  
+  static void _recordSuccess(String url) {
+    _urlFailureCount[url] = 0;
+    _urlHealthStatus[url] = DateTime.now();
+  }
+  
+  static void _recordFailure(String url) {
+    _urlFailureCount[url] = (_urlFailureCount[url] ?? 0) + 1;
+    _urlHealthStatus[url] = DateTime.now();
   }
 
   // Get stored authentication token
@@ -53,6 +115,19 @@ class ApiService {
   // Retry configuration
   static const int maxRetries = 3;
   static const Duration retryDelay = Duration(seconds: 2);
+  
+  // Connection pooling configuration
+  static http.Client? _httpClient;
+  static http.Client get httpClient {
+    _httpClient ??= http.Client();
+    return _httpClient!;
+  }
+  
+  /// Dispose HTTP client when app closes
+  static void dispose() {
+    _httpClient?.close();
+    _httpClient = null;
+  }
 
   // Centralized HTTP request method with error handling
   static Future<http.Response> _makeRequest(
@@ -62,8 +137,10 @@ class ApiService {
     dynamic body,
     int retryCount = 0,
     bool useCache = false,
+    bool useCacheFallback = true, // NEW: Allow fallback to cache on error
   }) async {
-    final url = '$baseUrl$endpoint';
+    final currentBaseUrl = baseUrl;
+    final url = '$currentBaseUrl$endpoint';
 
     // Check cache for GET requests
     if (method.toUpperCase() == 'GET' && useCache) {
@@ -85,12 +162,12 @@ class ApiService {
 
       switch (method.toUpperCase()) {
         case 'GET':
-          response = await http
+          response = await httpClient
               .get(Uri.parse(url), headers: requestHeaders)
               .timeout(timeout);
           break;
         case 'POST':
-          response = await http
+          response = await httpClient
               .post(
                 Uri.parse(url),
                 headers: requestHeaders,
@@ -101,7 +178,7 @@ class ApiService {
               .timeout(timeout);
           break;
         case 'PUT':
-          response = await http
+          response = await httpClient
               .put(
                 Uri.parse(url),
                 headers: requestHeaders,
@@ -112,7 +189,7 @@ class ApiService {
               .timeout(timeout);
           break;
         case 'DELETE':
-          response = await http
+          response = await httpClient
               .delete(Uri.parse(url), headers: requestHeaders)
               .timeout(timeout);
           break;
@@ -122,6 +199,7 @@ class ApiService {
 
       // Handle HTTP error status codes
       if (response.statusCode >= 400) {
+        _recordFailure(currentBaseUrl);
         String errorMessage = 'Request failed';
         String? errorCode;
 
@@ -142,10 +220,15 @@ class ApiService {
           errorCode: errorCode,
         );
       }
+      
+      // Record successful request
+      _recordSuccess(currentBaseUrl);
 
-      // Cache successful GET responses
+      // Cache successful GET responses (both normal and offline cache)
       if (method.toUpperCase() == 'GET' && useCache) {
         await CacheService.cacheResponse(endpoint, response.body);
+        // Also save to offline cache for weak connection scenarios
+        await CacheService.cacheOfflineData(endpoint, response.body);
       }
 
       return response;
@@ -159,8 +242,19 @@ class ApiService {
           body: body,
           retryCount: retryCount + 1,
           useCache: useCache,
+          useCacheFallback: useCacheFallback,
         );
       }
+      
+      // SOLUTION FOR PROBLEM 2: Fallback to any cached data if connection times out
+      if (method.toUpperCase() == 'GET' && useCacheFallback) {
+        final anyCachedData = await CacheService.getAnyCachedData(endpoint);
+        if (anyCachedData != null) {
+          debugPrint('⚠️ Using cached fallback data for $endpoint due to timeout');
+          return http.Response(anyCachedData, 200);
+        }
+      }
+      
       throw ApiException(
         'Request timed out. Please check your internet connection and try again.',
       );
@@ -174,8 +268,19 @@ class ApiService {
           body: body,
           retryCount: retryCount + 1,
           useCache: useCache,
+          useCacheFallback: useCacheFallback,
         );
       }
+      
+      // SOLUTION FOR PROBLEM 2: Fallback to cached data on network error
+      if (method.toUpperCase() == 'GET' && useCacheFallback) {
+        final anyCachedData = await CacheService.getAnyCachedData(endpoint);
+        if (anyCachedData != null) {
+          debugPrint('⚠️ Using cached fallback data for $endpoint due to network error');
+          return http.Response(anyCachedData, 200);
+        }
+      }
+      
       // Handle SSL/TLS errors specifically
       if (e.message.contains('CERTIFICATE_VERIFY_FAILED') ||
           e.message.contains('Handshake error') ||
@@ -202,8 +307,19 @@ class ApiService {
           body: body,
           retryCount: retryCount + 1,
           useCache: useCache,
+          useCacheFallback: useCacheFallback,
         );
       }
+      
+      // SOLUTION FOR PROBLEM 2: Fallback to cached data on client error
+      if (method.toUpperCase() == 'GET' && useCacheFallback) {
+        final anyCachedData = await CacheService.getAnyCachedData(endpoint);
+        if (anyCachedData != null) {
+          debugPrint('⚠️ Using cached fallback data for $endpoint due to client error');
+          return http.Response(anyCachedData, 200);
+        }
+      }
+      
       // Don't expose internal error details to avoid console errors
       throw ApiException(
         'Network error. Please check your internet connection and try again.',
@@ -315,7 +431,6 @@ class ApiService {
     }
 
     // Add authorization header if available
-    final prefs = await SharedPreferences.getInstance();
     final FlutterSecureStorage storage = FlutterSecureStorage();
     final token = await storage.read(key: 'auth_token');
     if (token != null) {
@@ -562,15 +677,17 @@ class ApiService {
     // Use the new teacher endpoint that includes restriction data
     final endpoint = teacherId != null ? '/api/teacher/students?teacherId=$teacherId' : '/api/teacher/students';
     final response = await _makeRequest('GET', endpoint);
-    List<dynamic> data = json.decode(response.body);
-    return data.map((json) => Student.fromJson(json)).toList();
+    
+    // Use compute to parse in background isolate
+    return compute(_parseStudents, response.body);
   }
 
   // Get students by class
   static Future<List<Student>> getStudentsByClass(String classId) async {
     final response = await _makeRequest('GET', '/api/students?classId=$classId');
-    List<dynamic> data = json.decode(response.body);
-    return data.map((json) => Student.fromJson(json)).toList();
+    
+    // Use compute to parse in background isolate
+    return compute(_parseStudents, response.body);
   }
 
   static Future<Student> createStudent(
@@ -628,7 +745,15 @@ class ApiService {
   }
 
   static Future<void> deleteStudent(String studentId) async {
-    await _makeRequest('DELETE', '/api/students/$studentId');
+    debugPrint('ApiService: Attempting to delete student with ID: "$studentId"');
+    try {
+      final response = await _makeRequest('DELETE', '/api/students/${studentId.trim()}');
+      debugPrint('ApiService: Delete response status: ${response.statusCode}');
+      debugPrint('ApiService: Delete response body: ${response.body}');
+    } catch (e) {
+      debugPrint('ApiService: Error deleting student: $e');
+      rethrow;
+    }
   }
 
   // Attendance
@@ -649,8 +774,9 @@ class ApiService {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
     final response = await _makeRequest('GET', endpoint);
-    List<dynamic> data = json.decode(response.body);
-    return data.map((json) => Attendance.fromJson(json)).toList();
+    
+    // Use compute to parse in background isolate
+    return compute(_parseAttendance, response.body);
   }
 
   static Future<Attendance?> markAttendance(
@@ -814,7 +940,9 @@ class ApiService {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
     final response = await _makeRequest('GET', endpoint, useCache: true);
-    return json.decode(response.body);
+    
+    // Background parse
+    return compute(_parseAttendanceSummary, response.body);
   }
 
   static Future<List<Map<String, dynamic>>> getStudentReports({String? teacherId}) async {
@@ -826,7 +954,9 @@ class ApiService {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
     final response = await _makeRequest('GET', endpoint, useCache: true);
-    return List<Map<String, dynamic>>.from(json.decode(response.body));
+    
+    // Background parse
+    return compute(_parseListMap, response.body);
   }
 
   static Future<List<Map<String, dynamic>>> getMonthlyStats({String? teacherId}) async {
@@ -838,7 +968,9 @@ class ApiService {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
     final response = await _makeRequest('GET', endpoint, useCache: true);
-    return List<Map<String, dynamic>>.from(json.decode(response.body));
+    
+    // Background parse
+    return compute(_parseListMap, response.body);
   }
 
   static Future<List<Map<String, dynamic>>> getDailyByClass({String? teacherId, String? date}) async {
@@ -851,7 +983,9 @@ class ApiService {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
     final response = await _makeRequest('GET', endpoint, useCache: true);
-    return List<Map<String, dynamic>>.from(json.decode(response.body));
+    
+    // Background parse
+    return compute(_parseListMap, response.body);
   }
 
   static Future<List<Map<String, dynamic>>> getMonthlyByClass({String? teacherId}) async {
@@ -863,7 +997,9 @@ class ApiService {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
     final response = await _makeRequest('GET', endpoint, useCache: true);
-    return List<Map<String, dynamic>>.from(json.decode(response.body));
+    
+    // Background parse
+    return compute(_parseListMap, response.body);
   }
 
   static Future<Map<String, dynamic>> getClassStudentDetails({
@@ -930,8 +1066,9 @@ class ApiService {
     ).toString();
     final headers = token != null ? {'Authorization': 'Bearer $token'} : <String, String>{};
     final response = await _makeRequest('GET', endpoint, headers: headers);
-    final data = json.decode(response.body);
-    return (data as List).map((item) => RecentActivity.fromJson(item)).toList();
+    
+    // Use compute to parse in background isolate
+    return compute(_parseRecentActivities, response.body);
   }
 
   static Future<void> markSubscriptionWarningShown(String teacherEmail) async {

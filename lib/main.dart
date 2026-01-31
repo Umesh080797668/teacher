@@ -25,6 +25,8 @@ import 'services/background_update_service.dart';
 import 'services/background_backup_service.dart';
 import 'services/notification_service.dart';
 import 'services/connectivity_service.dart';
+import 'services/realtime_polling_service.dart';
+import 'services/api_service.dart';
 import 'widgets/offline_banner.dart';
 
 void main() async {
@@ -109,6 +111,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     connectivityService.dispose();
+    RealTimePollingService().stopAttendancePolling();
+    RealTimePollingService().stopStudentsPolling();
+    RealTimePollingService().stopClassesPolling();
+    RealTimePollingService().stopNotificationsPolling();
+    RealTimePollingService().stopPaymentsPolling();
+    ApiService.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -127,6 +135,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     // Only check if user is logged in
     if (authProvider.isAuthenticated && authProvider.isLoggedIn) {
       try {
+        // Resume real-time updates when app comes to foreground
         await authProvider.checkStatusNow();
         adminChangesProvider.resumePolling();
       } catch (e) {

@@ -107,16 +107,18 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
         stats[status] = (stats[status] ?? 0) + 1;
       }
 
-      setState(() {
-        _studentAttendance = attendance;
-        _attendanceStats = stats;
-        _isLoadingAttendance = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoadingAttendance = false;
-      });
       if (mounted) {
+        setState(() {
+          _studentAttendance = attendance;
+          _attendanceStats = stats;
+          _isLoadingAttendance = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingAttendance = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load attendance: $e'),

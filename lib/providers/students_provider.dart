@@ -130,14 +130,22 @@ class StudentsProvider with ChangeNotifier {
   }
 
   Future<void> deleteStudent(String studentId) async {
+    debugPrint('StudentsProvider: Requesting deletion for student ID: $studentId');
     if (studentId.startsWith('guest_student_')) {
+      debugPrint('StudentsProvider: Deleting guest student');
       _students.removeWhere((s) => s.id == studentId);
       notifyListeners();
       return;
     }
-    await ApiService.deleteStudent(studentId);
-    _students.removeWhere((s) => s.id == studentId);
-    notifyListeners();
+    try {
+      await ApiService.deleteStudent(studentId);
+      debugPrint('StudentsProvider: API deletion successful. Removing from local list.');
+      _students.removeWhere((s) => s.id == studentId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('StudentsProvider: Error in deleteStudent: $e');
+      rethrow;
+    }
   }
 
   Future<void> restrictStudent(String studentId, {String? reason}) async {

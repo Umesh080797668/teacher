@@ -76,7 +76,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         
         // Store the JWT token if provided
         if (data['token'] != null) {
-          final prefs = await SharedPreferences.getInstance();
           const FlutterSecureStorage storage = FlutterSecureStorage();
           await storage.write(key: 'auth_token', value: data['token']);
           print('✓ JWT token saved to secure storage');

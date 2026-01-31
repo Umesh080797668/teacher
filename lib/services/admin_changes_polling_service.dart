@@ -1,8 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
+
+// Top-level function for isolate parsing
+Map<String, dynamic> _parseJsonMap(String source) {
+  final result = jsonDecode(source);
+  return result as Map<String, dynamic>;
+}
 
 /// Unified polling service for all admin changes (restrictions, subscriptions, status changes, etc.)
 /// Works in real-time to sync changes from admin app to student/teacher apps
@@ -13,7 +20,6 @@ class AdminChangesPollingService {
 
   final String baseUrl = ApiService.baseUrl;
   Timer? _pollTimer;
-  BuildContext? _context;
   String? _userId;
   String? _userType; // 'student' or 'teacher'
   bool _isPolling = false;
@@ -45,7 +51,6 @@ class AdminChangesPollingService {
     Function(String)? onCriticalChangeDetected,
     Function()? onUserNotFound,
   }) {
-    _context = context;
     _userId = userId;
     _userType = userType;
     _pollIntervalSeconds = pollIntervalSeconds;
@@ -70,7 +75,7 @@ class AdminChangesPollingService {
       }
     });
 
-    print('AdminChangesPollingService: Started polling for $userType: $userId with interval ${_pollIntervalSeconds}s');
+    debugPrint('AdminChangesPollingService: Started polling for $userType: $userId with interval ${_pollIntervalSeconds}s');
   }
 
   /// Stop polling
@@ -79,7 +84,7 @@ class AdminChangesPollingService {
     _pollTimer = null;
     _isPolling = false;
     _lastKnownState.clear();
-    print('AdminChangesPollingService: Polling stopped');
+    debugPrint('AdminChangesPollingService: Polling stopped');
   }
 
   /// Check for admin changes
@@ -161,7 +166,7 @@ class AdminChangesPollingService {
     ).timeout(const Duration(seconds: 10));
 
     if (response.statusCode == 200) {
-      return json.decode(response.body) as Map<String, dynamic>;
+      return await compute(_parseJsonMap, response.body);
     } else if (response.statusCode == 404) {
       // Fallback: fetch individual status checks
       return await _fetchStudentStateFallback(token);
@@ -181,7 +186,7 @@ class AdminChangesPollingService {
     ).timeout(const Duration(seconds: 10));
 
     if (response.statusCode == 200) {
-      return json.decode(response.body) as Map<String, dynamic>;
+      return await compute(_parseJsonMap, response.body);
     } else if (response.statusCode == 404) {
       // Fallback: fetch individual status checks
       return await _fetchTeacherStateFallback(token);
@@ -239,11 +244,11 @@ class AdminChangesPollingService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        return json.decode(response.body) as Map<String, dynamic>;
+        return await compute(_parseJsonMap, response.body);
       }
       return {'isRestricted': false};
     } catch (e) {
-      print('AdminChangesPollingService: Error checking student restriction: $e');
+      debugPrint('AdminChangesPollingService: Error checking student restriction: $e');
       return {};
     }
   }
@@ -260,11 +265,11 @@ class AdminChangesPollingService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        return json.decode(response.body) as Map<String, dynamic>;
+        return await compute(_parseJsonMap, response.body);
       }
       return {'isRestricted': false};
     } catch (e) {
-      print('AdminChangesPollingService: Error checking teacher restriction: $e');
+      debugPrint('AdminChangesPollingService: Error checking teacher restriction: $e');
       return {};
     }
   }
@@ -281,11 +286,11 @@ class AdminChangesPollingService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        return json.decode(response.body) as Map<String, dynamic>;
+        return await compute(_parseJsonMap, response.body);
       }
       return {'status': 'active'};
     } catch (e) {
-      print('AdminChangesPollingService: Error checking student subscription: $e');
+      debugPrint('AdminChangesPollingService: Error checking student subscription: $e');
       return {};
     }
   }
@@ -302,11 +307,11 @@ class AdminChangesPollingService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        return json.decode(response.body) as Map<String, dynamic>;
+        return await compute(_parseJsonMap, response.body);
       }
       return {'status': 'active'};
     } catch (e) {
-      print('AdminChangesPollingService: Error checking teacher subscription: $e');
+      debugPrint('AdminChangesPollingService: Error checking teacher subscription: $e');
       return {};
     }
   }
@@ -323,11 +328,11 @@ class AdminChangesPollingService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        return json.decode(response.body) as Map<String, dynamic>;
+        return await compute(_parseJsonMap, response.body);
       }
       return {'status': 'active'};
     } catch (e) {
-      print('AdminChangesPollingService: Error checking teacher status: $e');
+      debugPrint('AdminChangesPollingService: Error checking teacher status: $e');
       return {};
     }
   }

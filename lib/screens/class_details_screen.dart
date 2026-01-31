@@ -507,7 +507,7 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                   if (_searchQuery.isEmpty) return true;
                   return student.name.toLowerCase().contains(_searchQuery) ||
                       (student.email?.toLowerCase().contains(_searchQuery) ?? false) ||
-                      (student.studentId.toLowerCase().contains(_searchQuery) ?? false);
+                      student.studentId.toLowerCase().contains(_searchQuery);
                 }).toList();
 
                 if (studentsProvider.isLoading) {

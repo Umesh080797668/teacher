@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
@@ -15,6 +16,82 @@ import '../models/attendance.dart';
 import '../models/class.dart';
 import '../models/student.dart';
 import '../models/payment.dart';
+
+// Top-level functions for compute
+String _generateAttendanceCsv(List<Attendance> records) {
+  List<List<dynamic>> rows = [];
+  rows.add([
+    'Date', 'Student ID', 'Session', 'Status', 'Month', 'Year', 'Created At'
+  ]);
+
+  for (var record in records) {
+    rows.add([
+      DateFormat('yyyy-MM-dd').format(record.date),
+      record.studentId,
+      record.session,
+      record.status,
+      record.month,
+      record.year,
+      record.createdAt != null ? DateFormat('yyyy-MM-dd HH:mm').format(record.createdAt!) : '',
+    ]);
+  }
+
+  return const ListToCsvConverter().convert(rows);
+}
+
+String _generateClassesCsv(List<Class> classes) {
+  List<List<dynamic>> rows = [];
+  rows.add(['Class Name', 'Teacher ID', 'Created At']);
+
+  for (var cls in classes) {
+    rows.add([
+      cls.name,
+      cls.teacherId,
+      cls.createdAt != null ? DateFormat('yyyy-MM-dd').format(cls.createdAt!) : '',
+    ]);
+  }
+
+  return const ListToCsvConverter().convert(rows);
+}
+
+String _generateStudentsCsv(List<Student> students) {
+  List<List<dynamic>> rows = [];
+  rows.add(['Student Name', 'Student ID', 'Class ID', 'Email', 'Is Restricted', 'Restriction Reason', 'Restricted At', 'Created At']);
+
+  for (var student in students) {
+    rows.add([
+      student.name,
+      student.studentId,
+      student.classId ?? '',
+      student.email ?? '',
+      student.isRestricted ? 'Yes' : 'No',
+      student.restrictionReason ?? '',
+      student.restrictedAt != null ? DateFormat('yyyy-MM-dd').format(student.restrictedAt!) : '',
+      student.createdAt != null ? DateFormat('yyyy-MM-dd').format(student.createdAt!) : '',
+    ]);
+  }
+
+  return const ListToCsvConverter().convert(rows);
+}
+
+String _generatePaymentsCsv(List<Payment> payments) {
+  List<List<dynamic>> rows = [];
+  rows.add(['Date', 'Student ID', 'Class ID', 'Amount', 'Type', 'Month', 'Year']);
+
+  for (var payment in payments) {
+    rows.add([
+      DateFormat('yyyy-MM-dd').format(payment.date),
+      payment.studentId,
+      payment.classId,
+      payment.amount,
+      payment.type,
+      payment.month ?? '',
+      payment.year ?? '',
+    ]);
+  }
+
+  return const ListToCsvConverter().convert(rows);
+}
 
 class DataExportService {
   static Future<bool> requestStoragePermission() async {
@@ -118,81 +195,22 @@ class DataExportService {
   }
 
   static Future<void> exportAttendanceToCsv(List<Attendance> records, String fileNamePrefix) async {
-    List<List<dynamic>> rows = [];
-    rows.add([
-      'Date', 'Student ID', 'Session', 'Status', 'Month', 'Year', 'Created At'
-    ]);
-
-    for (var record in records) {
-      rows.add([
-        DateFormat('yyyy-MM-dd').format(record.date),
-        record.studentId,
-        record.session,
-        record.status,
-        record.month,
-        record.year,
-        record.createdAt != null ? DateFormat('yyyy-MM-dd HH:mm').format(record.createdAt!) : '',
-      ]);
-    }
-
-    String csv = const ListToCsvConverter().convert(rows);
+    String csv = await compute(_generateAttendanceCsv, records);
     await _shareCsvFile(csv, '${fileNamePrefix}_attendance.csv');
   }
 
   static Future<void> exportClassesToCsv(List<Class> classes) async {
-    List<List<dynamic>> rows = [];
-    rows.add(['Class Name', 'Teacher ID', 'Created At']);
-
-    for (var cls in classes) {
-      rows.add([
-        cls.name,
-        cls.teacherId,
-        cls.createdAt != null ? DateFormat('yyyy-MM-dd').format(cls.createdAt!) : '',
-      ]);
-    }
-
-    String csv = const ListToCsvConverter().convert(rows);
+    String csv = await compute(_generateClassesCsv, classes);
     await _shareCsvFile(csv, 'classes_export.csv');
   }
 
   static Future<void> exportStudentsToCsv(List<Student> students) async {
-    List<List<dynamic>> rows = [];
-    rows.add(['Student Name', 'Student ID', 'Class ID', 'Email', 'Is Restricted', 'Restriction Reason', 'Restricted At', 'Created At']);
-
-    for (var student in students) {
-      rows.add([
-        student.name,
-        student.studentId,
-        student.classId ?? '',
-        student.email ?? '',
-        student.isRestricted ? 'Yes' : 'No',
-        student.restrictionReason ?? '',
-        student.restrictedAt != null ? DateFormat('yyyy-MM-dd').format(student.restrictedAt!) : '',
-        student.createdAt != null ? DateFormat('yyyy-MM-dd').format(student.createdAt!) : '',
-      ]);
-    }
-
-    String csv = const ListToCsvConverter().convert(rows);
+    String csv = await compute(_generateStudentsCsv, students);
     await _shareCsvFile(csv, 'students_export.csv');
   }
 
   static Future<void> exportPaymentsToCsv(List<Payment> payments) async {
-    List<List<dynamic>> rows = [];
-    rows.add(['Date', 'Student ID', 'Class ID', 'Amount', 'Type', 'Month', 'Year']);
-
-    for (var payment in payments) {
-      rows.add([
-        DateFormat('yyyy-MM-dd').format(payment.date),
-        payment.studentId,
-        payment.classId,
-        payment.amount,
-        payment.type,
-        payment.month ?? '',
-        payment.year ?? '',
-      ]);
-    }
-
-    String csv = const ListToCsvConverter().convert(rows);
+    String csv = await compute(_generatePaymentsCsv, payments);
     await _shareCsvFile(csv, 'payments_export.csv');
   }
 

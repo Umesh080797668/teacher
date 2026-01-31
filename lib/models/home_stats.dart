@@ -45,6 +45,23 @@ class HomeStats {
       paymentPositive: json['paymentPositive'] is bool ? json['paymentPositive'] : true,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'totalStudents': totalStudents,
+      'todayAttendancePercentage': todayAttendancePercentage,
+      'totalClasses': totalClasses,
+      'paymentStatusPercentage': paymentStatusPercentage,
+      'studentsTrend': studentsTrend,
+      'attendanceTrend': attendanceTrend,
+      'classesTrend': classesTrend,
+      'paymentTrend': paymentTrend,
+      'studentsPositive': studentsPositive,
+      'attendancePositive': attendancePositive,
+      'classesPositive': classesPositive,
+      'paymentPositive': paymentPositive,
+    };
+  }
 }
 
 class RecentActivity {

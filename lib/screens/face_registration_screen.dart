@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -35,7 +34,6 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
   String _statusMessage = 'Initializing Camera...';
 
   // For visual feedback and quality control
-  final double _minFaceWidthRatio = 0.35; // Face must be at least 35% of screen width
   final double _maxHeadEulerAngleY = 12.0; // Max turn (yaw)
   final double _maxHeadEulerAngleZ = 12.0; // Max tilt (roll)
   

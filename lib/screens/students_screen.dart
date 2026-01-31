@@ -431,7 +431,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       if (_searchQuery.isEmpty) return true;
                       return student.name.toLowerCase().contains(_searchQuery) ||
                           (student.email?.toLowerCase().contains(_searchQuery) ?? false) ||
-                          (student.studentId.toLowerCase().contains(_searchQuery) ?? false);
+                          student.studentId.toLowerCase().contains(_searchQuery);
                     }).toList();
                     if (filteredStudents.isEmpty) {
                       return SizedBox(
@@ -551,26 +551,30 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               ),
                               // Delete action
                               SlidableAction(
-                                onPressed: (context) async {
+                                onPressed: (slidableContext) async {
+                                  // Capture the scaffold messenger before showing dialogs
+                                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                                  final navigator = Navigator.of(context);
+                                  
                                   final confirm = await showDialog<bool>(
                                     context: context,
-                                    builder: (context) => AlertDialog(
+                                    builder: (dialogContext) => AlertDialog(
                                       title: Text('Delete Student',
                                           style: TextStyle(
-                                              color: Theme.of(context).colorScheme.onSurface)),
+                                              color: Theme.of(dialogContext).colorScheme.onSurface)),
                                       content: Text(
                                           'Are you sure you want to delete ${student.name}?',
                                           style: TextStyle(
-                                              color: Theme.of(context).colorScheme.onSurface)),
+                                              color: Theme.of(dialogContext).colorScheme.onSurface)),
                                       actions: [
                                         TextButton(
-                                          onPressed: () => Navigator.pop(context, false),
+                                          onPressed: () => Navigator.of(dialogContext).pop(false),
                                           child: Text('Cancel',
                                               style: TextStyle(
-                                                  color: Theme.of(context).colorScheme.primary)),
+                                                  color: Theme.of(dialogContext).colorScheme.primary)),
                                         ),
                                         TextButton(
-                                          onPressed: () => Navigator.pop(context, true),
+                                          onPressed: () => Navigator.of(dialogContext).pop(true),
                                           child: const Text('Delete',
                                               style: TextStyle(color: Colors.red)),
                                         ),
@@ -578,50 +582,66 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                     ),
                                   );
 
-                                  if (confirm == true && context.mounted) {
-                                    try {
-                                      // Show loading dialog while deleting
-                                      if (context.mounted) {
-                                        showDialog(
-                                          context: context,
-                                          barrierDismissible: false,
-                                          builder: (context) => AlertDialog(
-                                            content: Row(
-                                              children: [
-                                                const CircularProgressIndicator(),
-                                                const SizedBox(width: 16),
-                                                const Text('Deleting student...'),
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      }
+                                  if (confirm == true) {
+                                    // Show loading dialog
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (dialogContext) => const AlertDialog(
+                                        content: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            CircularProgressIndicator(),
+                                            SizedBox(width: 16),
+                                            Text('Deleting student...'),
+                                          ],
+                                        ),
+                                      ),
+                                    );
 
+                                    try {
                                       await Provider.of<StudentsProvider>(context, listen: false)
                                           .deleteStudent(student.id);
 
-                                      if (context.mounted) {
-                                        Navigator.pop(context); // Close loading dialog
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Student deleted successfully'),
-                                            backgroundColor: Colors.green,
-                                            duration: Duration(seconds: 2),
+                                      // Close loading dialog
+                                      navigator.pop();
+                                      
+                                      // Show success message
+                                      scaffoldMessenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Row(
+                                            children: [
+                                              Icon(Icons.check_circle, color: Colors.white),
+                                              SizedBox(width: 12),
+                                              Text('Student deleted successfully'),
+                                            ],
                                           ),
-                                        );
-                                      }
+                                          backgroundColor: Colors.green,
+                                          duration: Duration(seconds: 2),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
                                     } catch (e) {
-                                      if (context.mounted) {
-                                        Navigator.pop(context); // Close loading dialog
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content:
-                                                Text('Failed to delete student: ${e.toString()}'),
-                                            backgroundColor: Colors.red,
-                                            duration: const Duration(seconds: 3),
+                                      // Close loading dialog
+                                      navigator.pop();
+                                      
+                                      // Show error message
+                                      scaffoldMessenger.showSnackBar(
+                                        SnackBar(
+                                          content: Row(
+                                            children: [
+                                              const Icon(Icons.error, color: Colors.white),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Text('Failed to delete: ${e.toString()}'),
+                                              ),
+                                            ],
                                           ),
-                                        );
-                                      }
+                                          backgroundColor: Colors.red,
+                                          duration: const Duration(seconds: 3),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
                                     }
                                   }
                                 },

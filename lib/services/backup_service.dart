@@ -1,8 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
+
+// Helper functions for compute
+String _encodeBackupData(Map<String, dynamic> backupData) {
+  return const JsonEncoder.withIndent('  ').convert(backupData);
+}
+
+Map<String, dynamic> _decodeBackupData(String backupString) {
+  return jsonDecode(backupString) as Map<String, dynamic>;
+}
 
 class BackupService {
   static final BackupService _instance = BackupService._internal();
@@ -76,9 +86,8 @@ class BackupService {
       final filename = customName ?? 'backup_$timestamp.json';
       final file = File('${backupDir.path}/$filename');
 
-      await file.writeAsString(
-        const JsonEncoder.withIndent('  ').convert(backupData),
-      );
+      final jsonString = await compute(_encodeBackupData, backupData);
+      await file.writeAsString(jsonString);
 
       _lastBackupTime = DateTime.now();
       await prefs.setString(
@@ -128,7 +137,7 @@ class BackupService {
       }
 
       final backupString = await file.readAsString();
-      final backupData = jsonDecode(backupString) as Map<String, dynamic>;
+      final backupData = await compute(_decodeBackupData, backupString);
       final data = backupData['data'] as Map<String, dynamic>;
 
       final prefs = await SharedPreferences.getInstance();

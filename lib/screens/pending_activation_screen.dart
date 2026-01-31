@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/subscription_polling_service.dart';
-import '../services/api_service.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import 'payment_rejected_screen.dart';

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -20,6 +21,7 @@ import '../providers/admin_changes_provider.dart';
 import '../services/api_service.dart';
 import '../services/update_service.dart';
 import '../services/subscription_polling_service.dart';
+import '../services/cache_service.dart';
 import '../models/home_stats.dart';
 import '../widgets/custom_widgets.dart';
 import 'activation_screen.dart';
@@ -570,19 +572,137 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       final teacherId = auth.teacherId;
-
-      final stats = await ApiService.getHomeStats(teacherId: teacherId);
-      final activities =
-          await ApiService.getRecentActivities(teacherId: teacherId);
-
-      setState(() {
-        _stats = stats;
-        _activities = activities;
-        if (!silent) {
-          _isLoading = false;
+      
+      // SOLUTION FOR PROBLEM 1: Load cached data first (instant display)
+      bool hasCachedData = false;
+      if (!silent) {
+        try {
+          final cachedStatsData = await CacheService.getOfflineCachedData('home_stats_$teacherId');
+          final cachedActivitiesData = await CacheService.getOfflineCachedData('recent_activities_$teacherId');
+          
+          if (cachedStatsData != null && cachedActivitiesData != null) {
+            final statsJson = json.decode(cachedStatsData);
+            final activitiesJson = json.decode(cachedActivitiesData) as List;
+            
+            setState(() {
+              _stats = HomeStats.fromJson(statsJson);
+              _activities = activitiesJson.map((json) => RecentActivity.fromJson(json)).toList();
+              _isLoading = false; // Show cached data immediately, stop loading indicator
+            });
+            
+            hasCachedData = true;
+            debugPrint('✓ Loaded cached home data instantly');
+          }
+        } catch (e) {
+          debugPrint('Error loading cached data: $e');
         }
-      });
+      }
+
+      // SOLUTION FOR PROBLEM 2: Fetch fresh data in parallel with shorter timeout
+      try {
+        // Fetch both API calls in parallel for faster loading
+        final results = await Future.wait([
+          ApiService.getHomeStats(teacherId: teacherId).timeout(const Duration(seconds: 5)),
+          ApiService.getRecentActivities(teacherId: teacherId).timeout(const Duration(seconds: 5)),
+        ]);
+        
+        final stats = results[0] as HomeStats;
+        final activities = results[1] as List<RecentActivity>;
+
+        // Save to offline cache for next time (in background, don't wait)
+        CacheService.cacheOfflineData('home_stats_$teacherId', json.encode(stats.toJson()));
+        CacheService.cacheOfflineData('recent_activities_$teacherId', 
+            json.encode(activities.map((a) => a.toJson()).toList()));
+
+        setState(() {
+          _stats = stats;
+          _activities = activities;
+          if (!silent) {
+            _isLoading = false;
+          }
+        });
+        
+        debugPrint('✓ Loaded fresh home data successfully in ${hasCachedData ? 'background' : 'foreground'}');
+      } on TimeoutException {
+        // Weak connection - use cached data if we haven't already
+        if (silent || _stats == null) {
+          final cachedStatsData = await CacheService.getOfflineCachedData('home_stats_$teacherId');
+          final cachedActivitiesData = await CacheService.getOfflineCachedData('recent_activities_$teacherId');
+          
+          if (cachedStatsData != null && cachedActivitiesData != null) {
+            try {
+              final statsJson = json.decode(cachedStatsData);
+              final activitiesJson = json.decode(cachedActivitiesData) as List;
+              
+              setState(() {
+                _stats = HomeStats.fromJson(statsJson);
+                _activities = activitiesJson.map((json) => RecentActivity.fromJson(json)).toList();
+                if (!silent) {
+                  _isLoading = false;
+                }
+              });
+              
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Showing cached data - connection is slow'),
+                    duration: Duration(seconds: 2),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
+              debugPrint('⚠️ Using cached data due to timeout');
+              return;
+            } catch (e) {
+              debugPrint('Error loading cached data: $e');
+            }
+          }
+        }
+        
+        if (!silent) {
+          setState(() {
+            _error = 'Connection timeout. Please check your internet.';
+            _isLoading = false;
+          });
+        }
+      }
     } catch (e) {
+      // SOLUTION FOR PROBLEM 2: Fallback to cache on any error
+      final teacherId = auth.teacherId;
+      if (teacherId != null) {
+        final cachedStatsData = await CacheService.getOfflineCachedData('home_stats_$teacherId');
+        final cachedActivitiesData = await CacheService.getOfflineCachedData('recent_activities_$teacherId');
+        
+        if (cachedStatsData != null && cachedActivitiesData != null) {
+          try {
+            final statsJson = json.decode(cachedStatsData);
+            final activitiesJson = json.decode(cachedActivitiesData) as List;
+            
+            setState(() {
+              _stats = HomeStats.fromJson(statsJson);
+              _activities = activitiesJson.map((json) => RecentActivity.fromJson(json)).toList();
+              if (!silent) {
+                _isLoading = false;
+              }
+            });
+            
+            if (mounted && !silent) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Showing cached data - unable to connect'),
+                  duration: Duration(seconds: 2),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+            debugPrint('⚠️ Using cached data due to error: $e');
+            return;
+          } catch (e2) {
+            debugPrint('Error loading cached data: $e2');
+          }
+        }
+      }
+      
       if (!silent) {
         setState(() {
           _error = e.toString();
