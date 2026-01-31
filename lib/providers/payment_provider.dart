@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/payment.dart';
 import '../services/api_service.dart';
+import '../services/cache_service.dart';
 
 class PaymentProvider with ChangeNotifier {
   List<Payment> _payments = [];
@@ -9,9 +11,12 @@ class PaymentProvider with ChangeNotifier {
   List<Payment> get payments => _payments;
   bool get isLoading => _isLoading;
 
-  Future<void> loadPayments({String? classId, String? studentId, String? teacherId}) async {
-    _isLoading = true;
-    notifyListeners();
+  Future<void> loadPayments({String? classId, String? studentId, String? teacherId, bool silent = false}) async {
+    if (!silent) {
+      _isLoading = true;
+      notifyListeners();
+    }
+    
     try {
       if (teacherId == 'guest_teacher_id') {
         _payments = [
@@ -34,9 +39,53 @@ class PaymentProvider with ChangeNotifier {
               type: 'admission',
               date: DateTime.now().subtract(const Duration(days: 5))),
         ];
-      } else {
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      // Load cached data first for instant display
+      if (!silent && teacherId != null) {
+        try {
+          final cacheKey = 'payments_${teacherId}_${classId ?? 'all'}_${studentId ?? 'all'}';
+          final cachedData = await CacheService.getOfflineCachedData(cacheKey);
+          if (cachedData != null) {
+            final paymentsJson = json.decode(cachedData) as List;
+            _payments = paymentsJson.map((json) => Payment.fromJson(json)).toList();
+            _isLoading = false;
+            notifyListeners();
+            debugPrint('✓ Loaded cached payments instantly');
+          }
+        } catch (e) {
+          debugPrint('Error loading cached payments: $e');
+        }
+      }
+
+      // Fetch fresh data with timeout
+      try {
         _payments = await ApiService.getPayments(
-            classId: classId, studentId: studentId, teacherId: teacherId);
+            classId: classId, studentId: studentId, teacherId: teacherId)
+            .timeout(const Duration(seconds: 5));
+        
+        // Cache for next time
+        if (teacherId != null) {
+          final cacheKey = 'payments_${teacherId}_${classId ?? 'all'}_${studentId ?? 'all'}';
+          CacheService.cacheOfflineData(cacheKey, 
+              json.encode(_payments.map((p) => p.toJson()).toList()));
+        }
+        
+        debugPrint('✓ Loaded fresh payments data');
+      } catch (e) {
+        // If failed and we have cached data, keep it
+        if (_payments.isEmpty && teacherId != null) {
+          final cacheKey = 'payments_${teacherId}_${classId ?? 'all'}_${studentId ?? 'all'}';
+          final cachedData = await CacheService.getOfflineCachedData(cacheKey);
+          if (cachedData != null) {
+            final paymentsJson = json.decode(cachedData) as List;
+            _payments = paymentsJson.map((json) => Payment.fromJson(json)).toList();
+            debugPrint('⚠️ Using cached payments due to error: $e');
+          }
+        }
       }
     } finally {
       _isLoading = false;

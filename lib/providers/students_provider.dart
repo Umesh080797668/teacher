@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/student.dart';
 import '../services/api_service.dart';
 import '../services/restriction_service.dart';
+import '../services/cache_service.dart';
 
 class StudentsProvider with ChangeNotifier {
   List<Student> _students = [];
@@ -16,9 +18,12 @@ class StudentsProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadStudents({String? teacherId}) async {
-    _isLoading = true;
-    notifyListeners();
+  Future<void> loadStudents({String? teacherId, bool silent = false}) async {
+    if (!silent) {
+      _isLoading = true;
+      notifyListeners();
+    }
+    
     try {
       if (teacherId == 'guest_teacher_id') {
         _students = [
@@ -47,9 +52,49 @@ class StudentsProvider with ChangeNotifier {
             classId: 'guest_class_2',
           ),
         ];
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
 
-      } else {
-        _students = await ApiService.getStudents(teacherId: teacherId);
+      // Load cached data first for instant display
+      if (!silent && teacherId != null) {
+        try {
+          final cachedData = await CacheService.getOfflineCachedData('students_$teacherId');
+          if (cachedData != null) {
+            final studentsJson = json.decode(cachedData) as List;
+            _students = studentsJson.map((json) => Student.fromJson(json)).toList();
+            _isLoading = false;
+            notifyListeners();
+            debugPrint('✓ Loaded cached students instantly');
+          }
+        } catch (e) {
+          debugPrint('Error loading cached students: $e');
+        }
+      }
+
+      // Fetch fresh data with timeout
+      try {
+        _students = await ApiService.getStudents(teacherId: teacherId)
+            .timeout(const Duration(seconds: 5));
+        
+        // Cache for next time
+        if (teacherId != null) {
+          CacheService.cacheOfflineData('students_$teacherId', 
+              json.encode(_students.map((s) => s.toJson()).toList()));
+        }
+        
+        debugPrint('✓ Loaded fresh students data');
+      } catch (e) {
+        // If failed and we have cached data, keep it
+        if (_students.isEmpty && teacherId != null) {
+          final cachedData = await CacheService.getOfflineCachedData('students_$teacherId');
+          if (cachedData != null) {
+            final studentsJson = json.decode(cachedData) as List;
+            _students = studentsJson.map((json) => Student.fromJson(json)).toList();
+            debugPrint('⚠️ Using cached students due to error: $e');
+          }
+        }
       }
     } finally {
       _isLoading = false;
