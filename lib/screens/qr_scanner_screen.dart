@@ -240,7 +240,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             Text(
               'Authenticating...',
               style: TextStyle(
-                color: Theme.of(context).textTheme.bodyLarge?.color,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -277,7 +277,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                   child: Text(
                     'Success',
                     style: TextStyle(
-                      color: Theme.of(context).textTheme.titleLarge?.color,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -288,7 +288,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             content: Text(
               message,
               style: TextStyle(
-                color: Theme.of(context).textTheme.bodyLarge?.color,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 16,
               ),
             ),
@@ -337,7 +337,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 child: Text(
                   'Error',
                   style: TextStyle(
-                    color: Theme.of(context).textTheme.titleLarge?.color,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -348,7 +348,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           content: Text(
             message,
             style: TextStyle(
-              color: Theme.of(context).textTheme.bodyLarge?.color,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 16,
             ),
           ),
