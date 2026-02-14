@@ -28,6 +28,7 @@ import 'activation_screen.dart';
 import 'subscription_warning_screen.dart';
 import 'subscription_screen.dart';
 import 'pending_activation_screen.dart';
+import 'quiz_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1677,6 +1678,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         const ReportsScreen(),
+                                  ),
+                                );
+                              },
+                              isDisabled: false,
+                            );
+                          },
+                        ),
+                        Consumer<AuthProvider>(
+                          builder: (context, auth, child) {
+                            return _FeatureCard(
+                              title: 'Quizzes',
+                              subtitle: 'Create and Manage Quizzes',
+                              icon: Icons.quiz_rounded,
+                              color: Colors.pink,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        QuizListScreen(),
                                   ),
                                 );
                               },

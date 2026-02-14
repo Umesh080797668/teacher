@@ -9,6 +9,7 @@ import '../models/attendance.dart';
 import '../models/class.dart';
 import '../models/payment.dart';
 import '../models/home_stats.dart';
+import '../models/quiz.dart';
 import 'cache_service.dart';
 
 // Helper functions for parsing JSON in separate isolates
@@ -1079,5 +1080,31 @@ class ApiService {
         'teacherEmail': teacherEmail,
       },
     );
+  }
+  // Quiz Methods
+  static Future<List<Quiz>> getQuizzes() async {
+    final token = await getToken();
+    final headers = token != null ? {'Authorization': 'Bearer $token'} : <String, String>{};
+    final response = await _makeRequest('GET', '/api/quizzes', headers: headers);
+    final List<dynamic> data = json.decode(response.body);
+    return data.map((json) => Quiz.fromJson(json)).toList();
+  }
+
+  static Future<Quiz> createQuiz(Quiz quiz) async {
+    final token = await getToken();
+    final headers = token != null ? {'Authorization': 'Bearer $token'} : <String, String>{};
+    final response = await _makeRequest('POST', '/api/quizzes', 
+      headers: headers, 
+      body: quiz.toJson()
+    );
+    return Quiz.fromJson(json.decode(response.body));
+  }
+
+  static Future<List<QuizResult>> getQuizResults(String quizId) async {
+    final token = await getToken();
+    final headers = token != null ? {'Authorization': 'Bearer $token'} : <String, String>{};
+    final response = await _makeRequest('GET', '/api/quizzes/$quizId/results', headers: headers);
+    final List<dynamic> data = json.decode(response.body);
+    return data.map((json) => QuizResult.fromJson(json)).toList();
   }
 }

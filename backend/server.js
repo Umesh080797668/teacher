@@ -553,6 +553,35 @@ PaymentProofSchema.set('toJSON', {
   }
 });
 
+// Quiz Schema
+const QuizSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: String,
+  teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', required: true },
+  classIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Class' }], // Restrict to specific classes
+  questions: [{
+    text: { type: String, required: true },
+    options: [{ type: String, required: true }],
+    correctOptionIndex: { type: Number, required: true },
+    marks: { type: Number, default: 1 }
+  }],
+  duration: { type: Number, required: true }, // in minutes
+  maxAttempts: { type: Number, default: 1 }, // Default 1 attempt
+  createdAt: { type: Date, default: Date.now },
+  isActive: { type: Boolean, default: true }
+});
+
+// Quiz Result Schema
+const QuizResultSchema = new mongoose.Schema({
+  studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
+  quizId: { type: mongoose.Schema.Types.ObjectId, ref: 'Quiz', required: true },
+  answers: [{ type: Number }], // array of selected option indices
+  score: { type: Number, required: true },
+  totalMarks: { type: Number, required: true },
+  percentage: { type: Number },
+  submittedAt: { type: Date, default: Date.now }
+});
+
 AttendanceSchema.index({ studentId: 1, year: 1, month: 1 });
 
 const Student = mongoose.models.Student || mongoose.model('Student', StudentSchema);
@@ -567,6 +596,8 @@ const Admin = mongoose.models.Admin || mongoose.model('Admin', AdminSchema);
 const ProblemReport = mongoose.models.ProblemReport || mongoose.model('ProblemReport', ProblemReportSchema);
 const PaymentProof = mongoose.models.PaymentProof || mongoose.model('PaymentProof', PaymentProofSchema);
 const FeatureRequest = mongoose.models.FeatureRequest || mongoose.model('FeatureRequest', FeatureRequestSchema);
+const Quiz = mongoose.models.Quiz || mongoose.model('Quiz', QuizSchema);
+const QuizResult = mongoose.models.QuizResult || mongoose.model('QuizResult', QuizResultSchema);
 
 // Store for pending QR sessions and connected sockets
 const pendingQRSessions = new Map(); // sessionId -> { timestamp, userType }
@@ -1629,6 +1660,114 @@ app.post('/api/student/login', async (req, res) => {
     });
   }
 });
+
+// Student Quiz Endpoints (No JWT required - Uses studentId)
+
+// Get Available Quizzes for Student
+app.get('/api/student/quizzes', async (req, res) => {
+    try {
+        const { studentId } = req.query;
+        if (!studentId) return res.status(400).json({ error: 'Student ID required' });
+
+        const student = await Student.findById(studentId).populate('classId');
+        if (!student || !student.classId) {
+             return res.json({ success: true, quizzes: [] });
+        }
+
+        // Handle potential multiple classes (if schema allows or changes in future)
+        // Even if schema is single, this makes it robust.
+        const classObj = student.classId;
+        const classList = Array.isArray(classObj) ? classObj : [classObj];
+        
+        // distinct teacher IDs (in case student is in classes from different teachers)
+        const teacherIds = [...new Set(classList.map(c => c.teacherId))];
+        const studentClassIds = classList.map(c => c._id);
+
+        // Filter quizzes: matches any of the teachers AND (is global OR is for one of the student's classes)
+        const query = {
+            teacherId: { $in: teacherIds },
+            isActive: true,
+            $or: [
+                { classIds: { $in: studentClassIds } }, // Matches any class the student is in
+                { classIds: { $size: 0 } }, // Global
+                { classIds: { $exists: false } } // Legacy
+            ]
+        };
+
+        const quizzes = await Quiz.find(query).sort({ createdAt: -1 });
+        
+        // Check which ones are already taken
+        const results = await QuizResult.find({ studentId: student._id });
+        const takenQuizIds = new Set(results.map(r => r.quizId.toString()));
+        
+        const quizzesWithStatus = quizzes.map(q => ({
+            ...q.toObject(),
+            isTaken: takenQuizIds.has(q._id.toString())
+        }));
+
+        res.json({ success: true, quizzes: quizzesWithStatus });
+    } catch (err) {
+        console.error('Error fetching student quizzes:', err);
+        res.status(500).json({ success: false, error: 'Failed to fetch quizzes' });
+    }
+});
+
+// Student Submit Quiz
+app.post('/api/student/quizzes/:id/submit', async (req, res) => {
+    try {
+        const { studentId, answers } = req.body;
+        const quizId = req.params.id;
+        
+        if (!studentId) return res.status(400).json({ success: false, error: 'Student ID required' });
+
+        const quiz = await Quiz.findById(quizId);
+        if (!quiz) return res.status(404).json({ success: false, error: 'Quiz not found' });
+
+        // Calculate score
+        let score = 0;
+        let totalMarks = 0;
+        quiz.questions.forEach((q, index) => {
+            const studentAnswer = answers[index];
+            totalMarks += q.marks || 1;
+            if (studentAnswer === q.correctOptionIndex) {
+                 score += q.marks || 1;
+            }
+        });
+
+        const result = new QuizResult({
+            studentId,
+            quizId,
+            answers,
+            score,
+            totalMarks
+        });
+        
+        await result.save();
+        res.json({ success: true, result });
+
+    } catch (err) {
+        console.error('Error submitting quiz:', err);
+        res.status(500).json({ success: false, error: 'Failed to submit quiz' });
+    }
+});
+
+// Student Quiz History
+app.get('/api/student/quizzes/history', async (req, res) => {
+    try {
+        const { studentId } = req.query;
+        if (!studentId) return res.status(400).json({ success: false, error: 'Student ID required' });
+
+        const results = await QuizResult.find({ studentId })
+            .populate('quizId', 'title description duration questions')
+            .sort({ submittedAt: -1 });
+            
+        res.json({ success: true, results });
+    } catch (err) {
+        console.error('Error fetching quiz history:', err);
+        res.status(500).json({ success: false, error: 'Failed to fetch history' });
+    }
+});
+
 
 
 // Student restriction check middleware
@@ -7054,6 +7193,163 @@ app.post('/api/test/send-notification', verifyToken, async (req, res) => {
       details: error.message
     });
   }
+});
+
+// Quiz Routes
+
+// Create a Quiz
+app.post('/api/quizzes', verifyToken, async (req, res) => {
+  try {
+    const { title, description, questions, duration, maxAttempts, classIds } = req.body;
+    const createdBy = req.user.id; // user id from verifyToken
+
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+        return res.status(400).json({ error: 'Quiz must have at least one question.' });
+    }
+
+    const quiz = new Quiz({
+      title,
+      description,
+      teacherId: createdBy,
+      classIds: classIds || [], // Optional: if empty, maybe all classes? or none? Let's assume specific or all if empty logic needed later.
+      questions,
+      duration,
+      maxAttempts: maxAttempts || 1
+    });
+
+    await quiz.save();
+    res.status(201).json(quiz);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create quiz', details: error.message });
+  }
+});
+
+// Get all quizzes (Teacher's own quizzes) or Available for Student
+app.get('/api/student/quizzes', verifyToken, async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const student = await Student.findById(studentId);
+        
+        if (!student) return res.status(404).json({ error: 'Student not found' });
+        
+        // Find quizzes that match the student's classId OR (optionally) have no class restriction if that matches your logic.
+        // For strict "by class" logic:
+        const query = { 
+            isActive: true,
+            $or: [
+                { classIds: student.classId }, // Direct match in array
+                { classIds: { $size: 0 } },  // OR no specific class (global quiz)? User asked for "by class". Assuming empty = all or global.
+                { classIds: { $exists: false } } // Legacy support
+            ]
+        };
+
+        const quizzes = await Quiz.find(query).sort({ createdAt: -1 });
+        
+        // Check which ones are taken and how many times
+        const quizzesWithStatus = await Promise.all(quizzes.map(async (quiz) => {
+            const attemptsCount = await QuizResult.countDocuments({ studentId, quizId: quiz._id });
+            const isTaken = attemptsCount >= quiz.maxAttempts;
+            
+            return {
+                ...quiz.toJSON(),
+                isTaken, // kept for simple backward compatibility
+                attemptsTaken: attemptsCount,
+                maxAttempts: quiz.maxAttempts || 1
+            };
+        }));
+        
+        res.json(quizzesWithStatus);
+    } catch (err) {
+        console.error("Error getting student quizzes:", err);
+        res.status(500).json({ error: 'Failed to fetch quizzes' });
+    }
+});
+
+
+// Get Quiz Details
+app.get('/api/quizzes/:id', verifyToken, async (req, res) => {
+    try {
+        const quiz = await Quiz.findById(req.params.id);
+        if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
+        res.json(quiz);
+    } catch(err) {
+        res.status(500).json({ error: 'Failed to fetch quiz' });
+    }
+});
+
+// Submit Quiz
+app.post('/api/quizzes/:id/submit', verifyToken, async (req, res) => {
+    try {
+        const { answers } = req.body;
+        const quizId = req.params.id;
+        const studentId = req.user.id;
+
+        const quiz = await Quiz.findById(quizId);
+        if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
+
+        // Check attempts
+        const attempts = await QuizResult.countDocuments({ studentId, quizId });
+        if (attempts >= quiz.maxAttempts) {
+            return res.status(403).json({ error: `Maximum attempts (${quiz.maxAttempts}) reached.` });
+        }
+
+        let score = 0;
+        let totalMarks = 0; // This will now represent number of questions for specific calculation request
+        let actualTotalMarks = 0; // Sum of marks
+        
+        quiz.questions.forEach((q, index) => {
+            const studentAnswer = answers[index];
+            actualTotalMarks += q.marks || 1;
+            if (studentAnswer === q.correctOptionIndex) {
+                score += q.marks || 1;
+            }
+        });
+
+        // 100% / number of questions logic requested by user:
+        // Actually it seems they want standard percentage: (score/total) * 100
+        // "100% / number of questions" implies equal weight per question scaling to 100.
+        // Let's store the raw score, total possible score, and percentage.
+        const percentage = (score / actualTotalMarks) * 100;
+
+        const result = new QuizResult({
+            studentId,
+            quizId,
+            answers,
+            score,
+            totalMarks: actualTotalMarks,
+            percentage
+        });
+        
+        await result.save();
+        res.json(result);
+    } catch (err) {
+        console.error('Quiz submit error:', err);
+        res.status(500).json({ error: 'Failed to submit quiz' });
+    }
+});
+
+// Get Student History
+app.get('/api/quizzes/history/student/:studentId', verifyToken, async (req, res) => {
+    try {
+        const results = await QuizResult.find({ studentId: req.params.studentId })
+            .populate('quizId', 'title duration questions')
+            .sort({ submittedAt: -1 });
+        res.json(results);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch history' });
+    }
+});
+
+// Get Quiz Results (for Admin/Teacher)
+app.get('/api/quizzes/:id/results', verifyToken, async (req, res) => {
+    try {
+        const results = await QuizResult.find({ quizId: req.params.id })
+            .populate('studentId', 'name regNo')
+            .sort({ score: -1 });
+        res.json(results);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch quiz results' });
+    }
 });
 
 // Export the app for Vercel
