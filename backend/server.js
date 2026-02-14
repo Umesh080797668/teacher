@@ -1698,11 +1698,16 @@ app.get('/api/student/quizzes', async (req, res) => {
         
         // Check which ones are already taken
         const results = await QuizResult.find({ studentId: student._id });
-        const takenQuizIds = new Set(results.map(r => r.quizId.toString()));
+        const attemptsMap = {};
+        results.forEach(r => {
+            const qId = r.quizId.toString();
+            attemptsMap[qId] = (attemptsMap[qId] || 0) + 1;
+        });
         
         const quizzesWithStatus = quizzes.map(q => ({
             ...q.toObject(),
-            isTaken: takenQuizIds.has(q._id.toString())
+            isTaken: (attemptsMap[q._id.toString()] || 0) > 0,
+            attemptsTaken: attemptsMap[q._id.toString()] || 0
         }));
 
         res.json({ success: true, quizzes: quizzesWithStatus });
@@ -1723,23 +1728,42 @@ app.post('/api/student/quizzes/:id/submit', async (req, res) => {
         const quiz = await Quiz.findById(quizId);
         if (!quiz) return res.status(404).json({ success: false, error: 'Quiz not found' });
 
+        // Check attempts
+        const maxAttempts = quiz.maxAttempts || 1;
+        const attemptsCount = await QuizResult.countDocuments({ studentId, quizId });
+        if (attemptsCount >= maxAttempts) {
+             return res.status(403).json({ success: false, error: `Maximum attempts (${maxAttempts}) reached.` });
+        }
+
         // Calculate score
         let score = 0;
         let totalMarks = 0;
+        let correctAnswersCount = 0;
+
         quiz.questions.forEach((q, index) => {
             const studentAnswer = answers[index];
-            totalMarks += q.marks || 1;
+            const qMark = q.marks || 1;
+            totalMarks += qMark;
             if (studentAnswer === q.correctOptionIndex) {
-                 score += q.marks || 1;
+                 score += qMark;
+                 correctAnswersCount++;
             }
         });
+
+        // 100/total questions logic
+        let percentage = 0;
+        if (quiz.questions.length > 0) {
+            percentage = (100 / quiz.questions.length) * correctAnswersCount;
+        }
+        percentage = parseFloat(percentage.toFixed(2));
 
         const result = new QuizResult({
             studentId,
             quizId,
             answers,
             score,
-            totalMarks
+            totalMarks,
+            percentage
         });
         
         await result.save();
@@ -7299,36 +7323,54 @@ app.post('/api/quizzes/:id/submit', verifyToken, async (req, res) => {
         if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
 
         // Check attempts
+        const maxAttempts = quiz.maxAttempts || 1;
         const attempts = await QuizResult.countDocuments({ studentId, quizId });
-        if (attempts >= quiz.maxAttempts) {
-            return res.status(403).json({ error: `Maximum attempts (${quiz.maxAttempts}) reached.` });
+        
+        if (attempts >= maxAttempts) {
+            return res.status(403).json({ error: `Maximum attempts (${maxAttempts}) reached.` });
         }
 
         let score = 0;
-        let totalMarks = 0; // This will now represent number of questions for specific calculation request
-        let actualTotalMarks = 0; // Sum of marks
-        
+        let totalMarks = 0; 
+        let actualTotalMarks = 0; // Sum of marks from questions
+        let correctAnswersCount = 0;
+
         quiz.questions.forEach((q, index) => {
             const studentAnswer = answers[index];
-            actualTotalMarks += q.marks || 1;
+            const questionMark = q.marks || 1;
+            actualTotalMarks += questionMark;
+            
             if (studentAnswer === q.correctOptionIndex) {
-                score += q.marks || 1;
+                score += questionMark;
+                correctAnswersCount++;
             }
         });
 
-        // 100% / number of questions logic requested by user:
-        // Actually it seems they want standard percentage: (score/total) * 100
-        // "100% / number of questions" implies equal weight per question scaling to 100.
-        // Let's store the raw score, total possible score, and percentage.
-        const percentage = (score / actualTotalMarks) * 100;
+        // User requested: "100/total questions and sum of correct answers value"
+        // Interpretation: Score should be normalized to 100 based on question count or total marks.
+        // If we treat all questions equally (as implied by 100/total questions):
+        // Value per question = 100 / quiz.questions.length
+        // Total Score = (100 / quiz.questions.length) * correctAnswersCount
+        
+        let calculatedPercentage = 0;
+        if (quiz.questions.length > 0) {
+             calculatedPercentage = (100 / quiz.questions.length) * correctAnswersCount;
+        }
+
+        // We will store both the raw score (based on potential weighted marks) and this calculated percentage
+        // modifying the score to reflect the user's specific request "it should be 100/total... sum of correct"
+        // But to be safe, I'll store the percentage in the percentage field which is intended for display.
+        
+        const finalPercentage = parseFloat(calculatedPercentage.toFixed(2));
 
         const result = new QuizResult({
             studentId,
             quizId,
             answers,
-            score,
-            totalMarks: actualTotalMarks,
-            percentage
+            score, // Raw weighted score
+            totalMarks: actualTotalMarks, // Raw total weighted marks possible
+            percentage: finalPercentage, // The requested "100/total * correct" value
+            submittedAt: Date.now()
         });
         
         await result.save();
