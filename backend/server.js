@@ -7224,6 +7224,17 @@ app.post('/api/quizzes', verifyToken, async (req, res) => {
   }
 });
 
+// Get Teacher's Quizzes
+app.get('/api/quizzes', verifyToken, async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const quizzes = await Quiz.find({ teacherId }).sort({ createdAt: -1 });
+    res.json(quizzes);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch quizzes', details: error.message });
+  }
+});
+
 // Get all quizzes (Teacher's own quizzes) or Available for Student
 app.get('/api/student/quizzes', verifyToken, async (req, res) => {
     try {
