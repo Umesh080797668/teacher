@@ -5,6 +5,7 @@ import '../models/class.dart';
 import '../providers/classes_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../main.dart';
 
 class CreateQuizScreen extends StatefulWidget {
   @override
@@ -37,6 +38,9 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
           setState(() {
             _questions.add(question);
           });
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            FocusScope.of(MyApp.navigatorKey.currentContext!).unfocus();
+          });
         },
       ),
     );
@@ -65,9 +69,18 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         questions: _questions,
         classIds: _selectedClassIds,
       );
+      debugPrint('Creating quiz with data: ${quiz.toJson()}');
       await ApiService.createQuiz(quiz);
       Navigator.pop(context, true);
     } catch (e) {
+      debugPrint('Error creating quiz: $e');
+      debugPrint('Error type: ${e.runtimeType}');
+      if (e is ApiException) {
+        debugPrint('ApiException details: message=${e.message}, statusCode=${e.statusCode}, errorCode=${e.errorCode}');
+      }
+      if (e is FormatException) {
+        debugPrint('FormatException details: ${e.message} at ${e.offset}');
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to create quiz: $e')));
     } finally {
       setState(() => _isLoading = false);
@@ -91,6 +104,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                         labelText: 'Quiz Title',
                         border: OutlineInputBorder(),
                     ),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                     validator: (v) => v!.isEmpty ? 'Required' : null,
                   ),
                   SizedBox(height: 16),
@@ -103,8 +117,9 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                                     labelText: 'Duration (m)',
                                     border: OutlineInputBorder(),
                                 ),
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                                 keyboardType: TextInputType.number,
-                                validator: (v) => v!.isEmpty ? 'Required' : null,
+                                validator: (v) => v!.isEmpty ? 'Required' : int.tryParse(v) == null ? 'Must be a number' : null,
                             ),
                         ),
                         SizedBox(width: 16),
@@ -115,14 +130,15 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                                     labelText: 'Max Attempts',
                                     border: OutlineInputBorder(),
                                 ),
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                                 keyboardType: TextInputType.number,
-                                validator: (v) => v!.isEmpty ? 'Required' : null,
+                                validator: (v) => v!.isEmpty ? 'Required' : int.tryParse(v) == null ? 'Must be a number' : null,
                             ),
                         ),
                     ],
                   ),
                   SizedBox(height: 20),
-                  Text('Assign to Classes', style: Theme.of(context).textTheme.titleLarge),
+                  Text('Assign to Classes', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
                   Consumer<ClassesProvider>(
                     builder: (context, classesProvider, _) {
                         return Wrap(
@@ -147,7 +163,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                     },
                   ),
                   SizedBox(height: 20),
-                  Text('Questions (${_questions.length})', style: Theme.of(context).textTheme.titleLarge),
+                  Text('Questions (${_questions.length})', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
                   SizedBox(height: 10),
                   ..._questions.asMap().entries.map((entry) {
                         final idx = entry.key;
@@ -209,37 +225,46 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Add Question'),
+      title: Text('Add Question', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
       content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: _questionController, decoration: InputDecoration(labelText: 'Question Text')),
-            ..._optionControllers.asMap().entries.map((entry) {
-              int idx = entry.key;
-              return Row(
-                children: [
-                  Radio<int>(
-                    value: idx,
-                    groupValue: _correctIndex,
-                    onChanged: (v) => setState(() => _correctIndex = v!),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: _questionController, decoration: InputDecoration(labelText: 'Question Text'), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+              SizedBox(height: 16),
+              ..._optionControllers.asMap().entries.map((entry) {
+                int idx = entry.key;
+                return Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Radio<int>(
+                        value: idx,
+                        groupValue: _correctIndex,
+                        onChanged: (v) => setState(() => _correctIndex = v!),
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: entry.value,
+                          decoration: InputDecoration(labelText: 'Option ${idx + 1}'),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                        ),
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: TextField(
-                      controller: entry.value,
-                      decoration: InputDecoration(labelText: 'Option ${idx + 1}'),
-                    ),
-                  ),
-                ],
-              );
-            }),
-            TextButton(
-              onPressed: () {
-                setState(() => _optionControllers.add(TextEditingController()));
-              },
-              child: Text('Add Option'),
-            ),
-          ],
+                );
+              }),
+              SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  setState(() => _optionControllers.add(TextEditingController()));
+                },
+                child: Text('Add Option'),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -250,11 +275,25 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> {
             final options = _optionControllers.map((c) => c.text).where((t) => t.isNotEmpty).toList();
             if (options.length < 2) return;
             
+            // Find the correct index in the filtered options
+            int correctIndex = 0;
+            int nonEmptyCount = 0;
+            for (int i = 0; i < _optionControllers.length; i++) {
+              if (_optionControllers[i].text.isNotEmpty) {
+                if (i == _correctIndex) {
+                  correctIndex = nonEmptyCount;
+                  break;
+                }
+                nonEmptyCount++;
+              }
+            }
+            
             widget.onSave(QuizQuestion(
               text: _questionController.text,
               options: options,
-              correctOptionIndex: _correctIndex,
+              correctOptionIndex: correctIndex,
             ));
+            FocusScope.of(context).unfocus();
             Navigator.pop(context);
           },
           child: Text('Add'),

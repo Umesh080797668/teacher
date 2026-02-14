@@ -7201,7 +7201,7 @@ app.post('/api/test/send-notification', verifyToken, async (req, res) => {
 app.post('/api/quizzes', verifyToken, async (req, res) => {
   try {
     const { title, description, questions, duration, maxAttempts, classIds } = req.body;
-    const createdBy = req.user.id; // user id from verifyToken
+    const createdBy = req.user.userId; // user id from verifyToken
 
     if (!questions || !Array.isArray(questions) || questions.length === 0) {
         return res.status(400).json({ error: 'Quiz must have at least one question.' });
@@ -7227,7 +7227,7 @@ app.post('/api/quizzes', verifyToken, async (req, res) => {
 // Get Teacher's Quizzes
 app.get('/api/quizzes', verifyToken, async (req, res) => {
   try {
-    const teacherId = req.user.id;
+    const teacherId = req.user.userId;
     const quizzes = await Quiz.find({ teacherId }).sort({ createdAt: -1 });
     res.json(quizzes);
   } catch (error) {
@@ -7238,7 +7238,7 @@ app.get('/api/quizzes', verifyToken, async (req, res) => {
 // Get all quizzes (Teacher's own quizzes) or Available for Student
 app.get('/api/student/quizzes', verifyToken, async (req, res) => {
     try {
-        const studentId = req.user.id;
+        const studentId = req.user.userId;
         const student = await Student.findById(studentId);
         
         if (!student) return res.status(404).json({ error: 'Student not found' });
@@ -7293,7 +7293,7 @@ app.post('/api/quizzes/:id/submit', verifyToken, async (req, res) => {
     try {
         const { answers } = req.body;
         const quizId = req.params.id;
-        const studentId = req.user.id;
+        const studentId = req.user.userId;
 
         const quiz = await Quiz.findById(quizId);
         if (!quiz) return res.status(404).json({ error: 'Quiz not found' });

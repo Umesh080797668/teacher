@@ -45,7 +45,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No quizzes found. Create one!'));
+            return Center(child: Text('No quizzes found. Create one!', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)));
           }
 
           final quizzes = snapshot.data!;
