@@ -19,10 +19,10 @@ class QuizResultsScreen extends StatelessWidget {
             return Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No submissions yet.'));
+            return Center(child: Text('No submissions yet.', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)));
           }
 
           final results = snapshot.data!;
