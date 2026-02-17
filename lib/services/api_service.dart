@@ -884,34 +884,63 @@ class ApiService {
     String? studentId,
     String? teacherId,
   }) async {
-    final queryParams = <String, String>{};
-    if (classId != null) queryParams['classId'] = classId;
-    if (studentId != null) queryParams['studentId'] = studentId;
-    if (teacherId != null) queryParams['teacherId'] = teacherId;
-
     // If a studentId is provided, use the dedicated student payments endpoint
-    if (studentId != null) {
-      final endpoint = Uri(
-        path: '/api/student/payments',
-        queryParameters: {'studentId': studentId},
-      ).toString();
-
-      final response = await _makeRequest('GET', endpoint);
-      // This endpoint returns an object: { success: true, payments: [...] }
-      final Map<String, dynamic> body = json.decode(response.body);
-      if (body['success'] == true && body['payments'] is List) {
-        return (body['payments'] as List).map((json) => Payment.fromJson(json)).toList();
+      if (studentId != null) {
+        final endpoint = Uri(
+          path: '/api/student/payments',
+          queryParameters: {'studentId': studentId},
+        ).toString();
+  
+        debugPrint('GET Payments for student: $endpoint');
+        final response = await _makeRequest('GET', endpoint);
+        debugPrint('Response Status: ${response.statusCode}');
+        debugPrint('Response Body Length: ${response.body.length}');
+        
+        // This endpoint returns an object: { success: true, payments: [...] }
+        final Map<String, dynamic> body = json.decode(response.body);
+        if (body['success'] == true && body['payments'] is List) {
+          final list = (body['payments'] as List);
+          debugPrint('Parsed ${list.length} payments for student');
+          return list.map((json) => Payment.fromJson(json)).toList();
+        }
+        debugPrint('Failed to parse student payments or empty list');
+        return [];
       }
-      return [];
-    }
+  
+      final queryParams = <String, String>{};
+      if (classId != null) queryParams['classId'] = classId;
+      if (teacherId != null) queryParams['teacherId'] = teacherId;
 
     final endpoint = Uri(
       path: '/api/payments',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     ).toString();
+    
+    debugPrint('GET Payments (general): $endpoint');
     final response = await _makeRequest('GET', endpoint);
-    List<dynamic> data = json.decode(response.body);
-    return data.map((json) => Payment.fromJson(json)).toList();
+    debugPrint('Response Status: ${response.statusCode}');
+    
+    try {
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        debugPrint('Parsed ${data.length} payments from general endpoint');
+        return data.map((json) {
+          try {
+            return Payment.fromJson(json);
+          } catch (e) {
+            debugPrint('Error parsing payment JSON: $e');
+            debugPrint('Problematic JSON: $json');
+            rethrow;
+          }
+        }).toList();
+      } else {
+        debugPrint('Error fetching payments: ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      debugPrint('Error decoding payments response: $e');
+      rethrow;
+    }
   }
 
   static Future<Payment> createPayment(
