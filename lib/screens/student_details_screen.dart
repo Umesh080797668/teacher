@@ -20,6 +20,7 @@ class StudentDetailsScreen extends StatefulWidget {
 }
 
 class _StudentDetailsScreenState extends State<StudentDetailsScreen> with SingleTickerProviderStateMixin {
+  late Student _currentStudent; // Local state to hold the potentially updated student
   List<Attendance> _studentAttendance = [];
   List<Payment> _studentPayments = [];
   bool _isLoadingAttendance = true;
@@ -30,6 +31,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
   @override
   void initState() {
     super.initState();
+    _currentStudent = widget.student; // Initialize with widget data
     _tabController = TabController(length: 2, vsync: this);
     _loadStudentAttendance();
     _loadStudentPayments();
@@ -723,10 +725,10 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
   }
 
   void _showEditStudentDialog() {
-    final nameController = TextEditingController(text: widget.student.name);
-    final emailController = TextEditingController(text: widget.student.email ?? '');
-    final phoneController = TextEditingController(text: widget.student.phoneNumber ?? '');
-    String? selectedClassId = widget.student.classId;
+    final nameController = TextEditingController(text: _currentStudent.name);
+    final emailController = TextEditingController(text: _currentStudent.email ?? '');
+    final phoneController = TextEditingController(text: _currentStudent.phoneNumber ?? '');
+    String? selectedClassId = _currentStudent.classId;
 
     showDialog(
       context: context,
@@ -913,12 +915,48 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
 
                 try {
                   await Provider.of<StudentsProvider>(context, listen: false).updateStudent(
-                    widget.student.id,
+                    _currentStudent.id,
                     nameController.text,
                     emailController.text.isEmpty ? null : emailController.text,
                     phoneController.text.isEmpty ? null : phoneController.text,
                     selectedClassId,
                   );
+
+                  // Update local state to reflect changes immediately
+                  // Note: Since we are inside a StatefulBuilder, 'setState' here refers to the dialog's state.
+                  // We need to update the parent widget's state as well.
+                  // By updating _currentStudent (which is in the parent state), we just need to trigger a rebuild of the parent.
+                  
+                  // Update the variable in the parent state class
+                  _currentStudent = Student(
+                    id: _currentStudent.id,
+                    name: nameController.text,
+                    email: emailController.text.isEmpty ? null : emailController.text,
+                    phoneNumber: phoneController.text.isEmpty ? null : phoneController.text,
+                    studentId: _currentStudent.studentId,
+                    classId: selectedClassId,
+                    createdAt: _currentStudent.createdAt,
+                    isRestricted: _currentStudent.isRestricted,
+                    restrictionReason: _currentStudent.restrictionReason,
+                    restrictedAt: _currentStudent.restrictedAt,
+                    hasFaceData: _currentStudent.hasFaceData,
+                    faceEmbedding: _currentStudent.faceEmbedding
+                  );
+
+                  // Trigger rebuild of the parent Screen
+                  // We can't easily call the parent's setState from here directly without context tricks or passing a callback.
+                  // However, since we are popping the dialog immediately, we can just rely on the fact that
+                  // when the dialog closes, we want the screen to show new data.
+                  // A simple way is to use a callback or just ensure that when we pop, we trigger a rebuild.
+                  // But actually, since _currentStudent is updated, using a simple trick:
+                  
+                  // This calls the SETSTATE OF THE PARENT WIDGET because we are capturing the parent's setState 
+                  // method if we were in the scope, but we are shadowed by the StatefulBuilder's setState.
+                  // To fix this, we should rely on the fact that we can call the method of the state class.
+                  // Since we are in the method _showEditStudentDialog which is a method of _StudentDetailsScreenState,
+                  // we can use 'this.setState'.
+                  
+                  this.setState(() {});
 
                   if (mounted) {
                     Navigator.of(context).pop();

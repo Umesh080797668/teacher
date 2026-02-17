@@ -1257,7 +1257,7 @@ app.get('/api/students', verifyToken, async (req, res) => {
 
 app.post('/api/students', verifyToken, async (req, res) => {
   try {
-    const { name, email, studentId, classId } = req.body;
+    const { name, email, phoneNumber, studentId, classId } = req.body;
     
     // Auto-generate studentId if not provided
     let finalStudentId = studentId;
@@ -1270,8 +1270,11 @@ app.post('/api/students', verifyToken, async (req, res) => {
       // Check if it already exists, if so, regenerate
       let existingStudent = await Student.findOne({ studentId: finalStudentId });
       while (existingStudent) {
+        // Generate a new random number unique to this iteration
         const newRandom = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        finalStudentId = `STU${timestamp}${newRandom}`;
+        // Re-construct the full ID
+        const newTimestamp = Date.now().toString().slice(-6); // Update timestamp
+        finalStudentId = `STU${newTimestamp}${newRandom}`;
         existingStudent = await Student.findOne({ studentId: finalStudentId });
       }
     }
@@ -1282,10 +1285,18 @@ app.post('/api/students', verifyToken, async (req, res) => {
       classObjectId = new mongoose.Types.ObjectId(classId);
     }
     
-    const student = new Student({ name, email, studentId: finalStudentId, classId: classObjectId });
+    const student = new Student({ 
+        name, 
+        email, 
+        phoneNumber, // Added field
+        studentId: finalStudentId, 
+        classId: classObjectId 
+    });
+    
     await student.save();
     res.status(201).json(student);
   } catch (error) {
+    console.error('Create student error:', error);
     res.status(500).json({ error: 'Failed to create student' });
   }
 });
@@ -1318,7 +1329,12 @@ app.put('/api/students/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
     
-    console.log(`[PUT] Updating student ${id}`);
+    // Explicitly allow phoneNumber update
+    if (updateData.phoneNumber !== undefined) {
+       // Allow empty string to clear the phone number
+    }
+    
+    console.log(`[PUT] Updating student ${id}`, updateData);
     if (updateData.hasFaceData) console.log(`  - Updating face data (hasFaceData: true)`);
     if (updateData.faceEmbedding) console.log(`  - Face embedding length: ${updateData.faceEmbedding.length}`);
 
