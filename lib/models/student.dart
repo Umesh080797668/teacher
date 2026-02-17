@@ -2,6 +2,7 @@ class Student {
   final String id;
   final String name;
   final String? email;
+  final String? phoneNumber; // Added field
   final String studentId;
   final String? classId;
   final DateTime? createdAt;
@@ -15,6 +16,7 @@ class Student {
     required this.id,
     required this.name,
     this.email,
+    this.phoneNumber, // Added field
     required this.studentId,
     this.classId,
     this.createdAt,
@@ -38,6 +40,7 @@ class Student {
       id: (json['_id'] ?? json['id']) is String ? (json['_id'] ?? json['id']) : '',
       name: json['name'] is String ? json['name'] : '',
       email: json['email'] is String ? json['email'] : null,
+      phoneNumber: json['phoneNumber'] is String ? json['phoneNumber'] : null, // Added field
       studentId: json['studentId'] is String ? json['studentId'] : '',
       classId: extractedClassId,
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'].toString()) : null,
@@ -55,6 +58,7 @@ class Student {
     return {
       'name': name,
       'email': email,
+      'phoneNumber': phoneNumber, // Added field
       'studentId': studentId,
       'classId': classId,
       'hasFaceData': hasFaceData,

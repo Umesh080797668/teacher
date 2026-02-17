@@ -1107,4 +1107,73 @@ class ApiService {
     final List<dynamic> data = json.decode(response.body);
     return data.map((json) => QuizResult.fromJson(json)).toList();
   }
+
+  // ==========================================
+  // NEW FEATURES: Resources, Notices, Insights
+  // ==========================================
+
+  // Upload Resource
+  static Future<void> uploadResource(String classId, String title, String description, File file, String teacherId) async {
+    final token = await getToken();
+    var uri = Uri.parse('$baseUrl/api/resources/upload');
+    var request = http.MultipartRequest('POST', uri);
+    
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    request.fields['title'] = title;
+    request.fields['description'] = description;
+    request.fields['classId'] = classId;
+    request.fields['teacherId'] = teacherId;
+    
+    var stream = http.ByteStream(file.openRead());
+    var length = await file.length();
+    var multipartFile = http.MultipartFile('file', stream, length, filename: file.path.split('/').last);
+    
+    request.files.add(multipartFile);
+    
+    var response = await request.send();
+    if (response.statusCode != 201) {
+      throw Exception('Failed to upload resource');
+    }
+  }
+
+  // Get Resources
+  static Future<List<Map<String, dynamic>>> getResources(String classId) async {
+    final token = await getToken();
+    final response = await _makeRequest('GET', '/api/resources/$classId', headers: token != null ? {'Authorization': 'Bearer $token'} : {});
+    return List<Map<String, dynamic>>.from(json.decode(response.body));
+  }
+
+  // Create Notice
+  static Future<void> createNotice(String classId, String title, String content, String teacherId, {String priority = 'normal'}) async {
+    final token = await getToken();
+    await _makeRequest(
+      'POST', 
+      '/api/notices', 
+      headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+      body: {
+        'title': title,
+        'content': content,
+        'classId': classId,
+        'teacherId': teacherId,
+        'priority': priority
+      }
+    );
+  }
+
+  // Get Notices
+  static Future<List<Map<String, dynamic>>> getNotices(String classId) async {
+    final token = await getToken();
+    final response = await _makeRequest('GET', '/api/notices/$classId', headers: token != null ? {'Authorization': 'Bearer $token'} : {});
+    return List<Map<String, dynamic>>.from(json.decode(response.body));
+  }
+
+  // Get Low Attendance Insights
+  static Future<List<Map<String, dynamic>>> getLowAttendance(String classId) async {
+    final token = await getToken();
+    final response = await _makeRequest('GET', '/api/insights/low-attendance/$classId', headers: token != null ? {'Authorization': 'Bearer $token'} : {});
+    return List<Map<String, dynamic>>.from(json.decode(response.body));
+  }
 }

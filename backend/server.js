@@ -112,6 +112,25 @@ const upload = multer({
   }
 });
 
+// Configure multer for Resource uploads (PDFs, Docs, Images)
+const resourceUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 20 * 1024 * 1024, // 20MB limit for resources
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept images and documents
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    
+    if (allowedExtensions.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF, Docs, and Images are allowed.'), false);
+    }
+  }
+});
+
 // Handle OPTIONS requests explicitly
 app.options('*', cors());
 
@@ -300,6 +319,7 @@ ClassSchema.set('toJSON', {
 const StudentSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: String,
+  phoneNumber: String, // Added for SMS/WhatsApp features
   studentId: { type: String, unique: true },
   classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' },
   companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin association
@@ -553,6 +573,29 @@ PaymentProofSchema.set('toJSON', {
   }
 });
 
+// Resource Schema for study materials
+const ResourceSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: String,
+  classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
+  teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', required: true },
+  fileUrl: { type: String, required: true }, // Cloudinary URL
+  publicId: { type: String, required: true }, // Cloudinary public ID
+  fileType: { type: String, default: 'pdf' }, // pdf, image, etc.
+  createdAt: { type: Date, default: Date.now }
+}, { timestamps: true });
+
+// Notice Schema for announcements
+const NoticeSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  content: { type: String, required: true },
+  classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
+  teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', required: true },
+  priority: { type: String, enum: ['low', 'normal', 'high'], default: 'normal' },
+  expiresAt: { type: Date },
+  createdAt: { type: Date, default: Date.now }
+}, { timestamps: true });
+
 // Quiz Schema
 const QuizSchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -596,6 +639,8 @@ const Admin = mongoose.models.Admin || mongoose.model('Admin', AdminSchema);
 const ProblemReport = mongoose.models.ProblemReport || mongoose.model('ProblemReport', ProblemReportSchema);
 const PaymentProof = mongoose.models.PaymentProof || mongoose.model('PaymentProof', PaymentProofSchema);
 const FeatureRequest = mongoose.models.FeatureRequest || mongoose.model('FeatureRequest', FeatureRequestSchema);
+const Resource = mongoose.models.Resource || mongoose.model('Resource', ResourceSchema);
+const Notice = mongoose.models.Notice || mongoose.model('Notice', NoticeSchema);
 const Quiz = mongoose.models.Quiz || mongoose.model('Quiz', QuizSchema);
 const QuizResult = mongoose.models.QuizResult || mongoose.model('QuizResult', QuizResultSchema);
 
@@ -2305,6 +2350,170 @@ const verifyTeacher = async (req, res, next) => {
     res.status(401).json({ error: 'Invalid token' });
   }
 };
+
+// ==========================================
+// NEW FEATURE ROUTES (Resources, Notices, Analytics)
+// ==========================================
+
+// Upload Resource (PDFs, Docs, Images)
+app.post('/api/resources/upload', verifyTeacher, resourceUpload.single('file'), async (req, res) => {
+  try {
+    const { title, description, classId, teacherId } = req.body;
+    
+    if (!req.file) return res.status(400).json({ error: 'File is required' });
+
+    // Determine resource type based on mime
+    const isRaw = req.file.mimetype === 'application/pdf' || req.file.mimetype.includes('document') || req.file.mimetype.includes('msword') || req.file.mimetype.includes('officedocument');
+
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'class-resources',
+        resource_type: isRaw ? 'raw' : 'image',
+        public_id: `resource_${classId}_${Date.now()}`
+      },
+      async (error, result) => {
+        if (error) return res.status(500).json({ error: error.message });
+
+        const newResource = new Resource({
+          title,
+          description,
+          classId,
+          teacherId,
+          fileUrl: result.secure_url,
+          publicId: result.public_id,
+          fileType: result.format || (isRaw ? 'pdf' : 'image')
+        });
+
+        await newResource.save();
+        res.status(201).json(newResource);
+      }
+    );
+
+    uploadStream.end(req.file.buffer);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Resources for a Class
+app.get('/api/resources/:classId', async (req, res) => {
+  try {
+    const resources = await Resource.find({ classId: req.params.classId }).sort({ createdAt: -1 });
+    res.json(resources);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create Notice
+app.post('/api/notices', verifyTeacher, async (req, res) => {
+  try {
+    const { title, content, classId, teacherId, priority, expiresAt } = req.body;
+    const notice = new Notice({
+      title,
+      content,
+      classId,
+      teacherId,
+      priority,
+      expiresAt
+    });
+    await notice.save();
+
+    // Send FCM Notification to students of this class (optional/future)
+    // await sendFCMToClass(classId, title, content);
+
+    res.status(201).json(notice);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Notices for a Class
+app.get('/api/notices/:classId', async (req, res) => {
+  try {
+    const notices = await Notice.find({ 
+      classId: req.params.classId,
+      $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }]
+    }).sort({ createdAt: -1 });
+    res.json(notices);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Insight: Low Attendance (>3 consecutive absences)
+app.get('/api/insights/low-attendance/:classId', verifyTeacher, async (req, res) => {
+  try {
+    const classId = req.params.classId;
+    const students = await Student.find({ classId });
+    const lowAttendanceStudents = [];
+
+    for (const student of students) {
+      // Get last 5 attendance records sorted by date descending
+      const records = await Attendance.find({ 
+        studentId: student._id, 
+        classId 
+      }).sort({ date: -1 }).limit(5);
+
+      let consecutiveAbsences = 0;
+      for (const record of records) {
+        if (record.status === 'absent') {
+          consecutiveAbsences++;
+        } else {
+          break; 
+        }
+      }
+
+      if (consecutiveAbsences >= 3) {
+        lowAttendanceStudents.push({
+          student,
+          consecutiveAbsences,
+          lastAttended: records.find(r => r.status === 'present')?.date
+        });
+      }
+    }
+
+    res.json(lowAttendanceStudents);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Analytics: Quiz Performance (Last 5 quizzes for a student)
+app.get('/api/analytics/quiz-performance/:studentId', async (req, res) => {
+  try {
+    const results = await QuizResult.find({ studentId: req.params.studentId })
+      .populate('quizId', 'title')
+      .sort({ submittedAt: -1 })
+      .limit(5);
+    
+    // Reverse to show chronological order for charts
+    res.json(results.reverse());
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Analytics: Leaderboard (Top 5 for a quiz) - REAL NAMES
+app.get('/api/analytics/quiz-leaderboard/:quizId', async (req, res) => {
+  try {
+    const results = await QuizResult.find({ quizId: req.params.quizId })
+      .populate('studentId', 'name') // Fetch real name
+      .sort({ score: -1 })
+      .limit(5);
+
+    const leaderboard = results.map(r => ({
+      name: r.studentId.name,
+      score: r.score,
+      totalMarks: r.totalMarks,
+      rank: 0 // To be filled in client or loop
+    }));
+
+    res.json(leaderboard);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // GET payment proofs for admin review
 app.get('/api/admin/payment-proofs', verifySuperAdmin, async (req, res) => {
