@@ -2090,11 +2090,13 @@ app.get('/api/payments', verifyToken, async (req, res) => {
       const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
       if (teacher) {
         const classes = await Class.find({ teacherId: teacher._id });
-        const classIds = classes.map(c => c._id.toString());
+        // Keep ObjectId values so Mongo queries match the stored type
+        const classIds = classes.map(c => c._id);
 
         // If a specific classId was requested, ensure it belongs to this teacher
         if (classObjectId) {
-          if (!classIds.includes(classObjectId.toString())) {
+          const classIdStrings = classIds.map(id => id.toString());
+          if (!classIdStrings.includes(classObjectId.toString())) {
             console.log('Requested classId does not belong to teacher:', classObjectId.toString());
             return res.json([]);
           }
