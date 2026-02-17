@@ -2072,7 +2072,13 @@ app.get('/api/payments', verifyToken, async (req, res) => {
         return res.status(400).json({ error: 'Invalid classId format' });
       }
     }
-    if (studentId) query.studentId = studentId;
+    if (studentId) {
+      if (typeof studentId === 'string' && studentId.match(/^[0-9a-fA-F]{24}$/)) {
+        query.studentId = new mongoose.Types.ObjectId(studentId);
+      } else {
+        query.studentId = studentId;
+      }
+    }
 
     if (teacherId) {
       // Find teacher by teacherId string and get their classes
