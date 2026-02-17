@@ -61,11 +61,11 @@ class PaymentProvider with ChangeNotifier {
         }
       }
 
-      // Fetch fresh data with timeout
+      // Fetch fresh data with timeout (increased to 30s)
       try {
         _payments = await ApiService.getPayments(
             classId: classId, studentId: studentId, teacherId: teacherId)
-            .timeout(const Duration(seconds: 5));
+            .timeout(const Duration(seconds: 30));
         
         debugPrint('PaymentProvider: Loaded ${_payments.length} payments');
 
