@@ -889,6 +889,22 @@ class ApiService {
     if (studentId != null) queryParams['studentId'] = studentId;
     if (teacherId != null) queryParams['teacherId'] = teacherId;
 
+    // If a studentId is provided, use the dedicated student payments endpoint
+    if (studentId != null) {
+      final endpoint = Uri(
+        path: '/api/student/payments',
+        queryParameters: {'studentId': studentId},
+      ).toString();
+
+      final response = await _makeRequest('GET', endpoint);
+      // This endpoint returns an object: { success: true, payments: [...] }
+      final Map<String, dynamic> body = json.decode(response.body);
+      if (body['success'] == true && body['payments'] is List) {
+        return (body['payments'] as List).map((json) => Payment.fromJson(json)).toList();
+      }
+      return [];
+    }
+
     final endpoint = Uri(
       path: '/api/payments',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
