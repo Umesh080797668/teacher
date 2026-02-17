@@ -12,6 +12,7 @@ const path = require('path');
 const cloudinary = require('cloudinary').v2;
 const admin = require('firebase-admin');
 require('dotenv').config();
+const twilio = require('twilio');
 
 // Configure Cloudinary
 cloudinary.config({
@@ -7611,6 +7612,44 @@ app.get('/api/quizzes/:id/results', verifyToken, async (req, res) => {
         res.json(results);
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch quiz results' });
+    }
+});
+
+// SMS Sending Endpoint
+app.post('/api/sms/send', verifyToken, async (req, res) => {
+    try {
+        const { to, body } = req.body;
+        console.log('Sending SMS to:', to, 'Body:', body);
+        
+        if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
+             console.error('Twilio credentials missing');
+             return res.status(500).json({ error: 'SMS service not configured (missing credentials)' });
+        }
+
+        const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        
+        // Handle single or multiple numbers
+        const recipients = Array.isArray(to) ? to : [to];
+        const results = [];
+        
+        for (const recipient of recipients) {
+            try {
+                const message = await client.messages.create({
+                    body: body,
+                    from: process.env.TWILIO_PHONE_NUMBER,
+                    to: recipient
+                });
+                results.push({ to: recipient, status: 'sent', sid: message.sid });
+            } catch (err) {
+                console.error(`Failed to send to ${recipient}:`, err.message);
+                results.push({ to: recipient, status: 'failed', error: err.message });
+            }
+        }
+        
+        res.json({ success: true, results });
+    } catch (err) {
+        console.error('SMS sending error:', err);
+        res.status(500).json({ error: 'Failed to send SMS' });
     }
 });
 

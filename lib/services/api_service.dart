@@ -761,6 +761,18 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> sendSMS(List<String> recipients, String message) async {
+    final response = await _makeRequest(
+      'POST',
+      '/api/sms/send',
+      body: {
+        'to': recipients,
+        'body': message,
+      },
+    );
+    return json.decode(response.body);
+  }
+
   // Attendance
   static Future<List<Attendance>> getAttendance({
     String? studentId,

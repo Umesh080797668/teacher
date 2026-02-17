@@ -96,23 +96,74 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
       return;
     }
 
-    final String numbers = phoneNumbers.join(',');
-    final Uri smsUri = Uri(
-      scheme: 'sms',
-      path: numbers,
-      queryParameters: {'body': 'Class Announcement from ${widget.classObj.name}: '}, 
+    final messageController = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Message ${phoneNumbers.length} Students'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('To: ${studentsInClass.length > 3 ? "${studentsInClass.length} recipients" : studentsInClass.map((e) => e.name).join(", ")}', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: messageController,
+              decoration: const InputDecoration(
+                labelText: 'Message Content',
+                border: OutlineInputBorder(),
+                hintText: 'Enter announcement...',
+                alignLabelWithHint: true,
+              ),
+              maxLines: 4,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.send, size: 18),
+            label: const Text('Send SMS'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              if (messageController.text.trim().isNotEmpty) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(children: [SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)), SizedBox(width: 15), Text('Sending messages...')]),
+                    duration: Duration(seconds: 2),
+                  )
+                );
+                
+                try {
+                  await ApiService.sendSMS(phoneNumbers, messageController.text.trim());
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Messages sent successfully!'), backgroundColor: Colors.green),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to send: ${e.toString().replaceAll("Exception:", "")}'), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              }
+            },
+          ),
+        ],
+      ),
     );
-
-    try {
-      if (await canLaunchUrl(smsUri)) {
-        await launchUrl(smsUri);
-      } else {
-         // Fallback manual 
-         await launchUrl(Uri.parse('sms:$numbers?body=Class Notification'));
-      }
-    } catch (e) {
-       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch SMS app.')));
-    }
   }
 
   Future<void> _addStudent() async {
