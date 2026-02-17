@@ -79,6 +79,7 @@ class PaymentProvider with ChangeNotifier {
         
         debugPrint('✓ Loaded fresh payments data');
       } catch (e) {
+        debugPrint('Wait! PaymentProvider error caught: $e'); // ADDED LOG
         // If failed and we have cached data, keep it
         if (_payments.isEmpty && teacherId != null) {
           final cacheKey = 'payments_${teacherId}_${classId ?? 'all'}_${studentId ?? 'all'}';
