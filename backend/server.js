@@ -2078,7 +2078,11 @@ app.get('/api/payments', verifyToken, async (req, res) => {
       } else {
         query.studentId = studentId;
       }
+      console.log('Filtering payments for studentId:', studentId, 'Resulting query:', query);
     }
+    
+    // Log the constructed query before executing
+    console.log('Final payments query:', JSON.stringify(query));
 
     if (teacherId) {
       // Find teacher by teacherId string and get their classes
