@@ -51,32 +51,80 @@ class _NoticesTabState extends State<NoticesTab> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('New Notice'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
-            ),
-            TextField(
-              controller: contentController,
-              decoration: const InputDecoration(labelText: 'Content'),
-              maxLines: 3,
-            ),
-            DropdownButtonFormField<String>(
-              value: priority,
-              items: ['low', 'normal', 'high']
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase())))
-                  .toList(),
-              onChanged: (v) => priority = v!,
-              decoration: const InputDecoration(labelText: 'Priority'),
-            ),
-          ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('New Notice', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: 'Title',
+                  hintText: 'e.g., Exam Schedule',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: contentController,
+                decoration: InputDecoration(
+                  labelText: 'Content',
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  contentPadding: const EdgeInsets.all(16),
+                ),
+                maxLines: 5,
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: priority,
+                items: ['low', 'normal', 'high']
+                    .map((e) => DropdownMenuItem(
+                      value: e, 
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.circle, 
+                            size: 12, 
+                            color: e == 'high' ? Colors.red : (e == 'normal' ? Colors.orange : Colors.green)
+                          ),
+                          const SizedBox(width: 8),
+                          Text(e.toUpperCase(), style: const TextStyle(fontSize: 14)),
+                        ],
+                      )
+                    ))
+                    .toList(),
+                onChanged: (v) => priority = v!,
+                decoration: InputDecoration(
+                  labelText: 'Priority',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ),
+            ],
+          ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey))
+          ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
             onPressed: () async {
               if (titleController.text.isEmpty || contentController.text.isEmpty) return;
               try {
@@ -88,15 +136,22 @@ class _NoticesTabState extends State<NoticesTab> {
                   auth.teacherId!,
                   priority: priority,
                 );
-                Navigator.pop(context);
-                _loadNotices();
+                if (mounted) {
+                  Navigator.pop(context);
+                  _loadNotices();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Notice posted successfully!')),
+                  );
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to post notice: $e')),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to post notice: $e')),
+                  );
+                }
               }
             },
-            child: const Text('Post'),
+            child: const Text('Post Notice'),
           ),
         ],
       ),

@@ -725,6 +725,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
   void _showEditStudentDialog() {
     final nameController = TextEditingController(text: widget.student.name);
     final emailController = TextEditingController(text: widget.student.email ?? '');
+    final phoneController = TextEditingController(text: widget.student.phoneNumber ?? '');
     String? selectedClassId = widget.student.classId;
 
     showDialog(
@@ -797,6 +798,30 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                     ),
                   ),
                   keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: phoneController,
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Mobile Number',
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white70
+                          : Colors.black54,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.phone,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white70
+                          : Colors.black54,
+                    ),
+                  ),
+                  keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 16),
                 Consumer<ClassesProvider>(
@@ -891,6 +916,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                     widget.student.id,
                     nameController.text,
                     emailController.text.isEmpty ? null : emailController.text,
+                    phoneController.text.isEmpty ? null : phoneController.text,
                     selectedClassId,
                   );
 

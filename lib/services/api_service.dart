@@ -694,6 +694,7 @@ class ApiService {
   static Future<Student> createStudent(
     String name,
     String? email,
+    String? phoneNumber,
     String? studentId,
     String? classId,
   ) async {
@@ -703,6 +704,7 @@ class ApiService {
       body: {
         'name': name,
         'email': email,
+        'phoneNumber': phoneNumber,
         'studentId': studentId,
         'classId': classId,
       },
@@ -715,11 +717,13 @@ class ApiService {
     String studentId,
     String name,
     String? email,
+    String? phoneNumber,
     String? classId,
   ) async {
     final Map<String, dynamic> body = {
       'name': name,
       'email': email,
+      'phoneNumber': phoneNumber,
       'classId': classId,
     };
 

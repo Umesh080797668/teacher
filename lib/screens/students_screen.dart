@@ -19,6 +19,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _studentIdController = TextEditingController();
   String? _selectedClassId;
   bool _showForm = false;
@@ -37,6 +38,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _studentIdController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -68,11 +70,13 @@ class _StudentsScreenState extends State<StudentsScreen> {
         await provider.addStudent(
           _nameController.text,
           _emailController.text.isEmpty ? null : _emailController.text,
+          _phoneController.text.isEmpty ? null : _phoneController.text,
           _studentIdController.text, // Use the auto-generated ID
           _selectedClassId,
         );
         _nameController.clear();
         _emailController.clear();
+        _phoneController.clear();
         _studentIdController.clear();
         setState(() {
           _selectedClassId = null;
@@ -302,6 +306,30 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                       ),
                                     ),
                                     keyboardType: TextInputType.emailAddress,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: _phoneController,
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                    decoration: InputDecoration(
+                                      labelText: 'Mobile Number',
+                                      prefixIcon: Icon(
+                                        Icons.phone,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.6),
+                                      ),
+                                      labelStyle: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.7),
+                                      ),
+                                    ),
+                                    keyboardType: TextInputType.phone,
                                   ),
                                   const SizedBox(height: 12),
                                   TextFormField(

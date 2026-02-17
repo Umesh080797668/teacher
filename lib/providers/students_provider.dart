@@ -102,13 +102,14 @@ class StudentsProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addStudent(String name, String? email, String? studentId, String? classId) async {
+  Future<void> addStudent(String name, String? email, String? phoneNumber, String? studentId, String? classId) async {
     // Check if we are in guest mode (infer from dummy IDs)
     if (classId != null && classId.startsWith('guest_class_')) {
       final newStudent = Student(
         id: 'guest_student_${DateTime.now().millisecondsSinceEpoch}',
         name: name,
         email: email,
+        phoneNumber: phoneNumber,
         studentId: studentId ?? 'G${DateTime.now().millisecondsSinceEpoch}',
         classId: classId,
         createdAt: DateTime.now(),
@@ -117,12 +118,12 @@ class StudentsProvider with ChangeNotifier {
       notifyListeners();
       return;
     }
-    final student = await ApiService.createStudent(name, email, studentId, classId);
+    final student = await ApiService.createStudent(name, email, phoneNumber, studentId, classId);
     _students.add(student);
     notifyListeners();
   }
 
-  Future<void> updateStudent(String studentId, String name, String? email, String? classId) async {
+  Future<void> updateStudent(String studentId, String name, String? email, String? phoneNumber, String? classId) async {
     if (studentId.startsWith('guest_student_')) {
       final index = _students.indexWhere((s) => s.id == studentId);
         if (index != -1) {
@@ -130,6 +131,7 @@ class StudentsProvider with ChangeNotifier {
             id: studentId,
             name: name,
             email: email,
+            phoneNumber: phoneNumber,
             studentId: _students[index].studentId,
             classId: classId,
             createdAt: _students[index].createdAt,
@@ -142,7 +144,7 @@ class StudentsProvider with ChangeNotifier {
         }
       return;
     }
-    final updatedStudent = await ApiService.updateStudent(studentId, name, email, classId);
+    final updatedStudent = await ApiService.updateStudent(studentId, name, email, phoneNumber, classId);
     final index = _students.indexWhere((s) => s.id == studentId);
     if (index != -1) {
       _students[index] = updatedStudent;

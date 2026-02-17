@@ -118,31 +118,102 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
   Future<void> _addStudent() async {
      final nameController = TextEditingController();
      final idController = TextEditingController();
-     // Auto-generate ID
+     final emailController = TextEditingController();
+     final phoneController = TextEditingController();
+     
+     // Auto-generate ID (optional fallback)
      final timestamp = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
      final random = (DateTime.now().microsecondsSinceEpoch % 1000).toString().padLeft(3, '0');
      idController.text = 'STU$timestamp$random';
 
-     await showDialog(context: context, builder: (ctx) => AlertDialog(
-       title: const Text('Add Student'),
-       content: Column(mainAxisSize: MainAxisSize.min, children: [
-         TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
-         TextField(controller: idController, decoration: const InputDecoration(labelText: 'ID (Auto)')),
-       ]),
-       actions: [
-         TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-         TextButton(onPressed: () async {
-           if (nameController.text.isNotEmpty) {
-             final provider = Provider.of<StudentsProvider>(context, listen: false);
-             await provider.addStudent(
-               nameController.text, null, idController.text, widget.classObj.id
-             );
-             Navigator.pop(ctx);
-             _loadData();
-           }
-         }, child: const Text('Add')),
-       ],
-     ));
+     await showDialog(
+       context: context, 
+       builder: (ctx) => AlertDialog(
+         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+         title: const Text('Add Student', style: TextStyle(fontWeight: FontWeight.bold)),
+         content: SingleChildScrollView(
+           child: Column(
+             mainAxisSize: MainAxisSize.min, 
+             children: [
+               TextField(
+                 controller: nameController, 
+                 decoration: const InputDecoration(
+                   labelText: 'Full Name',
+                   prefixIcon: Icon(Icons.person),
+                   border: OutlineInputBorder(),
+                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                 ),
+                 textCapitalization: TextCapitalization.words,
+               ),
+               const SizedBox(height: 16),
+               TextField(
+                 controller: idController, 
+                 decoration: const InputDecoration(
+                   labelText: 'Student ID',
+                   prefixIcon: Icon(Icons.badge),
+                   border: OutlineInputBorder(),
+                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                 ),
+                 enabled: false,
+               ),
+               const SizedBox(height: 16),
+               TextField(
+                 controller: emailController, 
+                 decoration: const InputDecoration(
+                   labelText: 'Email (Optional)',
+                   prefixIcon: Icon(Icons.email),
+                   border: OutlineInputBorder(),
+                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                 ),
+                 keyboardType: TextInputType.emailAddress,
+               ),
+               const SizedBox(height: 16),
+               TextField(
+                 controller: phoneController, 
+                 decoration: const InputDecoration(
+                   labelText: 'Mobile Number',
+                   prefixIcon: Icon(Icons.phone),
+                   border: OutlineInputBorder(),
+                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                   hintText: '+947...'
+                 ),
+                 keyboardType: TextInputType.phone,
+               ),
+             ]
+           ),
+         ),
+         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+         actions: [
+           TextButton(
+             onPressed: () => Navigator.pop(ctx), 
+             child: const Text('Cancel', style: TextStyle(color: Colors.grey))
+           ),
+           ElevatedButton(
+             style: ElevatedButton.styleFrom(
+               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+               backgroundColor: Theme.of(context).primaryColor,
+               foregroundColor: Colors.white,
+             ),
+             onPressed: () async {
+               if (nameController.text.isNotEmpty) {
+                 final provider = Provider.of<StudentsProvider>(context, listen: false);
+                 await provider.addStudent(
+                   nameController.text, 
+                   emailController.text.isEmpty ? null : emailController.text, // Updated to pass email
+                   phoneController.text.isEmpty ? null : phoneController.text,
+                   idController.text, 
+                   widget.classObj.id,
+                 );
+                 Navigator.pop(ctx);
+                 _loadData();
+               }
+             }, 
+             child: const Text('Add Student')
+           ),
+         ],
+       )
+     );
   }
 
   Future<void> _editClass() async {

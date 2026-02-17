@@ -51,60 +51,122 @@ class _ResourcesTabState extends State<ResourcesTab> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('New Resource'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Add Resource', style: TextStyle(fontWeight: FontWeight.bold)),
         content: StatefulBuilder(
           builder: (context, setState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Title'),
-                ),
-                TextField(
-                  controller: descController,
-                  decoration: const InputDecoration(labelText: 'Description'),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    FilePickerResult? result = await FilePicker.platform.pickFiles(
-                      type: FileType.custom,
-                      allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'png'],
-                    );
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: InputDecoration(
+                      labelText: 'Title',
+                      hintText: 'e.g., Mathematics PDF',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descController,
+                    decoration: InputDecoration(
+                      labelText: 'Description (Optional)',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                    maxLines: 3,
+                    textCapitalization: TextCapitalization.sentences,
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey[50],
+                    ),
+                    child: Column(
+                      children: [
+                        if (selectedFile != null) ...[
+                          Icon(Icons.check_circle, color: Colors.green[400], size: 32),
+                          const SizedBox(height: 8),
+                          Text(
+                            selectedFile!.path.split('/').last,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            FilePickerResult? result = await FilePicker.platform.pickFiles(
+                              type: FileType.custom,
+                              allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'png'],
+                            );
 
-                    if (result != null) {
-                      setState(() {
-                        selectedFile = File(result.files.single.path!);
-                      });
-                    }
-                  },
-                  icon: const Icon(Icons.attach_file),
-                  label: Text(selectedFile == null ? 'Select File' : 'File Selected'),
-                ),
-                if (selectedFile != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      selectedFile!.path.split('/').last,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      overflow: TextOverflow.ellipsis,
+                            if (result != null) {
+                              setState(() {
+                                selectedFile = File(result.files.single.path!);
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.attach_file),
+                          label: Text(selectedFile == null ? 'Select Attachment' : 'Change  File'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                        ),
+                        if (selectedFile == null)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              'Supported: PDF, DOCX, Images',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-              ],
+                ],
+              ),
             );
           },
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey))
+          ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
             onPressed: () async {
-              if (titleController.text.isEmpty || selectedFile == null) return;
+              if (titleController.text.isEmpty || selectedFile == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please verify Title and attached File.')),
+                );
+                return;
+              }
               try {
                 final auth = Provider.of<AuthProvider>(context, listen: false);
-                // Show loading indicator
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Uploading...')));
-                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Close dialog first
+
+                // Show loading snackbar
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(children: [CircularProgressIndicator(), SizedBox(width: 10), Text('Uploading resource...')]), 
+                    duration: Duration(days: 1)
+                  )
+                );
 
                 await ApiService.uploadResource(
                   widget.classId,
@@ -114,11 +176,13 @@ class _ResourcesTabState extends State<ResourcesTab> {
                   auth.teacherId!,
                 );
                 
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Uploaded successfully!')));
-                _loadResources();
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Resource Uploaded successfully!')));
+                if (mounted) _loadResources();
               } catch (e) {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to upload: $e')),
+                  SnackBar(content: Text('Upload failed: $e')),
                 );
               }
             },
