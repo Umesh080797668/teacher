@@ -2126,6 +2126,7 @@ app.get('/api/payments', verifyToken, async (req, res) => {
       };
     }));
     
+    console.log('Payments found for query:', payments.length);
     res.json(paymentsWithDetails);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch payments' });
