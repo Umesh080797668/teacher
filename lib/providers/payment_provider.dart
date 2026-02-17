@@ -67,6 +67,9 @@ class PaymentProvider with ChangeNotifier {
             classId: classId, studentId: studentId, teacherId: teacherId)
             .timeout(const Duration(seconds: 5));
         
+        debugPrint('PaymentProvider: Loaded ${_payments.length} payments');
+
+        
         // Cache for next time
         if (teacherId != null) {
           final cacheKey = 'payments_${teacherId}_${classId ?? 'all'}_${studentId ?? 'all'}';

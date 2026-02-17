@@ -739,6 +739,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   );
                 }
 
+                debugPrint('PaymentScreen: PaymentProvider has ${paymentProvider.payments.length} payments');
+                debugPrint('PaymentScreen: Search text: "$_searchText"');
+
                 // Filter payments by search text
                 final filteredPayments = _searchText.isEmpty
                     ? paymentProvider.payments
