@@ -53,7 +53,13 @@ class _ResourcesTabState extends State<ResourcesTab> {
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).dialogBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Add Resource', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Add Resource',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
         content: StatefulBuilder(
           builder: (context, setState) {
             return SingleChildScrollView(
