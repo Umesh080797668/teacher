@@ -51,6 +51,7 @@ class _ResourcesTabState extends State<ResourcesTab> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).dialogBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Add Resource', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         content: StatefulBuilder(
@@ -62,9 +63,12 @@ class _ResourcesTabState extends State<ResourcesTab> {
                 children: [
                   TextField(
                     controller: titleController,
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                     decoration: InputDecoration(
                       labelText: 'Title',
+                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       hintText: 'e.g., Mathematics PDF',
+                      hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8)),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
@@ -73,8 +77,10 @@ class _ResourcesTabState extends State<ResourcesTab> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: descController,
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                     decoration: InputDecoration(
                       labelText: 'Description (Optional)',
+                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       contentPadding: const EdgeInsets.all(16),
                     ),
@@ -85,9 +91,9 @@ class _ResourcesTabState extends State<ResourcesTab> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                        border: Border.all(color: Theme.of(context).dividerColor),
-                          borderRadius: BorderRadius.circular(8),
-                          color: Theme.of(context).colorScheme.surfaceVariant,
+                      border: Border.all(color: Theme.of(context).dividerColor),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Theme.of(context).colorScheme.surfaceVariant,
                     ),
                     child: Column(
                       children: [
@@ -96,7 +102,7 @@ class _ResourcesTabState extends State<ResourcesTab> {
                           const SizedBox(height: 8),
                           Text(
                             selectedFile!.path.split('/').last,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
@@ -115,7 +121,7 @@ class _ResourcesTabState extends State<ResourcesTab> {
                             }
                           },
                           icon: const Icon(Icons.attach_file),
-                          label: Text(selectedFile == null ? 'Select Attachment' : 'Change  File'),
+                          label: Text(selectedFile == null ? 'Select Attachment' : 'Change  File', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           ),

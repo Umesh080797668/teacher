@@ -51,6 +51,7 @@ class _NoticesTabState extends State<NoticesTab> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).dialogBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('New Notice', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(
@@ -59,9 +60,12 @@ class _NoticesTabState extends State<NoticesTab> {
             children: [
               TextField(
                 controller: titleController,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 decoration: InputDecoration(
                   labelText: 'Title',
                   hintText: 'e.g., Exam Schedule',
+                  labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true,
                   fillColor: Theme.of(context).colorScheme.surfaceVariant,
@@ -72,8 +76,11 @@ class _NoticesTabState extends State<NoticesTab> {
               const SizedBox(height: 16),
               TextField(
                 controller: contentController,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 decoration: InputDecoration(
                   labelText: 'Content',
+                  labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8)),
                   alignLabelWithHint: true,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true,
@@ -86,6 +93,8 @@ class _NoticesTabState extends State<NoticesTab> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: priority,
+                dropdownColor: Theme.of(context).cardColor,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 items: ['low', 'normal', 'high']
                     .map((e) => DropdownMenuItem(
                       value: e, 
@@ -97,7 +106,7 @@ class _NoticesTabState extends State<NoticesTab> {
                             color: e == 'high' ? Colors.red : (e == 'normal' ? Colors.orange : Colors.green)
                           ),
                           const SizedBox(width: 8),
-                          Text(e.toUpperCase(), style: const TextStyle(fontSize: 14)),
+                          Text(e.toUpperCase(), style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface)),
                         ],
                       )
                     ))
@@ -105,6 +114,7 @@ class _NoticesTabState extends State<NoticesTab> {
                 onChanged: (v) => priority = v!,
                 decoration: InputDecoration(
                   labelText: 'Priority',
+                  labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
