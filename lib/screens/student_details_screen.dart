@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart'; // Added for contact actions
 import '../models/student.dart';
 import '../models/attendance.dart';
 import '../models/payment.dart';
@@ -131,6 +132,122 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
     }
   }
 
+  Future<void> _assignToClass(Student student) async {
+    final classesProvider = Provider.of<ClassesProvider>(context, listen: false);
+    
+    // Ensure classes are loaded
+    if (classesProvider.classes.isEmpty) {
+        // Maybe fetch?
+    }
+
+    String? selectedClassId;
+    
+    // Filter available classes (exclude current class and already assigned classes)
+    final existingClassIds = [
+      if (student.classId != null) student.classId!,
+      if (student.classIds != null) ...student.classIds!
+    ];
+    
+    final availableClasses = classesProvider.classes.where(
+      (c) => !existingClassIds.contains(c.id)
+    ).toList();
+    
+    if (availableClasses.isEmpty) {
+       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No other classes available to assign.')),
+        );
+      }
+       return; 
+    }
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Assign to Another Class'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Select a class to add this student to:'),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedClassId,
+                    hint: const Text('Select Class'),
+                    isExpanded: true,
+                    items: availableClasses.map((c) {
+                      return DropdownMenuItem(
+                        value: c.id,
+                        child: Text(c.name),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedClassId = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: selectedClassId == null
+                      ? null
+                      : () async {
+                          final classIdToAdd = selectedClassId; // Capture value
+                          Navigator.pop(context); // Close dialog
+                          
+                          try {
+                              final provider = Provider.of<StudentsProvider>(context, listen: false);
+                              // Using addStudent which now handles existing students correctly
+                              await provider.addStudent(
+                                  student.name, 
+                                  student.email, 
+                                  student.phoneNumber, 
+                                  student.studentId, 
+                                  classIdToAdd
+                              );
+                              
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Successfully assigned to new class'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                          } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to assign class: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                          }
+                        },
+                  child: const Text('Assign'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _loadStudentPayments() async {
     setState(() {
       _isLoadingPayments = true;
@@ -216,6 +333,11 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                   ),
                 ),
             tooltip: currentStudent.hasFaceData ? 'Face Already Registered' : 'Register Face',
+          ),
+          IconButton(
+            icon: const Icon(Icons.class_),
+            onPressed: () => _assignToClass(currentStudent),
+            tooltip: 'Assign to Another Class',
           ),
           IconButton(
             icon: const Icon(Icons.edit),
@@ -321,6 +443,47 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                       ],
                     ),
                   ],
+                  // Added Contact Buttons
+                  if (widget.student.phoneNumber != null && widget.student.phoneNumber!.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                              ElevatedButton.icon(
+                                  icon: const Icon(Icons.phone, size: 18),
+                                  label: const Text('Call'),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.blue,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
+                                  ),
+                                  onPressed: () async {
+                                      final uri = Uri.parse('tel:${widget.student.phoneNumber}');
+                                      if (await canLaunchUrl(uri)) launchUrl(uri);
+                                  }
+                              ),
+                              const SizedBox(width: 12),
+                              ElevatedButton.icon(
+                                  icon: const Icon(Icons.message, size: 18),
+                                  label: const Text('WhatsApp'),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF25D366), // WhatsApp green
+                                      foregroundColor: Colors.white,
+                                      elevation: 2,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
+                                  ),
+                                  onPressed: () async {
+                                      String phone = widget.student.phoneNumber!.replaceAll(RegExp(r'\D'), '');
+                                      final uri = Uri.parse('https://wa.me/$phone');
+                                      if (await canLaunchUrl(uri)) {
+                                          launchUrl(uri, mode: LaunchMode.externalApplication);
+                                      }
+                                  }
+                              ),
+                          ],
+                      ),
+                  ]
                 ],
               ),
             ),

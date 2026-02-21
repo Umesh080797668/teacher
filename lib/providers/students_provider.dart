@@ -119,7 +119,14 @@ class StudentsProvider with ChangeNotifier {
       return;
     }
     final student = await ApiService.createStudent(name, email, phoneNumber, studentId, classId);
-    _students.add(student);
+    
+    // Check if student already exists in the list (based on ID or studentId)
+    final index = _students.indexWhere((s) => s.id == student.id || s.studentId == student.studentId);
+    if (index != -1) {
+      _students[index] = student;
+    } else {
+      _students.add(student);
+    }
     notifyListeners();
   }
 

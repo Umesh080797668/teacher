@@ -302,6 +302,55 @@ const getLocalizedDate = (utcDate) => {
   return date.toISOString();
 };
 
+/* -------------------------------------------------------------------------- */
+/*                        WhatsApp Integration Helper                         */
+/* -------------------------------------------------------------------------- */
+const sendWhatsAppMessage = async (recipients, body) => {
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
+    console.error('WhatsApp service not configured (missing credentials)');
+    return { success: false, error: 'Service not configured' };
+  }
+  
+  try {
+    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    // Use TWILIO_WHATSAPP_NUMBER if defined (e.g. +14155238886), else derive from TWILIO_PHONE_NUMBER
+    // Twilio sandbox usually requires a specific number.
+    const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER 
+      ? (process.env.TWILIO_WHATSAPP_NUMBER.startsWith('whatsapp:') ? process.env.TWILIO_WHATSAPP_NUMBER : `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`)
+      : `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`;
+      
+    const numbers = Array.isArray(recipients) ? recipients : [recipients];
+    const results = [];
+    
+    for (const number of numbers) {
+      if (!number) continue;
+      
+      try {
+        let formattedNumber = number.toString().trim();
+        // Ensure format: whatsapp:+<country_code><number>
+        if (!formattedNumber.startsWith('whatsapp:')) {
+            formattedNumber = `whatsapp:${formattedNumber.startsWith('+') ? formattedNumber : '+' + formattedNumber}`;
+        }
+        
+        const message = await client.messages.create({
+          body: body,
+          from: fromNumber,
+          to: formattedNumber
+        });
+        console.log(`WhatsApp sent to ${formattedNumber}: ${message.sid}`);
+        results.push({ number: number, status: 'sent', sid: message.sid });
+      } catch (err) {
+        console.error(`Failed to send WhatsApp to ${number}:`, err.message);
+        results.push({ number: number, status: 'failed', error: err.message });
+      }
+    }
+    return { success: true, results };
+  } catch (error) {
+    console.error('WhatsApp critical error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // Models
 const ClassSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -323,6 +372,7 @@ const StudentSchema = new mongoose.Schema({
   phoneNumber: String, // Added for SMS/WhatsApp features
   studentId: { type: String, unique: true },
   classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' },
+  classIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Class' }], // Added field for multiple classes
   companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }, // Company/Admin association
   isRestricted: { type: Boolean, default: false },
   restrictedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
@@ -1216,7 +1266,11 @@ app.get('/api/students', verifyToken, async (req, res) => {
     // Filter by classId if provided
     if (classId) {
       console.log('Filtering students for classId:', classId);
-      query.classId = new mongoose.Types.ObjectId(classId);
+      const clsId = new mongoose.Types.ObjectId(classId);
+      query.$or = [
+        { classId: clsId },
+        { classIds: clsId }
+      ];
       console.log('Query for classId filter:', query);
     } else if (teacherId) {
       // Find teacher by teacherId string and get their classes
@@ -1225,7 +1279,10 @@ app.get('/api/students', verifyToken, async (req, res) => {
       if (teacher) {
         const classes = await Class.find({ teacherId: teacher._id });
         const classIds = classes.map(c => c._id);
-        query.classId = { $in: classIds };
+        query.$or = [
+          { classId: { $in: classIds } },
+          { classIds: { $in: classIds } }
+        ];
         console.log('Found', classIds.length, 'classes for teacher');
       } else {
         console.log('Teacher not found for teacherId:', teacherId, '- returning empty array');
@@ -1259,6 +1316,37 @@ app.post('/api/students', verifyToken, async (req, res) => {
   try {
     const { name, email, phoneNumber, studentId, classId } = req.body;
     
+    // Check if student exists by studentId if provided
+    if (studentId) {
+      const existingStudent = await Student.findOne({ studentId });
+      if (existingStudent) {
+        // Add classId to classIds if not already present
+        let classObjectId = classId;
+        if (classId && typeof classId === 'string' && classId.match(/^[0-9a-fA-F]{24}$/)) {
+            classObjectId = new mongoose.Types.ObjectId(classId);
+        }
+        
+        if (classObjectId) {
+            // Initialize classIds if undefined
+            if (!existingStudent.classIds) existingStudent.classIds = [];
+            
+            // Check if class already in list
+            const alreadyInClass = existingStudent.classIds.some(c => c.toString() === classObjectId.toString());
+            if (!alreadyInClass) {
+                existingStudent.classIds.push(classObjectId);
+                // Also update legacy classId if not set, or maybe keep original? 
+                // Let's keep existing classId but update if it was null
+                if (!existingStudent.classId) existingStudent.classId = classObjectId;
+                
+                await existingStudent.save();
+                return res.status(200).json(existingStudent);
+            } else {
+                return res.status(200).json(existingStudent); // Already added
+            }
+        }
+      }
+    }
+    
     // Auto-generate studentId if not provided
     let finalStudentId = studentId;
     if (!finalStudentId) {
@@ -1290,7 +1378,8 @@ app.post('/api/students', verifyToken, async (req, res) => {
         email, 
         phoneNumber, // Added field
         studentId: finalStudentId, 
-        classId: classObjectId 
+        classId: classObjectId,
+        classIds: classObjectId ? [classObjectId] : []
     });
     
     await student.save();
@@ -2176,6 +2265,71 @@ app.post('/api/payments', verifyToken, async (req, res) => {
   }
 });
 
+/* -------------------------------------------------------------------------- */
+/*                        Payment Reminders (WhatsApp)                        */
+/* -------------------------------------------------------------------------- */
+app.post('/api/payments/remind', verifyToken, async (req, res) => {
+  try {
+    const { classId, month, year } = req.body;
+    
+    if (!classId || !month || !year) {
+      return res.status(400).json({ error: 'ClassId, month, and year are required' });
+    }
+    
+    // Find students in the class
+    const students = await Student.find({ 
+      $or: [{ classId: classId }, { classIds: classId }] 
+    });
+    
+    if (students.length === 0) {
+      return res.status(404).json({ error: 'No students found in this class' });
+    }
+
+    // Find payments for the specified period
+    const payments = await Payment.find({
+      classId: classId,
+      month: parseInt(month),
+      year: parseInt(year)
+    });
+    
+    // Identify who hasn't paid
+    const paidStudentIds = new Set(payments.map(p => p.studentId.toString()));
+    const unpaidStudents = students.filter(s => !paidStudentIds.has(s._id.toString()));
+    
+    // Get phone numbers
+    const phoneNumbers = unpaidStudents
+      .map(s => s.phoneNumber)
+      .filter(p => p); // Filter out null/undefined/empty
+      
+    if (phoneNumbers.length === 0) {
+      return res.json({ 
+        success: true, 
+        message: 'No students with phone numbers need reminders (either all paid or no numbers available)',
+        unpaidCount: unpaidStudents.length
+      });
+    }
+
+    // Send WhatsApp messages
+    const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+    const message = `*Payment Reminder*\n\nYour class fees for *${monthName} ${year}* are pending. Please settle your payment to avoid service interruption. Thank you.`;
+    
+    // Use the helper function, passing the array directly
+    // Note: sendWhatsAppMessage handles async internally but we want to await for response here
+    const result = await sendWhatsAppMessage(phoneNumbers, message);
+    
+    res.json({
+      success: true,
+      remindedCount: phoneNumbers.length,
+      unpaidCount: unpaidStudents.length,
+      details: result
+    });
+    
+  } catch (error) {
+    console.error('Reminder error:', error);
+    res.status(500).json({ error: 'Failed to send reminders', details: error.message });
+  }
+});
+
 app.delete('/api/payments/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -2449,8 +2603,21 @@ app.post('/api/notices', verifyTeacher, async (req, res) => {
     });
     await notice.save();
 
-    // Send FCM Notification to students of this class (optional/future)
-    // await sendFCMToClass(classId, title, content);
+    console.log(`Notice created for class ${classId}, sending WhatsApp notifications...`);
+    // Find students in this class (either classId or in classIds list)
+    Student.find({ $or: [{ classId: classId }, { classIds: classId }] })
+      .then(students => {
+        const phoneNumbers = students
+          .map(s => s.phoneNumber)
+          .filter(p => p); // Remove null/undefined
+        
+        if (phoneNumbers.length > 0) {
+          sendWhatsAppMessage(phoneNumbers, `*New Notice: ${title}*\n\n${content}`);
+        } else {
+          console.log('No student phone numbers found for WhatsApp notification');
+        }
+      })
+      .catch(err => console.error('Error fetching students for notice notification:', err));
 
     res.status(201).json(notice);
   } catch (error) {
@@ -7644,41 +7811,22 @@ app.get('/api/quizzes/:id/results', verifyToken, async (req, res) => {
     }
 });
 
-// SMS Sending Endpoint
-app.post('/api/sms/send', verifyToken, async (req, res) => {
+// WhatsApp Sending Endpoint (Replaces SMS)
+app.post('/api/whatsapp/send', verifyToken, async (req, res) => {
     try {
         const { to, body } = req.body;
-        console.log('Sending SMS to:', to, 'Body:', body);
+        console.log('Sending WhatsApp message to:', to, 'Body:', body);
         
-        if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
-             console.error('Twilio credentials missing');
-             return res.status(500).json({ error: 'SMS service not configured (missing credentials)' });
+        const result = await sendWhatsAppMessage(to, body);
+        
+        if (result.success) {
+            res.json({ success: true, results: result.results });
+        } else {
+            res.status(500).json({ error: result.error });
         }
-
-        const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-        
-        // Handle single or multiple numbers
-        const recipients = Array.isArray(to) ? to : [to];
-        const results = [];
-        
-        for (const recipient of recipients) {
-            try {
-                const message = await client.messages.create({
-                    body: body,
-                    from: process.env.TWILIO_PHONE_NUMBER,
-                    to: recipient
-                });
-                results.push({ to: recipient, status: 'sent', sid: message.sid });
-            } catch (err) {
-                console.error(`Failed to send to ${recipient}:`, err.message);
-                results.push({ to: recipient, status: 'failed', error: err.message });
-            }
-        }
-        
-        res.json({ success: true, results });
     } catch (err) {
-        console.error('SMS sending error:', err);
-        res.status(500).json({ error: 'Failed to send SMS' });
+        console.error('WhatsApp sending error:', err);
+        res.status(500).json({ error: 'Failed to send WhatsApp message' });
     }
 });
 

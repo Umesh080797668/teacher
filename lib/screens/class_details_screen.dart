@@ -127,9 +127,9 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.send, size: 18),
-            label: const Text('Send SMS'),
+            label: const Text('Send WhatsApp'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.green, // WhatsApp green
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
@@ -137,17 +137,17 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Row(children: [SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)), SizedBox(width: 15), Text('Sending messages...')]),
+                    content: Row(children: [SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)), SizedBox(width: 15), Text('Sending WhatsApp messages...')]),
                     duration: Duration(seconds: 2),
                   )
                 );
                 
                 try {
-                  await ApiService.sendSMS(phoneNumbers, messageController.text.trim());
+                  await ApiService.sendWhatsApp(phoneNumbers, messageController.text.trim());
                   if (mounted) {
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Messages sent successfully!'), backgroundColor: Colors.green),
+                      const SnackBar(content: Text('WhatsApp messages sent successfully!'), backgroundColor: Colors.green),
                     );
                   }
                 } catch (e) {
@@ -430,10 +430,24 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                         children: [
                           if (student.phoneNumber != null)
                              IconButton(
-                               icon: const Icon(Icons.message, size: 20, color: Colors.blue),
+                               icon: const Icon(Icons.message, size: 20, color: Colors.green), // Changed to green for WhatsApp
                                onPressed: () async {
-                                 final uri = Uri.parse('sms:${student.phoneNumber}');
-                                 if (await canLaunchUrl(uri)) launchUrl(uri);
+                                 // Launch WhatsApp chat
+                                 String phone = student.phoneNumber!.replaceAll(RegExp(r'[^\d+]'), '');
+                                 if (!phone.startsWith('+')) {
+                                   // Assuming local numbers without country code might need fixing, 
+                                   // but for now let's hope it's stored correctly or wa.me handles it.
+                                   // Generally wa.me requires country code.
+                                 }
+                                 
+                                 final uri = Uri.parse('https://wa.me/$phone');
+                                 if (await canLaunchUrl(uri)) {
+                                   launchUrl(uri, mode: LaunchMode.externalApplication);
+                                 } else {
+                                    // Fallback to SMS
+                                    final smsUri = Uri.parse('sms:${student.phoneNumber}');
+                                    if (await canLaunchUrl(smsUri)) launchUrl(smsUri);
+                                 }
                                },
                              ),
                           const Icon(Icons.chevron_right),

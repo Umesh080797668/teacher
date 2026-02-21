@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../models/student.dart';
 import 'package:provider/provider.dart';
@@ -58,10 +59,20 @@ class _LowAttendanceCardState extends State<LowAttendanceCard> {
             title: Text(student.name),
             subtitle: Text('$absences consecutive absences'),
             trailing: IconButton(
-              icon: const Icon(Icons.message, color: Colors.blue),
-              onPressed: () {
-                // TODO: Message specific student
-                // Launch SMS
+              icon: const Icon(Icons.message, color: Colors.green),
+              onPressed: () async {
+                if (student.phoneNumber == null) return;
+                
+                final phone = student.phoneNumber!.replaceAll(RegExp(r'\D'), '');
+                final uri = Uri.parse('https://wa.me/$phone');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else {
+                  // Fallback to SMS
+                  if (await canLaunchUrl(Uri.parse('sms:${student.phoneNumber}'))) {
+                     await launchUrl(Uri.parse('sms:${student.phoneNumber}'));
+                  }
+                }
               },
             ),
           );

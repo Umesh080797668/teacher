@@ -23,6 +23,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
   final _studentIdController = TextEditingController();
   String? _selectedClassId;
   bool _showForm = false;
+  bool _isExisting = false;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -254,9 +255,31 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                       ),
                                     ],
                                   ),
+                                  // Switch to add existing student
+                                  SwitchListTile(
+                                    title: Text(
+                                      'Add Existing Student by ID',
+                                      style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface),
+                                    ),
+                                    value: _isExisting,
+                                    onChanged: (bool value) {
+                                      setState(() {
+                                        _isExisting = value;
+                                        if (value) {
+                                          _studentIdController.clear();
+                                          _nameController.clear(); // Optional for existing
+                                        } else {
+                                          _studentIdController.text = _generateStudentId();
+                                        }
+                                      });
+                                    },
+                                    activeColor: Theme.of(context).colorScheme.primary,
+                                  ),
                                   const SizedBox(height: 16),
-                                  TextFormField(
-                                    controller: _nameController,
+                                  if (!_isExisting) ...[
+                                    TextFormField(
+                                      controller: _nameController,
                                     style: TextStyle(
                                       color: Theme.of(context).colorScheme.onSurface,
                                     ),
@@ -331,15 +354,23 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                     ),
                                     keyboardType: TextInputType.phone,
                                   ),
+                                  ],
                                   const SizedBox(height: 12),
                                   TextFormField(
                                     controller: _studentIdController,
                                     style: TextStyle(
-                                      color:
-                                          Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                      color: Theme.of(context).colorScheme.onSurface,
                                     ),
+                                    validator: (value) {
+                                      if (_isExisting && (value == null || value.isEmpty)) {
+                                        return 'Please enter Student ID';
+                                      }
+                                      return null;
+                                    },
                                     decoration: InputDecoration(
-                                      labelText: 'Student ID (Auto-generated)',
+                                      labelText: _isExisting
+                                          ? 'Existing Student ID'
+                                          : 'Student ID (Auto-generated)',
                                       prefixIcon: Icon(
                                         Icons.badge,
                                         color: Theme.of(context)
@@ -358,7 +389,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                           .colorScheme
                                           .surfaceContainerHighest
                                           .withOpacity(0.3),
-                                      helperText: 'This ID is automatically generated',
+                                      helperText: _isExisting
+                                          ? 'Enter the ID of the student to add'
+                                          : 'This ID is automatically generated',
                                       helperStyle: TextStyle(
                                         color: Theme.of(context)
                                             .colorScheme
@@ -366,7 +399,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                             .withOpacity(0.5),
                                       ),
                                     ),
-                                    enabled: false, // Make the field disabled
+                                    enabled: _isExisting, // Make the field disabled
                                   ),
                                   const SizedBox(height: 12),
                                   Consumer<ClassesProvider>(

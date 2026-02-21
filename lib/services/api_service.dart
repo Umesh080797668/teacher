@@ -99,6 +99,18 @@ class ApiService {
     _urlHealthStatus[url] = DateTime.now();
   }
 
+  // Helper to get headers with token
+  static Future<Map<String, String>> _getHeaders() async {
+    final token = await getToken();
+    if (token != null) {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+    }
+    return {'Content-Type': 'application/json'};
+  }
+
   // Get stored authentication token
   static Future<String?> getToken() async {
     try {
@@ -761,14 +773,33 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> sendSMS(List<String> recipients, String message) async {
+  static Future<Map<String, dynamic>> sendWhatsApp(List<String> recipients, String message) async {
     final response = await _makeRequest(
       'POST',
-      '/api/sms/send',
+      '/api/whatsapp/send',
       body: {
         'to': recipients,
         'body': message,
       },
+      headers: await _getHeaders(),
+    );
+    return json.decode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> sendPaymentReminders({
+    required String classId,
+    required int month,
+    required int year,
+  }) async {
+    final response = await _makeRequest(
+      'POST',
+      '/api/payments/remind',
+      body: {
+        'classId': classId,
+        'month': month,
+        'year': year,
+      },
+      headers: await _getHeaders(),
     );
     return json.decode(response.body);
   }

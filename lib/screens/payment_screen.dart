@@ -5,6 +5,7 @@ import '../providers/payment_provider.dart';
 import '../providers/students_provider.dart';
 import '../providers/classes_provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart'; // Added for WhatsApp Integration
 import '../models/student.dart';
 import '../models/class.dart' as class_model;
 import '../widgets/custom_widgets.dart';
@@ -74,6 +75,134 @@ class _PaymentScreenState extends State<PaymentScreen> {
       default:
         return 0.0;
     }
+  }
+
+  Future<void> _showReminderDialog() async {
+    final classesProvider = Provider.of<ClassesProvider>(context, listen: false);
+    final classes = classesProvider.classes;
+    
+    if (classes.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No classes found to send reminders.')));
+      }
+      return;
+    }
+    
+    // Default values for the dialog
+    String? selectedRemindClassId = classes.isNotEmpty ? classes.first.id : null;
+    int selectedRemindMonth = DateTime.now().month;
+    int selectedRemindYear = DateTime.now().year;
+    
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Send WhatsApp Reminders'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Send WhatsApp reminders to all students who haven\'t paid for the selected month.', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Class', border: OutlineInputBorder()),
+                    value: selectedRemindClassId,
+                    items: classes.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                    onChanged: (val) {
+                      setDialogState(() => selectedRemindClassId = val);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(labelText: 'Month', border: OutlineInputBorder()),
+                          value: selectedRemindMonth,
+                          items: List.generate(12, (i) => i + 1).map((m) => 
+                            DropdownMenuItem(value: m, child: Text(_getMonthName(m)))
+                          ).toList(),
+                          onChanged: (val) => setDialogState(() => selectedRemindMonth = val!),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(labelText: 'Year', border: OutlineInputBorder()),
+                          value: selectedRemindYear,
+                          items: List.generate(5, (i) => DateTime.now().year - 2 + i).map((y) => 
+                            DropdownMenuItem(value: y, child: Text(y.toString()))
+                          ).toList(),
+                          onChanged: (val) => setDialogState(() => selectedRemindYear = val!),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.send),
+                label: const Text('Send'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                onPressed: () async {
+                  if (selectedRemindClassId == null) return;
+                  Navigator.pop(ctx);
+                  
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Row(children: [CircularProgressIndicator(color: Colors.white, strokeWidth: 2), SizedBox(width: 10), Text('Sending reminders...')]),
+                        duration: Duration(seconds: 2),
+                      )
+                    );
+                  }
+                  
+                  try {
+                    final result = await ApiService.sendPaymentReminders(
+                      classId: selectedRemindClassId!,
+                      month: selectedRemindMonth,
+                      year: selectedRemindYear
+                    );
+                    
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      final msg = result['message'] ?? 'Reminders sent!';
+                      final count = result['remindedCount'] ?? 0;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('$msg ($count sent)'), backgroundColor: Colors.green),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return months[month - 1];
   }
 
   Future<void> _addPayment() async {
@@ -184,6 +313,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active),
+            tooltip: 'Send Payment Reminders',
+            onPressed: _showReminderDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+          ),
         ],
       ),
       body: SingleChildScrollView(

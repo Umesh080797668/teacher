@@ -5,6 +5,7 @@ class Student {
   final String? phoneNumber; // Added field
   final String studentId;
   final String? classId;
+  final List<String>? classIds;
   final DateTime? createdAt;
   final bool isRestricted;
   final String? restrictionReason;
@@ -19,6 +20,7 @@ class Student {
     this.phoneNumber, // Added field
     required this.studentId,
     this.classId,
+    this.classIds,
     this.createdAt,
     this.isRestricted = false,
     this.restrictionReason,
@@ -36,6 +38,15 @@ class Student {
       extractedClassId = json['classId']['_id'] ?? json['classId']['id'];
     }
 
+    List<String>? extractedClassIds;
+    if (json['classIds'] != null && json['classIds'] is List) {
+      extractedClassIds = (json['classIds'] as List).map((e) {
+        if (e is String) return e;
+        if (e is Map) return (e['_id'] ?? e['id'])?.toString() ?? '';
+        return e.toString();
+      }).where((e) => e.isNotEmpty).toList();
+    }
+
     return Student(
       id: (json['_id'] ?? json['id']) is String ? (json['_id'] ?? json['id']) : '',
       name: json['name'] is String ? json['name'] : '',
@@ -43,6 +54,7 @@ class Student {
       phoneNumber: json['phoneNumber'] is String ? json['phoneNumber'] : null, // Added field
       studentId: json['studentId'] is String ? json['studentId'] : '',
       classId: extractedClassId,
+      classIds: extractedClassIds,
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'].toString()) : null,
       isRestricted: json['isRestricted'] is bool ? json['isRestricted'] : false,
       restrictionReason: json['restrictionReason'] is String ? json['restrictionReason'] : null,
@@ -61,6 +73,7 @@ class Student {
       'phoneNumber': phoneNumber, // Added field
       'studentId': studentId,
       'classId': classId,
+      'classIds': classIds,
       'hasFaceData': hasFaceData,
       'faceEmbedding': faceEmbedding,
     };
