@@ -166,22 +166,32 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            final colors = Theme.of(context).colorScheme;
             return AlertDialog(
-              title: const Text('Assign to Another Class'),
+              backgroundColor: Theme.of(context).dialogBackgroundColor,
+              title: Text(
+                'Assign to Another Class',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colors.onSurface,
+                ),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Select a class to add this student to:'),
+                  Text('Select a class to add this student to:', style: TextStyle(color: colors.onSurface)),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: selectedClassId,
-                    hint: const Text('Select Class'),
+                    hint: Text('Select Class', style: TextStyle(color: colors.onSurfaceVariant)),
+                    dropdownColor: Theme.of(context).cardColor,
+                    style: TextStyle(color: colors.onSurface),
                     isExpanded: true,
                     items: availableClasses.map((c) {
                       return DropdownMenuItem(
                         value: c.id,
-                        child: Text(c.name),
+                        child: Text(c.name, style: TextStyle(color: colors.onSurface)),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -190,6 +200,8 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                       });
                     },
                     decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surfaceVariant,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
                     ),
@@ -199,9 +211,13 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text('Cancel', style: TextStyle(color: colors.onSurfaceVariant)),
                 ),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
+                  ),
                   onPressed: selectedClassId == null
                       ? null
                       : () async {
@@ -221,7 +237,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                               
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     content: Text('Successfully assigned to new class'),
                                     backgroundColor: Colors.green,
                                   ),
