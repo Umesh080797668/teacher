@@ -52,7 +52,7 @@ class _ResourcesTabState extends State<ResourcesTab> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Add Resource', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Add Resource', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         content: StatefulBuilder(
           builder: (context, setState) {
             return SingleChildScrollView(
@@ -85,14 +85,14 @@ class _ResourcesTabState extends State<ResourcesTab> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey[50],
+                        border: Border.all(color: Theme.of(context).dividerColor),
+                          borderRadius: BorderRadius.circular(8),
+                          color: Theme.of(context).colorScheme.surfaceVariant,
                     ),
                     child: Column(
                       children: [
                         if (selectedFile != null) ...[
-                          Icon(Icons.check_circle, color: Colors.green[400], size: 32),
+                          Icon(Icons.check_circle, color: Theme.of(context).colorScheme.secondary, size: 32),
                           const SizedBox(height: 8),
                           Text(
                             selectedFile!.path.split('/').last,
@@ -121,11 +121,11 @@ class _ResourcesTabState extends State<ResourcesTab> {
                           ),
                         ),
                         if (selectedFile == null)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8.0),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
                             child: Text(
                               'Supported: PDF, DOCX, Images',
-                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                             ),
                           ),
                       ],
@@ -140,12 +140,12 @@ class _ResourcesTabState extends State<ResourcesTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context), 
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey))
+            child: Text('Cancel', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
@@ -205,16 +205,18 @@ class _ResourcesTabState extends State<ResourcesTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_isLoading) return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: _uploadResource,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         child: const Icon(Icons.upload_file),
         tooltip: 'Upload Material',
       ),
       body: _resources.isEmpty
-          ? const Center(child: Text('No resources available.'))
+          ? Center(child: Text('No resources available.', style: TextStyle(color: Theme.of(context).colorScheme.onBackground)))
           : ListView.builder(
               itemCount: _resources.length,
               itemBuilder: (context, index) {
@@ -224,24 +226,25 @@ class _ResourcesTabState extends State<ResourcesTab> {
                 if (res['fileType'].toString().contains('image')) icon = Icons.image;
 
                 return Card(
+                  color: Theme.of(context).cardColor,
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: ListTile(
-                    leading: CircleAvatar(child: Icon(icon, color: Colors.white), backgroundColor: Colors.blue),
-                    title: Text(res['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                    leading: CircleAvatar(child: Icon(icon, color: Theme.of(context).colorScheme.onPrimary), backgroundColor: Theme.of(context).colorScheme.primary),
+                    title: Text(res['title'], style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (res['description'] != null && res['description'].isNotEmpty) 
-                          Text(res['description']),
+                          Text(res['description'], style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                         const SizedBox(height: 4),
                         Text(
                           DateFormat.yMMMd().format(DateTime.parse(res['createdAt'])),
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                         ),
                       ],
                     ),
                     trailing: IconButton(
-                      icon: const Icon(Icons.open_in_new),
+                      icon: Icon(Icons.open_in_new, color: Theme.of(context).colorScheme.onSurface),
                       onPressed: () => _openResource(res['fileUrl']),
                     ),
                     onTap: () => _openResource(res['fileUrl']),

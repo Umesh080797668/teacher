@@ -52,7 +52,7 @@ class _NoticesTabState extends State<NoticesTab> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('New Notice', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('New Notice', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -64,7 +64,7 @@ class _NoticesTabState extends State<NoticesTab> {
                   hintText: 'e.g., Exam Schedule',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: Theme.of(context).colorScheme.surfaceVariant,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 textCapitalization: TextCapitalization.sentences,
@@ -77,7 +77,7 @@ class _NoticesTabState extends State<NoticesTab> {
                   alignLabelWithHint: true,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: Theme.of(context).colorScheme.surfaceVariant,
                   contentPadding: const EdgeInsets.all(16),
                 ),
                 maxLines: 5,
@@ -116,12 +116,12 @@ class _NoticesTabState extends State<NoticesTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context), 
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey))
+            child: Text('Cancel', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
@@ -160,16 +160,18 @@ class _NoticesTabState extends State<NoticesTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_isLoading) return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: _addNotice,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         child: const Icon(Icons.add),
         tooltip: 'Post Notice',
       ),
       body: _notices.isEmpty
-          ? const Center(child: Text('No notices yet.'))
+          ? Center(child: Text('No notices yet.', style: TextStyle(color: Theme.of(context).colorScheme.onBackground)))
           : ListView.builder(
               itemCount: _notices.length,
               itemBuilder: (context, index) {
@@ -179,22 +181,23 @@ class _NoticesTabState extends State<NoticesTab> {
                 if (notice['priority'] == 'normal') priorityColor = Colors.orange;
 
                 return Card(
+                  color: Theme.of(context).cardColor,
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: priorityColor,
-                      child: const Icon(Icons.campaign, color: Colors.white),
+                      child: Icon(Icons.campaign, color: Theme.of(context).colorScheme.onPrimary),
                     ),
-                    title: Text(notice['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(notice['title'], style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 4),
-                        Text(notice['content']),
+                        Text(notice['content'], style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                         const SizedBox(height: 4),
                         Text(
                           DateFormat.yMMMd().format(DateTime.parse(notice['createdAt'])),
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                         ),
                       ],
                     ),
