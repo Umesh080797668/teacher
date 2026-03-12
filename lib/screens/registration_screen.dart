@@ -200,72 +200,43 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topRight,
             end: Alignment.bottomLeft,
-            colors: [
-              Color(0xFF06B6D4), // Cyan
-              Color(0xFF3B82F6), // Blue
-              Color(0xFF8B5CF6), // Purple
-              Color(0xFFEC4899), // Pink
-            ],
-            stops: [0.0, 0.4, 0.7, 1.0],
+            colors: isDark
+                ? const [Color(0xFF0E4155), Color(0xFF1E3A6E), Color(0xFF3B2667), Color(0xFF6B1247)]
+                : const [Color(0xFF06B6D4), Color(0xFF3B82F6), Color(0xFF8B5CF6), Color(0xFFEC4899)],
+            stops: const [0.0, 0.4, 0.7, 1.0],
           ),
         ),
-        child: Stack(
-          children: [
-            // Background pattern overlay
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.05,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: RadialGradient(
-                      center: Alignment.center,
-                      radius: 1.5,
-                      colors: [
-                        Colors.white,
-                        Colors.transparent,
-                      ],
-                      stops: [0.0, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
                       // Logo
                       Container(
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Colors.white.withValues(alpha: isDark ? 0.12 : 1.0),
                           shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 20,
-                              spreadRadius: 2,
-                            ),
-                          ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.person_add_rounded,
                           size: 40,
-                          color: Color(0xFF06B6D4),
+                          color: isDark ? Colors.white : const Color(0xFF06B6D4),
                         ),
                       ),
                       
@@ -286,7 +257,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                         'Sign up to get started',
                         style: GoogleFonts.poppins(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                       
@@ -295,15 +266,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                       // Registration Form Card
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: isDark ? cs.surfaceContainerHigh : cs.surface,
                           borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 20,
-                              spreadRadius: 5,
-                            ),
-                          ],
+                          border: isDark ? Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)) : null,
                         ),
                         padding: const EdgeInsets.all(24),
                         child: Form(
@@ -313,34 +278,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                               // Name Field
                               TextFormField(
                                 controller: _nameController,
-                                style: const TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 16,
-                                ),
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: 'Full Name',
-                                  labelStyle: TextStyle(
-                                    color: Colors.grey[700],
-                                    fontSize: 16,
-                                  ),
-                                  floatingLabelStyle: const TextStyle(
-                                    color: Color(0xFF06B6D4),
-                                    fontSize: 18,
-                                  ),
-                                  prefixIcon: Icon(Icons.person_outline, color: Colors.grey[700]),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFF06B6D4), width: 2),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
+                                  prefixIcon: Icon(Icons.person_outline),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
@@ -356,34 +296,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                               TextFormField(
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
-                                style: const TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 16,
-                                ),
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: 'Email',
-                                  labelStyle: TextStyle(
-                                    color: Colors.grey[700],
-                                    fontSize: 16,
-                                  ),
-                                  floatingLabelStyle: const TextStyle(
-                                    color: Color(0xFF06B6D4),
-                                    fontSize: 18,
-                                  ),
-                                  prefixIcon: Icon(Icons.email_outlined, color: Colors.grey[700]),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFF06B6D4), width: 2),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
+                                  prefixIcon: Icon(Icons.email_outlined),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
@@ -402,34 +317,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                               TextFormField(
                                 controller: _phoneController,
                                 keyboardType: TextInputType.phone,
-                                style: const TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 16,
-                                ),
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: 'Phone Number',
-                                  labelStyle: TextStyle(
-                                    color: Colors.grey[700],
-                                    fontSize: 16,
-                                  ),
-                                  floatingLabelStyle: const TextStyle(
-                                    color: Color(0xFF06B6D4),
-                                    fontSize: 18,
-                                  ),
-                                  prefixIcon: Icon(Icons.phone_outlined, color: Colors.grey[700]),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFF06B6D4), width: 2),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
+                                  prefixIcon: Icon(Icons.phone_outlined),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
@@ -445,27 +335,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                               TextFormField(
                                 controller: _passwordController,
                                 obscureText: !_isPasswordVisible,
-                                style: const TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 16,
-                                ),
                                 decoration: InputDecoration(
                                   labelText: 'Password',
-                                  labelStyle: TextStyle(
-                                    color: Colors.grey[700],
-                                    fontSize: 16,
-                                  ),
-                                  floatingLabelStyle: const TextStyle(
-                                    color: Color(0xFF06B6D4),
-                                    fontSize: 18,
-                                  ),
-                                  prefixIcon: Icon(Icons.lock_outlined, color: Colors.grey[700]),
+                                  prefixIcon: const Icon(Icons.lock_outlined),
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       _isPasswordVisible
-                                          ? Icons.visibility
-                                          : Icons.visibility_off,
-                                      color: Colors.grey[700],
+                                          ? Icons.visibility_rounded
+                                          : Icons.visibility_off_rounded,
                                     ),
                                     onPressed: () {
                                       setState(() {
@@ -473,19 +350,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                                       });
                                     },
                                   ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFF06B6D4), width: 2),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
@@ -504,27 +368,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                               TextFormField(
                                 controller: _confirmPasswordController,
                                 obscureText: !_isConfirmPasswordVisible,
-                                style: const TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 16,
-                                ),
                                 decoration: InputDecoration(
                                   labelText: 'Confirm Password',
-                                  labelStyle: TextStyle(
-                                    color: Colors.grey[700],
-                                    fontSize: 16,
-                                  ),
-                                  floatingLabelStyle: const TextStyle(
-                                    color: Color(0xFF06B6D4),
-                                    fontSize: 18,
-                                  ),
-                                  prefixIcon: Icon(Icons.lock_outlined, color: Colors.grey[700]),
+                                  prefixIcon: const Icon(Icons.lock_outlined),
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       _isConfirmPasswordVisible
-                                          ? Icons.visibility
-                                          : Icons.visibility_off,
-                                      color: Colors.grey[700],
+                                          ? Icons.visibility_rounded
+                                          : Icons.visibility_off_rounded,
                                     ),
                                     onPressed: () {
                                       setState(() {
@@ -532,19 +383,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                                       });
                                     },
                                   ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFF06B6D4), width: 2),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
@@ -585,9 +423,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                                             'Terms and Conditions',
                                             style: GoogleFonts.poppins(
                                               fontSize: 12,
-                                              color: const Color(0xFF06B6D4),
+                                              color: cs.primary,
                                               fontWeight: FontWeight.w600,
                                               decoration: TextDecoration.underline,
+                                              decorationColor: cs.primary,
                                             ),
                                           ),
                                         ),
@@ -602,39 +441,25 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                               // Register Button
                               SizedBox(
                                 width: double.infinity,
-                                height: 56,
-                                child: ElevatedButton(
+                                height: 52,
+                                child: FilledButton(
                                   onPressed: _isLoading ? null : _register,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF06B6D4),
-                                    foregroundColor: Colors.white,
-                                    disabledBackgroundColor: const Color(0xFF06B6D4).withOpacity(0.7),
-                                    disabledForegroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 2,
-                                  ),
                                   child: _isLoading
                                       ? Row(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             const SizedBox(
-                                              height: 24,
-                                              width: 24,
-                                              child: CircularProgressIndicator(
-                                                color: Colors.white,
-                                                strokeWidth: 3,
-                                              ),
+                                              height: 20,
+                                              width: 20,
+                                              child: CircularProgressIndicator(strokeWidth: 2.5),
                                             ),
                                             const SizedBox(width: 12),
                                             Text(
                                               'Creating account...',
                                               style: GoogleFonts.poppins(
-                                                fontSize: 16,
+                                                fontSize: 15,
                                                 fontWeight: FontWeight.w600,
-                                                color: Colors.white,
                                               ),
                                             ),
                                           ],
@@ -658,11 +483,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                       // Continue as Guest Button
                       SizedBox(
                         width: double.infinity,
-                        height: 56,
+                        height: 52,
                         child: OutlinedButton(
                           onPressed: _isLoading ? null : _continueAsGuest,
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white, width: 2),
+                            side: const BorderSide(color: Colors.white, width: 1.5),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -712,14 +537,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> with SingleTick
                   ),
                 ),
               ),
-                
             ),
           ),
         ),
-          ],
-    )
-      )
+      ),
     );
-  
-}
+  }
 }

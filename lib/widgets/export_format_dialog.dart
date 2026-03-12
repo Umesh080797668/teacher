@@ -26,7 +26,7 @@ class ExportFormatDialog extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           ListTile(
-            leading: const Icon(Icons.table_chart, color: Colors.green),
+            leading: const Icon(Icons.table_chart, color: Color(0xFF22C55E)),
             title: const Text('Export as CSV'),
             subtitle: const Text('Commas separated values, good for Excel'),
             onTap: () {
@@ -35,7 +35,7 @@ class ExportFormatDialog extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+            leading: Icon(Icons.picture_as_pdf, color: Theme.of(context).colorScheme.error),
             title: const Text('Export as PDF'),
             subtitle: const Text('Formatted document, good for printing'),
             onTap: () {

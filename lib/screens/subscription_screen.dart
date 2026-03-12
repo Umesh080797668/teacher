@@ -62,7 +62,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Your payment has been approved! Redirecting to home...'),
-          backgroundColor: Colors.green,
           duration: Duration(seconds: 3),
         ),
       );
@@ -93,7 +92,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Admin has set your subscription to ${newSubscriptionType == 'monthly' ? 'Monthly' : 'Yearly'}. Please proceed to payment.'),
-          backgroundColor: Colors.blue,
           duration: const Duration(seconds: 4),
         ),
       );
@@ -105,12 +103,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Choose Subscription Plan'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        automaticallyImplyLeading: false, // Prevent back button
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -153,38 +148,43 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           : 'Your account needs activation. Please select a plan and complete payment.',
                       style: TextStyle(
                         fontSize: 16,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                       textAlign: TextAlign.center,
                     ),
                     if (!auth.isActivated)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.orange),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  'Account inactive - Payment required',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.orange.shade700,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
+                        child: Builder(
+                          builder: (bCtx) {
+                            final cs = Theme.of(bCtx).colorScheme;
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: cs.tertiaryContainer,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: cs.onTertiaryContainer.withValues(alpha: 0.3)),
                               ),
-                            ],
-                          ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.info_outline, color: cs.onTertiaryContainer, size: 20),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      'Account inactive - Payment required',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: cs.onTertiaryContainer,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       ),
                   ],
@@ -206,151 +206,185 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               const SizedBox(height: 20),
 
               // Monthly Plan
-              Card(
-                color: _selectedPlan == 'monthly'
-                    ? Theme.of(context).colorScheme.primaryContainer
-                    : Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedPlan = 'monthly';
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Radio<String>(
-                          value: 'monthly',
-                          groupValue: _selectedPlan,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedPlan = value;
-                            });
-                          },
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Monthly Plan',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'LKR 1,000 per month',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Perfect for trying out our services',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+              Builder(
+                builder: (bCtx) {
+                  final cs = Theme.of(bCtx).colorScheme;
+                  final isDark = Theme.of(bCtx).brightness == Brightness.dark;
+                  final isSelected = _selectedPlan == 'monthly';
+                  return Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? cs.primaryContainer
+                          : (isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? cs.primary
+                            : cs.outlineVariant.withValues(alpha: 0.4),
+                        width: isSelected ? 2 : 1,
+                      ),
                     ),
-                  ),
-                ),
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          _selectedPlan = 'monthly';
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            Radio<String>(
+                              value: 'monthly',
+                              groupValue: _selectedPlan,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedPlan = value;
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Monthly Plan',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: cs.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'LKR 1,000 per month',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: cs.onSurface.withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Perfect for trying out our services',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: cs.onSurface.withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(height: 16),
 
               // Yearly Plan
-              Card(
-                color: _selectedPlan == 'yearly'
-                    ? Theme.of(context).colorScheme.primaryContainer
-                    : Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedPlan = 'yearly';
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Radio<String>(
-                          value: 'yearly',
-                          groupValue: _selectedPlan,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedPlan = value;
-                            });
-                          },
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+              Builder(
+                builder: (bCtx) {
+                  final cs = Theme.of(bCtx).colorScheme;
+                  final isDark = Theme.of(bCtx).brightness == Brightness.dark;
+                  final isSelected = _selectedPlan == 'yearly';
+                  return Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? cs.primaryContainer
+                          : (isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? cs.primary
+                            : cs.outlineVariant.withValues(alpha: 0.4),
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          _selectedPlan = 'yearly';
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            Radio<String>(
+                              value: 'yearly',
+                              groupValue: _selectedPlan,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedPlan = value;
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Yearly Plan',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: cs.onSurface,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF22C55E),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: const Text(
+                                          'Save 33%',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    'Yearly Plan',
+                                    'LKR 8,000 per year',
                                     style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.onSurface,
+                                      fontSize: 16,
+                                      color: cs.onSurface.withValues(alpha: 0.7),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Text(
-                                      'Save 33%',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Best value for long-term commitment',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: cs.onSurface.withValues(alpha: 0.6),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'LKR 8,000 per year',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Best value for long-term commitment',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
 
               const SizedBox(height: 40),
@@ -359,10 +393,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Column(
@@ -451,18 +485,19 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   onPressed: _selectedPlan != null && !_isLoading ? _continueToActivation : null,
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: _isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 24,
                           height: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Theme.of(context).colorScheme.onPrimary,
+                            ),
                           ),
                         )
                       : const Text(
@@ -526,7 +561,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }

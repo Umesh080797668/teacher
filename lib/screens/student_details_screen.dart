@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart'; // Added for contact actions
 import '../models/student.dart';
 import '../models/attendance.dart';
 import '../models/payment.dart';
-import '../models/class.dart' as class_model;
 import '../services/api_service.dart';
 import '../providers/students_provider.dart';
 import '../providers/classes_provider.dart';
@@ -125,7 +125,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load attendance: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -161,102 +161,107 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
        return; 
     }
 
-    await showDialog(
+    await showModalBottomSheet(
       context: context,
-      builder: (context) {
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        final isDark = Theme.of(sheetCtx).brightness == Brightness.dark;
+        final cs = Theme.of(sheetCtx).colorScheme;
         return StatefulBuilder(
-          builder: (context, setState) {
-            final colors = Theme.of(context).colorScheme;
-            return AlertDialog(
-              backgroundColor: Theme.of(context).dialogBackgroundColor,
-              title: Text(
-                'Assign to Another Class',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colors.onSurface,
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 30, offset: const Offset(0, -4))],
                 ),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Select a class to add this student to:', style: TextStyle(color: colors.onSurface)),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedClassId,
-                    hint: Text('Select Class', style: TextStyle(color: colors.onSurfaceVariant)),
-                    dropdownColor: Theme.of(context).cardColor,
-                    style: TextStyle(color: colors.onSurface),
-                    isExpanded: true,
-                    items: availableClasses.map((c) {
-                      return DropdownMenuItem(
-                        value: c.id,
-                        child: Text(c.name, style: TextStyle(color: colors.onSurface)),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedClassId = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Theme.of(context).colorScheme.surfaceVariant,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(child: Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20), decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(2)))),
+                    Row(
+                      children: [
+                        Container(
+                          width: 46, height: 46,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                            borderRadius: BorderRadius.circular(13),
+                            boxShadow: [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 4))],
+                          ),
+                          child: const Icon(Icons.swap_horiz_rounded, color: Colors.white, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text('Assign to Another Class', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18, color: cs.onSurface)),
+                            Text('Select a class for this student', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                          ]),
+                        ),
+                        IconButton(onPressed: () => Navigator.pop(sheetCtx), icon: Icon(Icons.close_rounded, color: cs.onSurfaceVariant)),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    DropdownButtonFormField<String>(
+                      value: selectedClassId,
+                      hint: Text('Select Class', style: TextStyle(color: cs.onSurfaceVariant)),
+                      dropdownColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                      style: TextStyle(color: cs.onSurface),
+                      isExpanded: true,
+                      items: availableClasses.map((c) {
+                        return DropdownMenuItem(value: c.id, child: Text(c.name, style: TextStyle(color: cs.onSurface)));
+                      }).toList(),
+                      onChanged: (value) => setSheetState(() => selectedClassId = value),
+                      decoration: InputDecoration(
+                        labelText: 'Class',
+                        labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                        prefixIcon: const Icon(Icons.class_rounded),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    GestureDetector(
+                      onTap: selectedClassId == null
+                          ? null
+                          : () async {
+                              final classIdToAdd = selectedClassId;
+                              Navigator.pop(sheetCtx);
+                              try {
+                                final provider = Provider.of<StudentsProvider>(context, listen: false);
+                                await provider.addStudent(student.name, student.email, student.phoneNumber, student.studentId, classIdToAdd);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Successfully assigned to new class')));
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to assign class: $e'), backgroundColor: Theme.of(context).colorScheme.error));
+                                }
+                              }
+                            },
+                      child: AnimatedOpacity(
+                        opacity: selectedClassId == null ? 0.5 : 1.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Container(
+                          height: 54,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], begin: Alignment.centerLeft, end: Alignment.centerRight),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: selectedClassId == null ? [] : [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 5))],
+                          ),
+                          child: const Center(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.check_rounded, color: Colors.white, size: 20),
+                            SizedBox(width: 10),
+                            Text('Assign to Class', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                          ])),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: TextStyle(color: colors.onSurfaceVariant)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colors.primary,
-                    foregroundColor: colors.onPrimary,
-                  ),
-                  onPressed: selectedClassId == null
-                      ? null
-                      : () async {
-                          final classIdToAdd = selectedClassId; // Capture value
-                          Navigator.pop(context); // Close dialog
-                          
-                          try {
-                              final provider = Provider.of<StudentsProvider>(context, listen: false);
-                              // Using addStudent which now handles existing students correctly
-                              await provider.addStudent(
-                                  student.name, 
-                                  student.email, 
-                                  student.phoneNumber, 
-                                  student.studentId, 
-                                  classIdToAdd
-                              );
-                              
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Successfully assigned to new class'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              }
-                          } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Failed to assign class: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                          }
-                        },
-                  child: const Text('Assign'),
-                ),
-              ],
             );
           },
         );
@@ -312,7 +317,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load payments: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -331,53 +336,274 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
     ) ?? widget.student;
 
     return Scaffold(
-      backgroundColor: isDark ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Student Details'),
-        elevation: 0,
-        backgroundColor: isDark ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.primaryContainer,
-        foregroundColor: isDark ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onPrimaryContainer,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.face),
-            onPressed: currentStudent.hasFaceData 
-              ? null // Disable if already registered
-              : () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => FaceRegistrationScreen(student: currentStudent),
+      backgroundColor:
+          isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Gradient Hero Header ─────────────────────────────────────
+            Container(
+              decoration: BoxDecoration(
+                gradient: isDark
+                    ? const LinearGradient(
+                        colors: [Color(0xFF1E1A2E), Color(0xFF2D2660)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight)
+                    : const LinearGradient(
+                        colors: [
+                          Color(0xFF3730A3),
+                          Color(0xFF4F46E5),
+                          Color(0xFF7C3AED)
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight),
+              ),
+              child: Column(
+                children: [
+                  // Action bar
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 8, 12),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.arrow_back_rounded,
+                                color: Colors.white, size: 20),
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(
+                                alpha:
+                                    currentStudent.hasFaceData ? 0.08 : 0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.face_rounded,
+                                color: Colors.white, size: 20),
+                            onPressed: currentStudent.hasFaceData
+                                ? null
+                                : () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            FaceRegistrationScreen(
+                                                student: currentStudent))),
+                            tooltip: currentStudent.hasFaceData
+                                ? 'Face Already Registered'
+                                : 'Register Face',
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.class_rounded,
+                                color: Colors.white, size: 20),
+                            onPressed: () => _assignToClass(currentStudent),
+                            tooltip: 'Assign to Another Class',
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.edit_rounded,
+                                color: Colors.white, size: 20),
+                            onPressed: _showEditStudentDialog,
+                            tooltip: 'Edit Student',
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-            tooltip: currentStudent.hasFaceData ? 'Face Already Registered' : 'Register Face',
-          ),
-          IconButton(
-            icon: const Icon(Icons.class_),
-            onPressed: () => _assignToClass(currentStudent),
-            tooltip: 'Assign to Another Class',
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: _showEditStudentDialog,
-            tooltip: 'Edit Student',
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: isDark ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onPrimaryContainer,
-          unselectedLabelColor: isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6) : Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.6),
-          indicatorColor: isDark ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onPrimaryContainer,
-          tabs: const [
-            Tab(text: 'Attendance', icon: Icon(Icons.calendar_today)),
-            Tab(text: 'Payments', icon: Icon(Icons.payment)),
+                  // Large avatar
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.4),
+                          width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6))
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        currentStudent.name.isNotEmpty
+                            ? currentStudent.name[0].toUpperCase()
+                            : '?',
+                        style: GoogleFonts.poppins(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    currentStudent.name,
+                    style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20)),
+                    child: Text(
+                      'ID: ${currentStudent.studentId}',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12),
+                    ),
+                  ),
+                  if (currentStudent.email != null &&
+                      currentStudent.email!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.email_rounded,
+                            size: 13,
+                            color: Colors.white.withValues(alpha: 0.75)),
+                        const SizedBox(width: 4),
+                        Text(currentStudent.email!,
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: 12)),
+                      ],
+                    ),
+                  ],
+                  if (currentStudent.phoneNumber != null &&
+                      currentStudent.phoneNumber!.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: () async {
+                            final uri = Uri.parse(
+                                'tel:${currentStudent.phoneNumber}');
+                            if (await canLaunchUrl(uri)) launchUrl(uri);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.4))),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.phone_rounded,
+                                    size: 14, color: Colors.white),
+                                SizedBox(width: 6),
+                                Text('Call',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        GestureDetector(
+                          onTap: () async {
+                            String phone = currentStudent.phoneNumber!
+                                .replaceAll(RegExp(r'\D'), '');
+                            final uri =
+                                Uri.parse('https://wa.me/$phone');
+                            if (await canLaunchUrl(uri)) {
+                              launchUrl(uri,
+                                  mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                                color: const Color(0xFF25D366)
+                                    .withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: const Color(0xFF25D366)
+                                        .withValues(alpha: 0.6))),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.message_rounded,
+                                    size: 14, color: Colors.white),
+                                SizedBox(width: 6),
+                                Text('WhatsApp',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white60,
+                    indicatorColor: Colors.white,
+                    indicatorWeight: 3,
+                    dividerColor: Colors.transparent,
+                    tabs: const [
+                      Tab(text: 'Attendance'),
+                      Tab(text: 'Payments'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // ── Tab Content ───────────────────────────────────────────────
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildAttendanceTab(isDark),
+                  _buildPaymentsTab(isDark),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildAttendanceTab(isDark),
-          _buildPaymentsTab(isDark),
-        ],
       ),
     );
   }
@@ -385,125 +611,10 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
   Widget _buildAttendanceTab(bool isDark) {
     return RefreshIndicator(
       onRefresh: _loadStudentAttendance,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      color: Theme.of(context).colorScheme.primary,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Student Info Header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    radius: 40,
-                    child: Text(
-                      widget.student.name.isNotEmpty ? widget.student.name[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    widget.student.name,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'ID: ${widget.student.studentId}',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  if (widget.student.email != null && widget.student.email!.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.email,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          widget.student.email!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  // Added Contact Buttons
-                  if (widget.student.phoneNumber != null && widget.student.phoneNumber!.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                              ElevatedButton.icon(
-                                  icon: const Icon(Icons.phone, size: 18),
-                                  label: const Text('Call'),
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: Colors.blue,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
-                                  ),
-                                  onPressed: () async {
-                                      final uri = Uri.parse('tel:${widget.student.phoneNumber}');
-                                      if (await canLaunchUrl(uri)) launchUrl(uri);
-                                  }
-                              ),
-                              const SizedBox(width: 12),
-                              ElevatedButton.icon(
-                                  icon: const Icon(Icons.message, size: 18),
-                                  label: const Text('WhatsApp'),
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF25D366), // WhatsApp green
-                                      foregroundColor: Colors.white,
-                                      elevation: 2,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
-                                  ),
-                                  onPressed: () async {
-                                      String phone = widget.student.phoneNumber!.replaceAll(RegExp(r'\D'), '');
-                                      final uri = Uri.parse('https://wa.me/$phone');
-                                      if (await canLaunchUrl(uri)) {
-                                          launchUrl(uri, mode: LaunchMode.externalApplication);
-                                      }
-                                  }
-                              ),
-                          ],
-                      ),
-                  ]
-                ],
-              ),
-            ),
-
             // Attendance Statistics
             Padding(
               padding: const EdgeInsets.all(20),
@@ -530,7 +641,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                                 title: 'Present',
                                 value: '${_attendanceStats['present'] ?? 0}',
                                 icon: Icons.check_circle,
-                                color: Colors.green,
+                                color: const Color(0xFF22C55E),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -539,7 +650,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                                 title: 'Absent',
                                 value: '${_attendanceStats['absent'] ?? 0}',
                                 icon: Icons.cancel,
-                                color: Colors.red,
+                                color: Theme.of(context).colorScheme.error,
                               ),
                             ),
                           ],
@@ -585,24 +696,13 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                       itemBuilder: (context) => const AttendanceCardSkeleton(),
                     )
                   else if (_studentAttendance.isEmpty)
-                    Center(
+                    const Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.calendar_today_outlined,
-                              size: 48,
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No attendance records yet',
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
-                            ),
-                          ],
+                        padding: EdgeInsets.all(32),
+                        child: EmptyState(
+                          icon: Icons.calendar_today_outlined,
+                          title: 'No attendance records',
+                          message: 'No records found yet',
                         ),
                       ),
                     )
@@ -615,11 +715,18 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                           itemCount: _studentAttendance.length > 10 ? 10 : _studentAttendance.length,
                           itemBuilder: (context, index) {
                             final record = _studentAttendance[index];
-                            return Card(
+                            final cs = Theme.of(context).colorScheme;
+                            final dark = Theme.of(context).brightness == Brightness.dark;
+                            return Container(
                               margin: const EdgeInsets.only(bottom: 8),
+                              decoration: BoxDecoration(
+                                color: dark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(12),
+                                border: dark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                              ),
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: _getStatusColor(record.status).withOpacity(0.1),
+                                  backgroundColor: _getStatusColor(record.status).withValues(alpha: 0.12),
                                   child: Icon(
                                     _getStatusIcon(record.status),
                                     color: _getStatusColor(record.status),
@@ -627,12 +734,17 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                                 ),
                                 title: Text(
                                   '${record.date.day}/${record.date.month}/${record.date.year}',
-                                  style: const TextStyle(fontWeight: FontWeight.w500),
+                                  style: TextStyle(fontWeight: FontWeight.w500, color: cs.onSurface),
                                 ),
-                                subtitle: Text('${record.session} - ${record.status.toUpperCase()}'),
+                                subtitle: Text(
+                                  '${record.session} • ${record.status.toUpperCase()}',
+                                  style: TextStyle(color: cs.onSurfaceVariant),
+                                ),
                                 trailing: Text(
                                   '${record.date.hour}:${record.date.minute.toString().padLeft(2, '0')}',
-                                  style: Theme.of(context).textTheme.bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: cs.onSurfaceVariant,
+                                  ),
                                 ),
                               ),
                             );
@@ -671,64 +783,10 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
 
     return RefreshIndicator(
       onRefresh: _loadStudentPayments,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      color: Theme.of(context).colorScheme.primary,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Student Info Header (same as attendance tab)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: isDark ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: isDark ? Theme.of(context).colorScheme.primaryContainer : Theme.of(context).colorScheme.primary,
-                    radius: 40,
-                    child: Text(
-                      widget.student.name.isNotEmpty ? widget.student.name[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Theme.of(context).colorScheme.onPrimaryContainer : Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    widget.student.name,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: (isDark ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.primary).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'ID: ${widget.student.studentId}',
-                      style: TextStyle(
-                        color: isDark ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             // Payment History
             Padding(
               padding: const EdgeInsets.all(20),
@@ -749,24 +807,13 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                       itemBuilder: (context) => const PaymentCardSkeleton(),
                     )
                   else if (_studentPayments.isEmpty)
-                    Center(
+                    const Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.payment_outlined,
-                              size: 48,
-                              color: isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.5) : Theme.of(context).colorScheme.outline,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No payment records yet',
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.7) : Theme.of(context).colorScheme.outline,
-                              ),
-                            ),
-                          ],
+                        padding: EdgeInsets.all(32),
+                        child: EmptyState(
+                          icon: Icons.payment_outlined,
+                          title: 'No payment records',
+                          message: 'No payment history found',
                         ),
                       ),
                     )
@@ -775,73 +822,97 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                       children: paymentsByMonth.entries.map((entry) {
                         final monthKey = entry.key;
                         final payments = entry.value;
-                        final totalAmount = payments.fold<double>(0, (sum, payment) => sum + payment.amount);
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          color: isDark ? Theme.of(context).colorScheme.surfaceContainerHighest : Theme.of(context).colorScheme.surface,
-                          child: ExpansionTile(
-                            title: Text(
-                              _getMonthName(monthKey),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Theme.of(context).colorScheme.onSurfaceVariant : Theme.of(context).colorScheme.onSurface,
-                              ),
+                        return Builder(builder: (ctx) {
+                          final cs = Theme.of(ctx).colorScheme;
+                          final dark = Theme.of(ctx).brightness == Brightness.dark;
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              color: dark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                              borderRadius: BorderRadius.circular(12),
+                              border: dark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
                             ),
-                            subtitle: Text(
-                              '${payments.length} payment${payments.length > 1 ? 's' : ''}',
-                              style: TextStyle(
-                                color: isDark ? Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7) : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                              ),
-                            ),
-                            trailing: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.green.withOpacity(0.3)),
-                              ),
-                              child: Text(
-                                'Rs. ${totalAmount.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  color: Colors.green,
+                            child: ExpansionTile(
+                              title: Text(
+                                _getMonthName(monthKey),
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
+                                  color: cs.onSurface,
                                 ),
                               ),
-                            ),
-                            children: payments.map((payment) {
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: _getPaymentTypeColor(payment.type).withOpacity(0.1),
-                                  child: Icon(
-                                    Icons.check_circle,
-                                    color: _getPaymentTypeColor(payment.type),
-                                  ),
+                              subtitle: Text(
+                                '${payments.length} payment${payments.length > 1 ? 's' : ''}',
+                                style: TextStyle(color: cs.onSurfaceVariant),
+                              ),
+                              trailing: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF22C55E).withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFF22C55E).withValues(alpha: 0.3)),
                                 ),
-                                title: Text(
-                                  payment.type.toUpperCase(),
+                                child: const Text(
+                                  'Paid',
                                   style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    color: isDark ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  '${payment.date.day}/${payment.date.month}/${payment.date.year}',
-                                  style: TextStyle(
-                                    color: isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6) : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                  ),
-                                ),
-                                trailing: Text(
-                                  'Rs. ${payment.amount.toStringAsFixed(2)}',
-                                  style: TextStyle(
+                                    color: Color(0xFF22C55E),
                                     fontWeight: FontWeight.bold,
-                                    color: _getPaymentTypeColor(payment.type),
                                   ),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                        );
+                              ),
+                              children: payments.map((payment) {
+                                return Container(
+                                  margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: dark ? cs.surfaceContainer : cs.surface,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 18,
+                                        backgroundColor: _getPaymentTypeColor(payment.type).withValues(alpha: 0.12),
+                                        child: Icon(
+                                          Icons.check_circle_rounded,
+                                          size: 18,
+                                          color: _getPaymentTypeColor(payment.type),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              payment.type.toUpperCase(),
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: cs.onSurface,
+                                              ),
+                                            ),
+                                            Text(
+                                              '${payment.date.day}/${payment.date.month}/${payment.date.year}',
+                                              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        'Rs. ${payment.amount.toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: _getPaymentTypeColor(payment.type),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        });
                       }).toList(),
                     ),
                 ],
@@ -867,22 +938,23 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
   Color _getPaymentTypeColor(String type) {
     switch (type.toLowerCase()) {
       case 'full':
-        return Colors.green;
+      case 'paid':
+        return const Color(0xFF22C55E);
       case 'half':
         return Colors.orange;
       case 'free':
-        return Colors.blue;
+        return Theme.of(context).colorScheme.primary;
       default:
-        return Colors.grey;
+        return Theme.of(context).colorScheme.onSurfaceVariant;
     }
   }
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'present':
-        return Colors.green;
+        return const Color(0xFF22C55E);
       case 'absent':
-        return Colors.red;
+        return Theme.of(context).colorScheme.error;
       case 'late':
         return Colors.orange;
       default:
@@ -909,254 +981,170 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
     final phoneController = TextEditingController(text: _currentStudent.phoneNumber ?? '');
     String? selectedClassId = _currentStudent.classId;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-          return AlertDialog(
-            backgroundColor: isDark ? Colors.grey[900] : Colors.white,
-            title: Text(
-              'Edit Student',
-            style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black,
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: 'Name',
-                    labelStyle: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white70
-                          : Colors.black54,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.person,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white70
-                          : Colors.black54,
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a name';
-                    }
-                    return null;
-                  },
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        final isDark = Theme.of(sheetCtx).brightness == Brightness.dark;
+        final cs = Theme.of(sheetCtx).colorScheme;
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 30, offset: const Offset(0, -4))],
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: emailController,
-                  style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: 'Email (optional)',
-                    labelStyle: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white70
-                          : Colors.black54,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.email,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white70
-                          : Colors.black54,
-                    ),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: phoneController,
-                  style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: 'Mobile Number',
-                    labelStyle: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white70
-                          : Colors.black54,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.phone,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white70
-                          : Colors.black54,
-                    ),
-                  ),
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 16),
-                Consumer<ClassesProvider>(
-                  builder: (context, classesProvider, child) {
-                    return Container(
-                      width: MediaQuery.of(context).size.width * 0.8,
-                      child: DropdownButtonFormField<String?>(
-                        style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        dropdownColor: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey[800]
-                            : Colors.white,
-                        initialValue: selectedClassId,
-                        decoration: InputDecoration(
-                          labelText: 'Class (optional)',
-                          labelStyle: TextStyle(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white70
-                                : Colors.black54,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.class_,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white70
-                                : Colors.black54,
-                          ),
-                        ),
-                        items: [
-                          DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text(
-                              'No Class',
-                              style: TextStyle(
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white
-                                    : Colors.black,
-                              ),
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(child: Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20), decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(2)))),
+                      Row(
+                        children: [
+                          Container(
+                            width: 46, height: 46,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                              borderRadius: BorderRadius.circular(13),
+                              boxShadow: [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 4))],
                             ),
+                            child: const Icon(Icons.edit_rounded, color: Colors.white, size: 22),
                           ),
-                          ...classesProvider.classes.map((class_model.Class cls) {
-                            return DropdownMenuItem<String?>(
-                              value: cls.id,
-                              child: Text(
-                                cls.name,
-                                style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? Colors.white
-                                      : Colors.black,
-                                ),
-                              ),
-                            );
-                          }),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text('Edit Student', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18, color: cs.onSurface)),
+                              Text('Update student information', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                            ]),
+                          ),
+                          IconButton(onPressed: () => Navigator.pop(sheetCtx), icon: Icon(Icons.close_rounded, color: cs.onSurfaceVariant)),
                         ],
-                        onChanged: (value) {
-                          setState(() {
-                            selectedClassId = value;
-                          });
+                      ),
+                      const SizedBox(height: 20),
+                      TextField(
+                        controller: nameController,
+                        style: TextStyle(color: cs.onSurface),
+                        textCapitalization: TextCapitalization.words,
+                        decoration: InputDecoration(
+                          labelText: 'Name',
+                          labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                          prefixIcon: const Icon(Icons.person_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: emailController,
+                        style: TextStyle(color: cs.onSurface),
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: 'Email (optional)',
+                          labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                          prefixIcon: const Icon(Icons.email_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: phoneController,
+                        style: TextStyle(color: cs.onSurface),
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText: 'Mobile Number',
+                          labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                          prefixIcon: const Icon(Icons.phone_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Consumer<ClassesProvider>(
+                        builder: (context, classesProvider, child) {
+                          return DropdownButtonFormField<String?>(
+                            value: selectedClassId,
+                            dropdownColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                            style: TextStyle(color: cs.onSurface),
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: 'Class (optional)',
+                              labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                              prefixIcon: const Icon(Icons.class_rounded),
+                            ),
+                            items: [
+                              DropdownMenuItem<String?>(value: null, child: Text('No Class', style: TextStyle(color: cs.onSurface))),
+                              ...classesProvider.classes.map((cls) => DropdownMenuItem<String?>(
+                                value: cls.id,
+                                child: Text(cls.name, style: TextStyle(color: cs.onSurface)),
+                              )),
+                            ],
+                            onChanged: (value) => setSheetState(() => selectedClassId = value),
+                          );
                         },
                       ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black,
+                      const SizedBox(height: 24),
+                      GestureDetector(
+                        onTap: () async {
+                          if (nameController.text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a name')));
+                            return;
+                          }
+                          try {
+                            await Provider.of<StudentsProvider>(context, listen: false).updateStudent(
+                              _currentStudent.id,
+                              nameController.text,
+                              emailController.text.isEmpty ? null : emailController.text,
+                              phoneController.text.isEmpty ? null : phoneController.text,
+                              selectedClassId,
+                            );
+                            _currentStudent = Student(
+                              id: _currentStudent.id,
+                              name: nameController.text,
+                              email: emailController.text.isEmpty ? null : emailController.text,
+                              phoneNumber: phoneController.text.isEmpty ? null : phoneController.text,
+                              studentId: _currentStudent.studentId,
+                              classId: selectedClassId,
+                              createdAt: _currentStudent.createdAt,
+                              isRestricted: _currentStudent.isRestricted,
+                              restrictionReason: _currentStudent.restrictionReason,
+                              restrictedAt: _currentStudent.restrictedAt,
+                              hasFaceData: _currentStudent.hasFaceData,
+                              faceEmbedding: _currentStudent.faceEmbedding,
+                            );
+                            this.setState(() {});
+                            if (mounted) {
+                              Navigator.of(sheetCtx).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Student updated successfully')));
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update student: $e')));
+                            }
+                          }
+                        },
+                        child: Container(
+                          height: 54,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], begin: Alignment.centerLeft, end: Alignment.centerRight),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 5))],
+                          ),
+                          child: const Center(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.save_rounded, color: Colors.white, size: 20),
+                            SizedBox(width: 10),
+                            Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                          ])),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a name')),
-                  );
-                  return;
-                }
-
-                try {
-                  await Provider.of<StudentsProvider>(context, listen: false).updateStudent(
-                    _currentStudent.id,
-                    nameController.text,
-                    emailController.text.isEmpty ? null : emailController.text,
-                    phoneController.text.isEmpty ? null : phoneController.text,
-                    selectedClassId,
-                  );
-
-                  // Update local state to reflect changes immediately
-                  // Note: Since we are inside a StatefulBuilder, 'setState' here refers to the dialog's state.
-                  // We need to update the parent widget's state as well.
-                  // By updating _currentStudent (which is in the parent state), we just need to trigger a rebuild of the parent.
-                  
-                  // Update the variable in the parent state class
-                  _currentStudent = Student(
-                    id: _currentStudent.id,
-                    name: nameController.text,
-                    email: emailController.text.isEmpty ? null : emailController.text,
-                    phoneNumber: phoneController.text.isEmpty ? null : phoneController.text,
-                    studentId: _currentStudent.studentId,
-                    classId: selectedClassId,
-                    createdAt: _currentStudent.createdAt,
-                    isRestricted: _currentStudent.isRestricted,
-                    restrictionReason: _currentStudent.restrictionReason,
-                    restrictedAt: _currentStudent.restrictedAt,
-                    hasFaceData: _currentStudent.hasFaceData,
-                    faceEmbedding: _currentStudent.faceEmbedding
-                  );
-
-                  // Trigger rebuild of the parent Screen
-                  // We can't easily call the parent's setState from here directly without context tricks or passing a callback.
-                  // However, since we are popping the dialog immediately, we can just rely on the fact that
-                  // when the dialog closes, we want the screen to show new data.
-                  // A simple way is to use a callback or just ensure that when we pop, we trigger a rebuild.
-                  // But actually, since _currentStudent is updated, using a simple trick:
-                  
-                  // This calls the SETSTATE OF THE PARENT WIDGET because we are capturing the parent's setState 
-                  // method if we were in the scope, but we are shadowed by the StatefulBuilder's setState.
-                  // To fix this, we should rely on the fact that we can call the method of the state class.
-                  // Since we are in the method _showEditStudentDialog which is a method of _StudentDetailsScreenState,
-                  // we can use 'this.setState'.
-                  
-                  this.setState(() {});
-
-                  if (mounted) {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Student updated successfully')),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to update student: $e')),
-                    );
-                  }
-                }
-              },
-              child: const Text('Update'),
-            ),
-          ],
+            );
+          },
         );
-        },
-      ),
+      },
     );
   }
 }
@@ -1176,18 +1164,14 @@ class _AttendanceStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
       ),
       child: Column(
         children: [
@@ -1205,7 +1189,7 @@ class _AttendanceStatCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: cs.onSurfaceVariant,
             ),
           ),
         ],

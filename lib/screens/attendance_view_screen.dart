@@ -18,9 +18,18 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> with Single
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      context.read<ReportsProvider>().loadReports(teacherId: auth.teacherId);
+      final reportsProvider = context.read<ReportsProvider>();
+      // Load daily data first so the first (visible) tab populates immediately
+      await reportsProvider.loadDailyAttendance(
+        DateTime.now(),
+        teacherId: auth.teacherId,
+      );
+      if (!mounted) return;
+      // Then load full reports in the background for the Monthly Stats tab
+      reportsProvider.loadReports(teacherId: auth.teacherId);
     });
   }
 
@@ -125,76 +134,80 @@ class _DailyViewTabState extends State<_DailyViewTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Card(
-                elevation: 4,
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: InkWell(
-                  onTap: _changeDate,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Selected Date',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+              Builder(builder: (context) {
+                final cs = Theme.of(context).colorScheme;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: _changeDate,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Selected Date',
+                                      style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: cs.onSurface,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text('Day of Year',
+                                      style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Day $dayOfYear',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: cs.primary,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  'Day of Year',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Day $dayOfYear',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _selectedDate.toString().split(' ')[0],
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
+                                ],
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.calendar_today_rounded, size: 14, color: cs.primary),
+                              const SizedBox(width: 6),
+                              Text(_selectedDate.toString().split(' ')[0],
+                                  style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
+                              const Spacer(),
+                              Icon(Icons.edit_calendar_rounded, size: 16, color: cs.primary),
+                              const SizedBox(width: 4),
+                              Text('Tap to change',
+                                  style: TextStyle(fontSize: 12, color: cs.primary)),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              }),
               const SizedBox(height: 16),
               
               Text(
@@ -210,7 +223,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                 'Shows attendance for ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
               const SizedBox(height: 16),
@@ -221,7 +234,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                     child: _SummaryCard(
                       title: 'Present',
                       value: dailyStats['presentCount'].toString(),
-                      color: Colors.green,
+                      color: const Color(0xFF22C55E),
                       icon: Icons.check_circle,
                     ),
                   ),
@@ -230,7 +243,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                     child: _SummaryCard(
                       title: 'Absent',
                       value: dailyStats['absentCount'].toString(),
-                      color: Colors.red,
+                      color: Theme.of(context).colorScheme.error,
                       icon: Icons.cancel,
                     ),
                   ),
@@ -252,7 +265,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                     child: _SummaryCard(
                       title: 'Rate',
                       value: '${dailyStats['attendanceRate'].toStringAsFixed(0)}%',
-                      color: Colors.blue,
+                      color: Theme.of(context).colorScheme.primary,
                       icon: Icons.analytics,
                     ),
                   ),
@@ -276,17 +289,17 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                   decoration: InputDecoration(
                     hintText: 'Search students by name...',
                     hintStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     prefixIcon: Icon(
                       Icons.search,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     suffixIcon: _searchText.isNotEmpty
                         ? IconButton(
                             icon: Icon(
                               Icons.clear,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                             onPressed: () {
                               _searchController.clear();
@@ -300,36 +313,19 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: Theme.of(context).colorScheme.surface,
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).colorScheme.surfaceContainerHigh
+                        : Theme.of(context).colorScheme.surfaceContainerLow,
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               if (studentsByClass.isEmpty)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            size: 64,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No data available for this date',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                const EmptyState(
+                  icon: Icons.calendar_today_rounded,
+                  title: 'No data available',
+                  message: 'No attendance records for this date',
                 )
               else
                 ...studentsByClass.entries.map((entry) {
@@ -347,15 +343,23 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                   // Skip class if no students match the search
                   if (filteredStudents.isEmpty) return const SizedBox.shrink();
 
-                  return Card(
+                  final cs = Theme.of(context).colorScheme;
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  return Container(
                     margin: const EdgeInsets.only(bottom: 16),
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(16),
+                      border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                    ),
                     child: ExpansionTile(
                       title: Text(
                         className,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
+                          color: cs.onSurface,
                         ),
                       ),
                       subtitle: Text(
@@ -363,7 +367,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                       children: [
@@ -378,12 +382,12 @@ class _DailyViewTabState extends State<_DailyViewTab> {
 
                               switch (status) {
                                 case 'present':
-                                  statusColor = Colors.green;
+                                  statusColor = const Color(0xFF22C55E);
                                   statusIcon = Icons.check_circle;
                                   statusText = 'Present';
                                   break;
                                 case 'absent':
-                                  statusColor = Colors.red;
+                                  statusColor = Theme.of(context).colorScheme.error;
                                   statusIcon = Icons.cancel;
                                   statusText = 'Absent';
                                   break;
@@ -393,7 +397,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                                   statusText = 'Late';
                                   break;
                                 default:
-                                  statusColor = Colors.grey;
+                                  statusColor = Theme.of(context).colorScheme.onSurfaceVariant;
                                   statusIcon = Icons.help_outline;
                                   statusText = 'Not Recorded';
                               }
@@ -402,10 +406,10 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                                 margin: const EdgeInsets.only(bottom: 8),
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: statusColor.withOpacity(0.1),
+                                  color: statusColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: statusColor.withOpacity(0.3),
+                                    color: statusColor.withValues(alpha: 0.3),
                                     width: 1,
                                   ),
                                 ),
@@ -430,7 +434,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                                               'ID: ${student['studentId']}',
                                               style: TextStyle(
                                                 fontSize: 12,
-                                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                               ),
                                             ),
                                         ],
@@ -452,7 +456,7 @@ class _DailyViewTabState extends State<_DailyViewTab> {
                                             student['session'],
                                             style: TextStyle(
                                               fontSize: 10,
-                                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                                             ),
                                           ),
                                       ],
@@ -570,11 +574,15 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Month selector header
-              Card(
-                elevation: 4,
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: InkWell(
-                  onTap: _changeMonth,
+              Builder(builder: (context) {
+                final cs = Theme.of(context).colorScheme;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -586,13 +594,8 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Selected Month',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
-                                  ),
-                                ),
+                                Text('Selected Month',
+                                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                                 const SizedBox(height: 4),
                                 Text(
                                   _showAllMonths
@@ -601,7 +604,7 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                    color: cs.onSurface,
                                   ),
                                 ),
                               ],
@@ -615,17 +618,11 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                                     size: 18,
                                   ),
                                   label: Text(_showAllMonths ? 'Filter' : 'Show All'),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                                  ),
                                 ),
                                 if (!_showAllMonths)
                                   IconButton(
                                     onPressed: _changeMonth,
-                                    icon: Icon(
-                                      Icons.calendar_today,
-                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                    ),
+                                    icon: const Icon(Icons.calendar_today_rounded),
                                   ),
                               ],
                             ),
@@ -635,17 +632,14 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                         Text(
                           _showAllMonths
                               ? 'Showing attendance for all months'
-                              : 'Tap to change month • Showing data for ${_getMonthName(_selectedMonth.month)} ${_selectedMonth.year}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
-                          ),
+                              : 'Tap to change month • ${_getMonthName(_selectedMonth.month)} ${_selectedMonth.year}',
+                          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ),
+                );
+              }),
               const SizedBox(height: 16),
 
               Text(
@@ -663,38 +657,18 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                     : 'Showing attendance statistics for ${_getMonthName(_selectedMonth.month)} ${_selectedMonth.year}',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
               const SizedBox(height: 16),
 
               if (filteredMonthlyByClass.isEmpty)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            size: 64,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _showAllMonths
-                                ? 'No attendance records available'
-                                : 'No attendance records for ${_getMonthName(_selectedMonth.month)} ${_selectedMonth.year}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                EmptyState(
+                  icon: Icons.calendar_today_rounded,
+                  title: 'No attendance records',
+                  message: _showAllMonths
+                      ? 'No records available yet'
+                      : 'No records for ${_getMonthName(_selectedMonth.month)} ${_selectedMonth.year}',
                 )
               else
                 ...filteredMonthlyByClass.map((classData) {
@@ -702,8 +676,16 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                   final totalStudents = classData['totalStudents'] ?? 0;
                   final monthlyStats = classData['monthlyStats'] as List? ?? [];
 
-                  return Card(
+                  final cs2 = Theme.of(context).colorScheme;
+                  final isDark2 = Theme.of(context).brightness == Brightness.dark;
+                  return Container(
                     margin: const EdgeInsets.only(bottom: 16),
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: isDark2 ? cs2.surfaceContainerHigh : cs2.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(16),
+                      border: isDark2 ? null : Border.all(color: cs2.outlineVariant.withValues(alpha: 0.4)),
+                    ),
                     child: ExpansionTile(
                       title: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -714,14 +696,14 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
+                                color: cs2.onSurface,
                               ),
                             ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primaryContainer,
+                              color: cs2.primary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Text(
@@ -729,7 +711,7 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                color: cs2.primary,
                               ),
                             ),
                           ),
@@ -741,7 +723,7 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                             : '${monthlyStats.isNotEmpty ? monthlyStats[0]['totalDays'] ?? 0 : 0} days conducted',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: cs2.onSurfaceVariant,
                         ),
                       ),
                       children: [
@@ -764,15 +746,20 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                             final conductedDays = monthStat['conductedDays'] as List? ?? [];
                             final totalDays = monthStat['totalDays'] ?? conductedDays.length;
 
-                            return Container(
-                              margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                                ),
+                              final isDarkStat = Theme.of(context).brightness == Brightness.dark;
+                              return Container(
+                                margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isDarkStat
+                                      ? Theme.of(context).colorScheme.surfaceContainerHigh
+                                      : Theme.of(context).colorScheme.surfaceContainerLow,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: isDarkStat
+                                      ? null
+                                      : Border.all(
+                                          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
+                                        ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -791,7 +778,7 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(12),
                                         ),
                                         child: Text(
@@ -829,10 +816,10 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                                       margin: const EdgeInsets.only(bottom: 8),
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.surface,
+                                        color: Theme.of(context).colorScheme.surfaceContainer,
                                         borderRadius: BorderRadius.circular(6),
                                         border: Border.all(
-                                          color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+                                          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
                                         ),
                                       ),
                                       child: Column(
@@ -862,7 +849,7 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                                 decoration: BoxDecoration(
-                                                  color: Theme.of(context).colorScheme.secondaryContainer,
+                                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                                                   borderRadius: BorderRadius.circular(10),
                                                 ),
                                                 child: Text(
@@ -870,7 +857,7 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.w600,
-                                                    color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                                    color: Theme.of(context).colorScheme.primary,
                                                   ),
                                                 ),
                                               ),
@@ -883,14 +870,14 @@ class _MonthlyStatsTabState extends State<_MonthlyStatsTab> {
                                                 child: _StatItem(
                                                   label: 'Present',
                                                   value: present.toString(),
-                                                  color: Colors.green,
-                                                ),
+                                                color: const Color(0xFF22C55E),
                                               ),
-                                              Expanded(
-                                                child: _StatItem(
-                                                  label: 'Absent',
-                                                  value: absent.toString(),
-                                                  color: Colors.red,
+                                            ),
+                                            Expanded(
+                                              child: _StatItem(
+                                                label: 'Absent',
+                                                value: absent.toString(),
+                                                color: Theme.of(context).colorScheme.error,
                                                 ),
                                               ),
                                               Expanded(
@@ -945,30 +932,42 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-              textAlign: TextAlign.center,
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -995,7 +994,7 @@ class _StatItem extends StatelessWidget {
         ),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
+          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );

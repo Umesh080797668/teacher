@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -106,7 +107,8 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('To: ${studentsInClass.length > 3 ? "${studentsInClass.length} recipients" : studentsInClass.map((e) => e.name).join(", ")}', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+            Text('To: ${studentsInClass.length > 3 ? "${studentsInClass.length} recipients" : studentsInClass.map((e) => e.name).join(", ")}',
+              style: TextStyle(color: Theme.of(ctx).colorScheme.onSurfaceVariant, fontSize: 13)),
             const SizedBox(height: 12),
             TextField(
               controller: messageController,
@@ -125,11 +127,11 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          ElevatedButton.icon(
+          FilledButton.icon(
             icon: const Icon(Icons.send, size: 18),
             label: const Text('Send WhatsApp'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green, // WhatsApp green
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366),
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
@@ -147,14 +149,17 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                   if (mounted) {
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('WhatsApp messages sent successfully!'), backgroundColor: Colors.green),
+                      const SnackBar(content: Text('WhatsApp messages sent successfully!')),
                     );
                   }
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to send: ${e.toString().replaceAll("Exception:", "")}'), backgroundColor: Colors.red),
+                      SnackBar(
+                        content: Text('Failed to send: ${e.toString().replaceAll("Exception:", "")}'),
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                      ),
                     );
                   }
                 }
@@ -172,235 +177,530 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
      final emailController = TextEditingController();
      final phoneController = TextEditingController();
      
-     // Auto-generate ID (optional fallback)
+     // Auto-generate ID
      final timestamp = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
      final random = (DateTime.now().microsecondsSinceEpoch % 1000).toString().padLeft(3, '0');
      idController.text = 'STU$timestamp$random';
 
-     await showDialog(
-       context: context, 
-       builder: (ctx) => AlertDialog(
-         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-         title: const Text('Add Student', style: TextStyle(fontWeight: FontWeight.bold)),
-         content: SingleChildScrollView(
-           child: Column(
-             mainAxisSize: MainAxisSize.min, 
-             children: [
-               TextField(
-                 controller: nameController, 
-                 decoration: const InputDecoration(
-                   labelText: 'Full Name',
-                   prefixIcon: Icon(Icons.person),
-                   border: OutlineInputBorder(),
-                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)
-                 ),
-                 textCapitalization: TextCapitalization.words,
-               ),
-               const SizedBox(height: 16),
-               TextField(
-                 controller: idController, 
-                 decoration: const InputDecoration(
-                   labelText: 'Student ID',
-                   prefixIcon: Icon(Icons.badge),
-                   border: OutlineInputBorder(),
-                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)
-                 ),
-                 enabled: false,
-               ),
-               const SizedBox(height: 16),
-               TextField(
-                 controller: emailController, 
-                 decoration: const InputDecoration(
-                   labelText: 'Email (Optional)',
-                   prefixIcon: Icon(Icons.email),
-                   border: OutlineInputBorder(),
-                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)
-                 ),
-                 keyboardType: TextInputType.emailAddress,
-               ),
-               const SizedBox(height: 16),
-               TextField(
-                 controller: phoneController, 
-                 decoration: const InputDecoration(
-                   labelText: 'Mobile Number',
-                   prefixIcon: Icon(Icons.phone),
-                   border: OutlineInputBorder(),
-                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                   hintText: '+947...'
-                 ),
-                 keyboardType: TextInputType.phone,
-               ),
-             ]
-           ),
-         ),
-         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-         actions: [
-           TextButton(
-             onPressed: () => Navigator.pop(ctx), 
-             child: const Text('Cancel', style: TextStyle(color: Colors.grey))
-           ),
-           ElevatedButton(
-             style: ElevatedButton.styleFrom(
-               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-               backgroundColor: Theme.of(context).primaryColor,
-               foregroundColor: Colors.white,
+     await showModalBottomSheet(
+       context: context,
+       isScrollControlled: true,
+       backgroundColor: Colors.transparent,
+       builder: (sheetCtx) {
+         final isDark = Theme.of(sheetCtx).brightness == Brightness.dark;
+         final cs = Theme.of(sheetCtx).colorScheme;
+         return Padding(
+           padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+           child: Container(
+             decoration: BoxDecoration(
+               color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+               borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 30, offset: const Offset(0, -4))],
              ),
-             onPressed: () async {
-               if (nameController.text.isNotEmpty) {
-                 final provider = Provider.of<StudentsProvider>(context, listen: false);
-                 await provider.addStudent(
-                   nameController.text, 
-                   emailController.text.isEmpty ? null : emailController.text, // Updated to pass email
-                   phoneController.text.isEmpty ? null : phoneController.text,
-                   idController.text, 
-                   widget.classObj.id,
-                 );
-                 Navigator.pop(ctx);
-                 _loadData();
-               }
-             }, 
-             child: const Text('Add Student')
+             padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+             child: SingleChildScrollView(
+               child: Column(
+                 mainAxisSize: MainAxisSize.min,
+                 crossAxisAlignment: CrossAxisAlignment.stretch,
+                 children: [
+                   Center(child: Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20), decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(2)))),
+                   Row(
+                     children: [
+                       Container(
+                         width: 46, height: 46,
+                         decoration: BoxDecoration(
+                           gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                           borderRadius: BorderRadius.circular(13),
+                           boxShadow: [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 4))],
+                         ),
+                         child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 22),
+                       ),
+                       const SizedBox(width: 14),
+                       Expanded(
+                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                           Text('Add Student', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18, color: cs.onSurface)),
+                           Text('Fill in the student details', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                         ]),
+                       ),
+                       IconButton(onPressed: () => Navigator.pop(sheetCtx), icon: Icon(Icons.close_rounded, color: cs.onSurfaceVariant)),
+                     ],
+                   ),
+                   const SizedBox(height: 20),
+                   TextField(
+                     controller: nameController,
+                     style: TextStyle(color: cs.onSurface),
+                     textCapitalization: TextCapitalization.words,
+                     decoration: const InputDecoration(labelText: 'Full Name', prefixIcon: Icon(Icons.person_rounded)),
+                   ),
+                   const SizedBox(height: 14),
+                   TextField(
+                     controller: emailController,
+                     style: TextStyle(color: cs.onSurface),
+                     keyboardType: TextInputType.emailAddress,
+                     decoration: const InputDecoration(labelText: 'Email (Optional)', prefixIcon: Icon(Icons.email_rounded)),
+                   ),
+                   const SizedBox(height: 14),
+                   TextField(
+                     controller: phoneController,
+                     style: TextStyle(color: cs.onSurface),
+                     keyboardType: TextInputType.phone,
+                     decoration: const InputDecoration(labelText: 'Mobile Number', prefixIcon: Icon(Icons.phone_rounded), hintText: '+947...'),
+                   ),
+                   const SizedBox(height: 14),
+                   TextField(
+                     controller: idController,
+                     style: TextStyle(color: cs.onSurface),
+                     enabled: false,
+                     decoration: const InputDecoration(labelText: 'Student ID (Auto-generated)', prefixIcon: Icon(Icons.badge_rounded)),
+                   ),
+                   const SizedBox(height: 24),
+                   GestureDetector(
+                     onTap: () async {
+                       if (nameController.text.isNotEmpty) {
+                         final provider = Provider.of<StudentsProvider>(context, listen: false);
+                         await provider.addStudent(
+                           nameController.text,
+                           emailController.text.isEmpty ? null : emailController.text,
+                           phoneController.text.isEmpty ? null : phoneController.text,
+                           idController.text,
+                           widget.classObj.id,
+                         );
+                         Navigator.pop(sheetCtx);
+                         _loadData();
+                       }
+                     },
+                     child: Container(
+                       height: 54,
+                       decoration: BoxDecoration(
+                         gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], begin: Alignment.centerLeft, end: Alignment.centerRight),
+                         borderRadius: BorderRadius.circular(16),
+                         boxShadow: [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 5))],
+                       ),
+                       child: const Center(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                         Icon(Icons.person_add_rounded, color: Colors.white, size: 20),
+                         SizedBox(width: 10),
+                         Text('Add Student', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                       ])),
+                     ),
+                   ),
+                 ],
+               ),
+             ),
            ),
-         ],
-       )
+         );
+       },
      );
   }
 
   Future<void> _editClass() async {
     final nameController = TextEditingController(text: widget.classObj.name);
-    final result = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(
-      title: const Text('Edit Class'),
-      content: TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-        TextButton(onPressed: () => Navigator.pop(ctx, nameController.text), child: const Text('Save')),
-      ],
-    ));
-    if (result != null && result != widget.classObj.name && mounted) {
-       await Provider.of<ClassesProvider>(context, listen: false).updateClass(widget.classObj.id, result);
-    }
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        final isDark = Theme.of(sheetCtx).brightness == Brightness.dark;
+        final cs = Theme.of(sheetCtx).colorScheme;
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 30, offset: const Offset(0, -4))],
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(child: Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20), decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(2)))),
+                Row(
+                  children: [
+                    Container(
+                      width: 46, height: 46,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                        borderRadius: BorderRadius.circular(13),
+                        boxShadow: [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 4))],
+                      ),
+                      child: const Icon(Icons.edit_rounded, color: Colors.white, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Edit Class', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18, color: cs.onSurface)),
+                        Text('Update the class name', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                      ]),
+                    ),
+                    IconButton(onPressed: () => Navigator.pop(sheetCtx), icon: Icon(Icons.close_rounded, color: cs.onSurfaceVariant)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: nameController,
+                  style: TextStyle(color: cs.onSurface),
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(labelText: 'Class Name', prefixIcon: Icon(Icons.class_rounded)),
+                ),
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: () async {
+                    final newName = nameController.text.trim();
+                    if (newName.isNotEmpty && newName != widget.classObj.name) {
+                      Navigator.pop(sheetCtx);
+                      if (mounted) {
+                        await Provider.of<ClassesProvider>(context, listen: false).updateClass(widget.classObj.id, newName);
+                      }
+                    } else {
+                      Navigator.pop(sheetCtx);
+                    }
+                  },
+                  child: Container(
+                    height: 54,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], begin: Alignment.centerLeft, end: Alignment.centerRight),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 5))],
+                    ),
+                    child: const Center(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.save_rounded, color: Colors.white, size: 20),
+                      SizedBox(width: 10),
+                      Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                    ])),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.classObj.name),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
-              Tab(text: 'Notices', icon: Icon(Icons.campaign)),
-              Tab(text: 'Resources', icon: Icon(Icons.folder_shared)),
+        backgroundColor:
+            isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // ── Gradient Header + TabBar ────────────────────────────
+              Consumer2<StudentsProvider, AttendanceProvider>(
+                builder: (context, sp, ap, _) {
+                  final totalStudents = sp.students
+                      .where((s) => s.classId == widget.classObj.id)
+                      .length;
+                  final rate = _getAttendanceRate();
+                  return Container(
+                    decoration: BoxDecoration(
+                      gradient: isDark
+                          ? const LinearGradient(
+                              colors: [Color(0xFF1E1A2E), Color(0xFF2D2660)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : const LinearGradient(
+                              colors: [
+                                Color(0xFF3730A3),
+                                Color(0xFF4F46E5),
+                                Color(0xFF7C3AED)
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(20, 16, 8, 12),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () => Navigator.of(context).pop(),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.18),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                      Icons.arrow_back_rounded,
+                                      color: Colors.white,
+                                      size: 20),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      widget.classObj.name,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                        letterSpacing: -0.5,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      'Class Overview',
+                                      style: TextStyle(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.75),
+                                          fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: _editClass,
+                                icon: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.18),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(Icons.edit_rounded,
+                                      color: Colors.white, size: 20),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                          child: Row(
+                            children: [
+                              _statPill(
+                                  '$totalStudents',
+                                  'Students',
+                                  Colors.white.withValues(alpha: 0.22)),
+                              const SizedBox(width: 8),
+                              _statPill(
+                                  '${rate.toStringAsFixed(0)}%',
+                                  'Attendance',
+                                  const Color(0xFF22C55E)
+                                      .withValues(alpha: 0.35)),
+                            ],
+                          ),
+                        ),
+                        const TabBar(
+                          labelColor: Colors.white,
+                          unselectedLabelColor: Colors.white60,
+                          indicatorColor: Colors.white,
+                          indicatorWeight: 3,
+                          dividerColor: Colors.transparent,
+                          tabs: [
+                            Tab(text: 'Overview'),
+                            Tab(text: 'Notices'),
+                            Tab(text: 'Resources'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              // ── Tab Content ───────────────────────────────────
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildOverviewTab(),
+                    NoticesTab(classId: widget.classObj.id),
+                    ResourcesTab(classId: widget.classObj.id),
+                  ],
+                ),
+              ),
             ],
           ),
-          actions: [
-             IconButton(icon: const Icon(Icons.edit), onPressed: _editClass),
-          ],
-        ),
-        body: TabBarView(
-          children: [
-            _buildOverviewTab(),
-            NoticesTab(classId: widget.classObj.id),
-            ResourcesTab(classId: widget.classObj.id),
-          ],
         ),
       ),
     );
   }
 
+  Widget _statPill(String value, String label, Color bgColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+          color: bgColor, borderRadius: BorderRadius.circular(20)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15)),
+          const SizedBox(width: 5),
+          Text(label,
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.85), fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOverviewTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Column(
       children: [
+        // ── Action Buttons ──────────────────────────────────────
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-               Expanded(
-                 child: ElevatedButton.icon(
-                  onPressed: _sendBulkMessage,
-                  icon: const Icon(Icons.message, size: 18),
-                  label: const Text('Message All'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue, 
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: _sendBulkMessage,
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF25D366), Color(0xFF128C7E)]),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                            color:
+                                const Color(0xFF25D366).withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3))
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.message_rounded,
+                            color: Colors.white, size: 18),
+                        SizedBox(width: 8),
+                        Text('Message All',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ),
                   ),
-                             ),
-               ),
+                ),
+              ),
               const SizedBox(width: 10),
               Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _addStudent,
-                  icon: const Icon(Icons.person_add, size: 18),
-                  label: const Text('Add Student'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                child: GestureDetector(
+                  onTap: _addStudent,
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)]),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                            color:
+                                const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3))
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.person_add_rounded,
+                            color: Colors.white, size: 18),
+                        SizedBox(width: 8),
+                        Text('Add Student',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ],
           ),
         ),
-        // Stats
-        Consumer2<StudentsProvider, AttendanceProvider>(
-          builder: (context, studentsProvider, attendanceProvider, child) {
-             final studentsInClass = _getStudentsInClass();
-             final rate = _getAttendanceRate();
-             return Container(
-               margin: const EdgeInsets.symmetric(horizontal: 16),
-               padding: const EdgeInsets.all(16),
-               decoration: BoxDecoration(
-                 color: Colors.blue[50], 
-                 borderRadius: BorderRadius.circular(12)
-               ),
-               child: Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-                 children: [
-                   Column(children: [
-                     const Icon(Icons.people, color: Colors.blue),
-                     const SizedBox(height: 4),
-                     Text('${studentsInClass.length}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)), 
-                     const Text('Students')
-                   ]),
-                   Column(children: [
-                     const Icon(Icons.check_circle, color: Colors.green),
-                     const SizedBox(height: 4),
-                     Text('${rate.toStringAsFixed(1)}%', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)), 
-                     const Text('Rate')
-                   ]),
-                 ],
-               ),
-             );
-          },
-        ),
-        // Search
+        // ── Search ──────────────────────────────────────────
         Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search students...', 
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10)
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: isDark
+                  ? []
+                  : [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3))
+                    ],
             ),
-            onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (v) =>
+                  setState(() => _searchQuery = v.trim().toLowerCase()),
+              decoration: InputDecoration(
+                hintText: 'Search students...',
+                prefixIcon:
+                    Icon(Icons.search_rounded, color: cs.onSurfaceVariant),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.clear_rounded,
+                            color: cs.onSurfaceVariant),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
+              ),
+            ),
           ),
         ),
+        // ── Students List ──────────────────────────────────────
         Expanded(
           child: Consumer<StudentsProvider>(
-            builder: (context, provider, child) {
-              final students = _getStudentsInClass().where((s) => 
-                s.name.toLowerCase().contains(_searchQuery) || s.studentId.toLowerCase().contains(_searchQuery)
-              ).toList();
-              
-              if (students.isEmpty) return const Center(child: Text('No students found'));
+            builder: (context, provider, _) {
+              if (provider.isLoading) {
+                return ListSkeleton(
+                    itemCount: 5,
+                    itemBuilder: (_) => const StudentCardSkeleton());
+              }
+              final students = _getStudentsInClass()
+                  .where((s) =>
+                      s.name.toLowerCase().contains(_searchQuery) ||
+                      s.studentId.toLowerCase().contains(_searchQuery))
+                  .toList();
+
+              if (students.isEmpty) {
+                return const Center(
+                  child: EmptyState(
+                      icon: Icons.people_outline_rounded,
+                      title: 'No students',
+                      message: 'Add students to this class'),
+                );
+              }
 
               return ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
                 itemCount: students.length,
                 itemBuilder: (context, index) {
                   final student = students[index];
@@ -410,52 +710,185 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
                       children: [
                         SlidableAction(
                           onPressed: (context) async {
-                             // Delete logic
-                             await Provider.of<StudentsProvider>(context, listen: false).deleteStudent(student.id);
-                             _loadData(); // refresh
+                            await Provider.of<StudentsProvider>(context,
+                                    listen: false)
+                                .deleteStudent(student.id);
+                            _loadData();
                           },
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
-                          icon: Icons.delete,
+                          icon: Icons.delete_rounded,
                           label: 'Delete',
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ],
                     ),
-                    child: ListTile(
-                      leading: CircleAvatar(child: Text(student.name.isNotEmpty ? student.name[0] : '?')),
-                      title: Text(student.name),
-                      subtitle: Text(student.studentId),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (student.phoneNumber != null)
-                             IconButton(
-                               icon: const Icon(Icons.message, size: 20, color: Colors.green), // Changed to green for WhatsApp
-                               onPressed: () async {
-                                 // Launch WhatsApp chat
-                                 String phone = student.phoneNumber!.replaceAll(RegExp(r'[^\d+]'), '');
-                                 if (!phone.startsWith('+')) {
-                                   // Assuming local numbers without country code might need fixing, 
-                                   // but for now let's hope it's stored correctly or wa.me handles it.
-                                   // Generally wa.me requires country code.
-                                 }
-                                 
-                                 final uri = Uri.parse('https://wa.me/$phone');
-                                 if (await canLaunchUrl(uri)) {
-                                   launchUrl(uri, mode: LaunchMode.externalApplication);
-                                 } else {
-                                    // Fallback to SMS
-                                    final smsUri = Uri.parse('sms:${student.phoneNumber}');
-                                    if (await canLaunchUrl(smsUri)) launchUrl(smsUri);
-                                 }
-                               },
-                             ),
-                          const Icon(Icons.chevron_right),
-                        ],
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF1E1B2E)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: isDark
+                            ? []
+                            : [
+                                BoxShadow(
+                                    color:
+                                        Colors.black.withValues(alpha: 0.06),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 3))
+                              ],
+                        border: isDark
+                            ? Border.all(
+                                color: Colors.white.withValues(alpha: 0.06))
+                            : null,
                       ),
-                      onTap: () {
-                         Navigator.push(context, MaterialPageRoute(builder: (_) => StudentDetailsScreen(student: student)));
-                      },
+                      child: InkWell(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  StudentDetailsScreen(student: student)),
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              // Avatar
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF4F46E5),
+                                        Color(0xFF7C3AED)
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight),
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: const Color(0xFF4F46E5)
+                                            .withValues(alpha: 0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3))
+                                  ],
+                                ),
+                                child: Center(
+                                    child: Text(
+                                  student.name.isNotEmpty
+                                      ? student.name[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white),
+                                )),
+                              ),
+                              const SizedBox(width: 14),
+                              // Info
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(student.name,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 15,
+                                            color: cs.onSurface)),
+                                    const SizedBox(height: 5),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 7, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: isDark
+                                                ? Colors.white
+                                                    .withValues(alpha: 0.1)
+                                                : const Color(0xFF4F46E5)
+                                                    .withValues(alpha: 0.08),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            student.studentId,
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: isDark
+                                                    ? Colors.white.withValues(
+                                                        alpha: 0.7)
+                                                    : const Color(0xFF4F46E5)),
+                                          ),
+                                        ),
+                                        if (student.phoneNumber != null &&
+                                            student.phoneNumber!.isNotEmpty) ...
+                                          [
+                                            const SizedBox(width: 8),
+                                            GestureDetector(
+                                              onTap: () async {
+                                                String phone = student
+                                                    .phoneNumber!
+                                                    .replaceAll(
+                                                        RegExp(r'[^\d+]'), '');
+                                                final uri = Uri.parse(
+                                                    'https://wa.me/$phone');
+                                                if (await canLaunchUrl(uri)) {
+                                                  launchUrl(uri,
+                                                      mode: LaunchMode
+                                                          .externalApplication);
+                                                }
+                                              },
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 7,
+                                                        vertical: 3),
+                                                decoration: BoxDecoration(
+                                                    color: const Color(
+                                                            0xFF25D366)
+                                                        .withValues(alpha: 0.12),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            6)),
+                                                child: const Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                        Icons.message_rounded,
+                                                        size: 11,
+                                                        color: Color(
+                                                            0xFF25D366)),
+                                                    SizedBox(width: 3),
+                                                    Text('WA',
+                                                        style: TextStyle(
+                                                            fontSize: 11,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: Color(
+                                                                0xFF25D366))),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.chevron_right_rounded,
+                                  color: cs.onSurfaceVariant),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   );
                 },

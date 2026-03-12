@@ -45,15 +45,6 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primary,
                         shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primary.withOpacity(0.3),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
                       ),
                       child: Icon(
                         Icons.system_update_alt,
@@ -83,20 +74,24 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: Theme.of(
                               context,
-                            ).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                            ).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
                           ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
 
                     // Version info card
-                    Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
+                    Builder(builder: (context) {
+                      final cs = Theme.of(context).colorScheme;
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(16),
+                          border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -160,31 +155,29 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withOpacity(0.8),
+                                      .withValues(alpha: 0.8),
                                 ),
                               ),
                             ],
                           ],
                         ),
                       ),
-                    ),
+                    );
+                    }),
                     const SizedBox(height: 32),
 
                     // Download progress
                     if (_isDownloading) ...[
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
+                      Builder(builder: (context) {
+                        final cs = Theme.of(context).colorScheme;
+                        final isDark = Theme.of(context).brightness == Brightness.dark;
+                        return Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(16),
+                            border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                          ),
                         child: Column(
                           children: [
                             Text(
@@ -198,7 +191,6 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                             const SizedBox(height: 16),
                             LinearProgressIndicator(
                               value: _downloadProgress,
-                              backgroundColor: Colors.grey[200],
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 Theme.of(context).colorScheme.primary,
                               ),
@@ -223,14 +215,15 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withOpacity(0.6),
+                                      .withValues(alpha: 0.6),
                                 ),
                                 textAlign: TextAlign.center,
                               ),
                             ],
                           ],
                         ),
-                      ),
+                        );
+                      }),
                       const SizedBox(height: 24),
                     ],
 
@@ -260,34 +253,36 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                     const SizedBox(height: 16),
 
                     // Warning message
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.orange.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Colors.orange.shade700,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'This update has been available for more than 10 days and is required to continue using the app.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.orange.shade900,
-                                height: 1.4,
+                    Builder(builder: (context) {
+                      final cs = Theme.of(context).colorScheme;
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: cs.tertiaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: cs.onTertiaryContainer,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'This update has been available for more than 10 days and is required to continue using the app.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: cs.onTertiaryContainer,
+                                  height: 1.4,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
+                          ],
+                        ),
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -344,14 +339,14 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
             SnackBar(
               content: const Row(
                 children: [
-                  Icon(Icons.error, color: Colors.white),
+                  Icon(Icons.error),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text('Failed to download update. Please try again.'),
                   ),
                 ],
               ),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.error,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -372,12 +367,12 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.error, color: Colors.white),
+                const Icon(Icons.error),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Error: ${e.toString()}')),
               ],
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),

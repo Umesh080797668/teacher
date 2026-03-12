@@ -209,7 +209,6 @@ class _FaceAttendanceScannerScreenState extends State<FaceAttendanceScannerScree
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Marked Present: ${student.name}'),
-          backgroundColor: Colors.green,
           duration: const Duration(seconds: 1),
         ),
       );
@@ -253,7 +252,7 @@ class _FaceAttendanceScannerScreenState extends State<FaceAttendanceScannerScree
               width: 280,
               height: 350,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
                 borderRadius: BorderRadius.circular(12),
               ),
             ),

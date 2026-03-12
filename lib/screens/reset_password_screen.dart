@@ -280,189 +280,141 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> with SingleTi
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF6366F1), // Indigo
-              Color(0xFF8B5CF6), // Purple
-              Color(0xFFA855F7), // Medium Purple
-              Color(0xFFEC4899), // Pink
-            ],
-            stops: [0.0, 0.4, 0.7, 1.0],
+            colors: isDark
+                ? const [Color(0xFF1E1B4B), Color(0xFF3B1D6E), Color(0xFF4A1F6E), Color(0xFF6B1247)]
+                : const [Color(0xFF6366F1), Color(0xFF8B5CF6), Color(0xFFA855F7), Color(0xFFEC4899)],
+            stops: const [0.0, 0.4, 0.7, 1.0],
           ),
         ),
-        child: Stack(
-          children: [
-            // Background pattern overlay
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.05,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: RadialGradient(
-                      center: Alignment.center,
-                      radius: 1.5,
-                      colors: [
-                        Colors.white,
-                        Colors.transparent,
-                      ],
-                      stops: [0.0, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: Column(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Icon
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: isDark ? 0.12 : 1.0),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.lock_reset_rounded,
+                          size: 40,
+                          color: isDark ? Colors.white : const Color(0xFF6366F1),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      Text(
+                        'Reset Password',
+                        style: GoogleFonts.poppins(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        'Enter the 6-digit code sent to',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
+                      ),
+
+                      Text(
+                        widget.email,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Code Input Fields
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Icon
-                          Container(
-                            width: 80,
-                            height: 80,
+                        children: List.generate(6, (index) {
+                          return Container(
+                            width: 45,
+                            height: 55,
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 20,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.lock_reset_rounded,
-                              size: 40,
-                              color: Color(0xFF6366F1),
-                            ),
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          Text(
-                            'Reset Password',
-                            style: GoogleFonts.poppins(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          Text(
-                            'Enter the 6-digit code sent to',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              color: Colors.white.withOpacity(0.8),
-                            ),
-                          ),
-
-                          Text(
-                            widget.email,
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          // Code Input Fields
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(6, (index) {
-                              return Container(
-                                width: 45,
-                                height: 55,
-                                margin: const EdgeInsets.symmetric(horizontal: 3),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 10,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                                child: TextField(
-                                  controller: _controllers[index],
-                                  focusNode: _focusNodes[index],
-                                  textAlign: TextAlign.center,
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [
-                                    LengthLimitingTextInputFormatter(1),
-                                    FilteringTextInputFormatter.digitsOnly,
-                                  ],
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF6366F1),
-                                  ),
-                                  decoration: const InputDecoration(
-                                    border: InputBorder.none,
-                                    counterText: '',
-                                  ),
-                                  onChanged: (value) => _onCodeChanged(index, value),
-                                ),
-                              );
-                            }),
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // Password Field
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: isDark ? cs.surfaceContainerHigh : cs.surface,
                               borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 10,
-                                  spreadRadius: 1,
-                                ),
-                              ],
+                              border: Border.all(
+                                color: isDark ? cs.outlineVariant.withValues(alpha: 0.5) : cs.outline.withValues(alpha: 0.3),
+                              ),
                             ),
-                            child: TextFormField(
+                            child: TextField(
+                              controller: _controllers[index],
+                              focusNode: _focusNodes[index],
+                              textAlign: TextAlign.center,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                LengthLimitingTextInputFormatter(1),
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              style: GoogleFonts.poppins(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: cs.primary,
+                              ),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                counterText: '',
+                              ),
+                              onChanged: (value) => _onCodeChanged(index, value),
+                            ),
+                          );
+                        }),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Password fields + button in form card
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? cs.surfaceContainerHigh : cs.surface,
+                          borderRadius: BorderRadius.circular(24),
+                          border: isDark ? Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)) : null,
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            // Password Field
+                            TextFormField(
                               controller: _passwordController,
                               obscureText: !_isPasswordVisible,
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontSize: 16,
-                              ),
                               decoration: InputDecoration(
                                 labelText: 'New Password',
-                                labelStyle: TextStyle(
-                                  color: Colors.grey[700],
-                                  fontSize: 16,
-                                ),
-                                floatingLabelStyle: const TextStyle(
-                                  color: Color(0xFF6366F1),
-                                  fontSize: 18,
-                                ),
-                                prefixIcon: Icon(Icons.lock_outlined, color: Colors.grey[700]),
+                                prefixIcon: const Icon(Icons.lock_outlined),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _isPasswordVisible
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                    color: Colors.grey[700],
+                                        ? Icons.visibility_rounded
+                                        : Icons.visibility_off_rounded,
                                   ),
                                   onPressed: () {
                                     setState(() {
@@ -470,53 +422,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> with SingleTi
                                     });
                                   },
                                 ),
-                                border: InputBorder.none,
-                                filled: true,
-                                fillColor: Colors.white,
-                                contentPadding: const EdgeInsets.all(16),
                               ),
                             ),
-                          ),
 
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                          // Confirm Password Field
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 10,
-                                  spreadRadius: 1,
-                                ),
-                              ],
-                            ),
-                            child: TextFormField(
+                            // Confirm Password Field
+                            TextFormField(
                               controller: _confirmPasswordController,
                               obscureText: !_isConfirmPasswordVisible,
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontSize: 16,
-                              ),
                               decoration: InputDecoration(
                                 labelText: 'Confirm New Password',
-                                labelStyle: TextStyle(
-                                  color: Colors.grey[700],
-                                  fontSize: 16,
-                                ),
-                                floatingLabelStyle: const TextStyle(
-                                  color: Color(0xFF6366F1),
-                                  fontSize: 18,
-                                ),
-                                prefixIcon: Icon(Icons.lock_outlined, color: Colors.grey[700]),
+                                prefixIcon: const Icon(Icons.lock_outlined),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _isConfirmPasswordVisible
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                    color: Colors.grey[700],
+                                        ? Icons.visibility_rounded
+                                        : Icons.visibility_off_rounded,
                                   ),
                                   onPressed: () {
                                     setState(() {
@@ -524,127 +446,109 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> with SingleTi
                                     });
                                   },
                                 ),
-                                border: InputBorder.none,
-                                filled: true,
-                                fillColor: Colors.white,
-                                contentPadding: const EdgeInsets.all(16),
                               ),
                             ),
-                          ),
 
-                          const SizedBox(height: 24),
+                            const SizedBox(height: 20),
 
-                          // Reset Password Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _resetPassword,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: const Color(0xFF6366F1),
-                                disabledBackgroundColor: Colors.white.withOpacity(0.7),
-                                disabledForegroundColor: const Color(0xFF6366F1),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 2,
+                            // Reset Password Button
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52,
+                              child: FilledButton(
+                                onPressed: _isLoading ? null : _resetPassword,
+                                child: _isLoading
+                                    ? Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            'Resetting...',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Text(
+                                        'Reset Password',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                               ),
-                              child: _isLoading
-                                  ? Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const SizedBox(
-                                          height: 24,
-                                          width: 24,
-                                          child: CircularProgressIndicator(
-                                            color: Color(0xFF6366F1),
-                                            strokeWidth: 3,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          'Resetting...',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF6366F1),
-                                          ),
-                                        ),
-                                      ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Timer and Resend Code
+                      Column(
+                        children: [
+                          if (!_canResend)
+                            Text(
+                              'Resend code in ${_formatTime(_remainingSeconds)}',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 14,
+                              ),
+                            )
+                          else
+                            TextButton(
+                              onPressed: _isResending ? null : _resendCode,
+                              child: _isResending
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
                                     )
                                   : Text(
-                                      'Reset Password',
+                                      'Didn\'t receive the code? Resend',
                                       style: GoogleFonts.poppins(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        decoration: TextDecoration.underline,
+                                        decorationColor: Colors.white,
                                       ),
                                     ),
                             ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Timer and Resend Code
-                          Column(
-                            children: [
-                              if (!_canResend)
-                                Text(
-                                  'Resend code in ${_formatTime(_remainingSeconds)}',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white.withOpacity(0.8),
-                                    fontSize: 14,
-                                  ),
-                                )
-                              else
-                                TextButton(
-                                  onPressed: _isResending ? null : _resendCode,
-                                  child: _isResending
-                                      ? const SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : Text(
-                                          'Didn\'t receive the code? Resend',
-                                          style: GoogleFonts.poppins(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            decoration: TextDecoration.underline,
-                                            decorationColor: Colors.white,
-                                          ),
-                                        ),
-                                ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Back to Forgot Password
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            child: Text(
-                              'Change Email',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white.withOpacity(0.8),
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
-                    ),
+
+                      const SizedBox(height: 16),
+
+                      // Back to Forgot Password
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: Text(
+                          'Change Email',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

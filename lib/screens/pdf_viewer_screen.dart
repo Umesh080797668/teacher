@@ -87,17 +87,22 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         ],
       ),
       floatingActionButton: pages != null && pages! > 0
-          ? Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.black54,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-                "${currentPage! + 1} / $pages",
-                style: const TextStyle(color: Colors.white),
-              ),
-          )
+          ? Builder(
+              builder: (bCtx) {
+                final cs = Theme.of(bCtx).colorScheme;
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: cs.inverseSurface,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    "${currentPage! + 1} / $pages",
+                    style: TextStyle(color: cs.onInverseSurface),
+                  ),
+                );
+              },
+            )
           : null,
     );
   }

@@ -33,10 +33,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   
-  // Initialize Firebase
+  // Firebase MUST be initialized before runApp — FCM background handler needs it
   try {
     if (kIsWeb) {
-      // For web, Firebase SDK needs to be initialized with config
       await Firebase.initializeApp(
         options: const FirebaseOptions(
           apiKey: "AIzaSyCQ0y34Rn0HK2PAABM9by117eGTK-O0Mfg",
@@ -49,23 +48,33 @@ void main() async {
         ),
       );
     } else {
-      // For mobile, initialize with default options
       await Firebase.initializeApp();
     }
   } catch (e) {
     print('Firebase initialization error: $e');
   }
-  
-  // Initialize notification service with FCM
-  await NotificationService().initialize();
-  
-  // Initialize background update service for periodic checks even when app is closed
-  await BackgroundUpdateService.initialize();
-  
-  // Initialize background backup service for automatic backups every 24 hours
-  await BackgroundBackupService.initialize();
-  
+
+  // Launch the app immediately — don't block the splash on heavy service init
   runApp(const MyApp());
+
+  // Defer notification + background services until after the first frame renders
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try {
+      await NotificationService().initialize();
+    } catch (e) {
+      debugPrint('NotificationService init error: $e');
+    }
+    try {
+      await BackgroundUpdateService.initialize();
+    } catch (e) {
+      debugPrint('BackgroundUpdateService init error: $e');
+    }
+    try {
+      await BackgroundBackupService.initialize();
+    } catch (e) {
+      debugPrint('BackgroundBackupService init error: $e');
+    }
+  });
 }
 
 class MyApp extends StatefulWidget {

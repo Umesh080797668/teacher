@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'custom_widgets.dart';
 
 class ClassStudentDetailsModal extends StatefulWidget {
   final String classId;
@@ -94,7 +95,7 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
                           'Student Attendance Details',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                            color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
                           ),
                         ),
                       ],
@@ -112,7 +113,11 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
             // Content
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: 4,
+                      itemBuilder: (_, __) => const QuizListTileSkeleton(),
+                    )
                   : _error != null
                       ? Center(
                           child: Padding(
@@ -139,11 +144,11 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
                                   _error!,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                ElevatedButton(
+                                FilledButton(
                                   onPressed: _loadClassDetails,
                                   child: const Text('Retry'),
                                 ),
@@ -192,7 +197,7 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
               Text(
                 'This class has no students enrolled',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -208,10 +213,10 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
             ),
           ),
           child: Row(
@@ -232,7 +237,7 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
                     'Total Students',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -240,7 +245,7 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
               Container(
                 width: 1,
                 height: 40,
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
               ),
               Column(
                 children: [
@@ -257,7 +262,7 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
                     'Period',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -278,6 +283,7 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
               final absentCount = student['absentCount'] ?? 0;
               final lateCount = student['lateCount'] ?? 0;
               final totalClasses = student['totalClasses'] ?? 0;
+              final cs = Theme.of(context).colorScheme;
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -318,7 +324,7 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
                                   'ID: ${student['studentIdNumber'] ?? 'N/A'}',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                                 ),
                               ],
@@ -329,10 +335,10 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               color: attendanceRate >= 75
-                                  ? Colors.green.withOpacity(0.1)
+                                  ? const Color(0xFF22C55E).withValues(alpha: 0.12)
                                   : attendanceRate >= 50
-                                      ? Colors.orange.withOpacity(0.1)
-                                      : Colors.red.withOpacity(0.1),
+                                      ? cs.tertiaryContainer
+                                      : cs.errorContainer,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -341,10 +347,10 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: attendanceRate >= 75
-                                    ? Colors.green
+                                    ? const Color(0xFF22C55E)
                                     : attendanceRate >= 50
-                                        ? Colors.orange
-                                        : Colors.red,
+                                        ? cs.onTertiaryContainer
+                                        : cs.error,
                               ),
                             ),
                           ),
@@ -358,7 +364,7 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
                             child: _StatChip(
                               label: 'Present',
                               value: '$presentCount',
-                              color: Colors.green,
+                              color: const Color(0xFF22C55E),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -366,7 +372,7 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
                             child: _StatChip(
                               label: 'Absent',
                               value: '$absentCount',
-                              color: Colors.red,
+                              color: cs.error,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -374,7 +380,7 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
                             child: _StatChip(
                               label: 'Late',
                               value: '$lateCount',
-                              color: Colors.orange,
+                              color: cs.tertiary,
                             ),
                           ),
                         ],
@@ -387,14 +393,14 @@ class _ClassStudentDetailsModalState extends State<ClassStudentDetailsModal> {
                           Icon(
                             Icons.calendar_today,
                             size: 14,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           const SizedBox(width: 4),
                           Text(
                             'Total classes: $totalClasses',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],
@@ -428,7 +434,7 @@ class _StatChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -446,7 +452,7 @@ class _StatChip extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 10,
-              color: color.withOpacity(0.8),
+              color: color.withValues(alpha: 0.8),
             ),
           ),
         ],

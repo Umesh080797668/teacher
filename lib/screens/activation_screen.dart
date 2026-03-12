@@ -93,10 +93,10 @@ class _ActivationScreenState extends State<ActivationScreen> {
       auth.clearPaymentProofSubmitted();
       
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your payment proof was rejected by the admin.'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: const Text('Your payment proof was rejected by the admin.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 3),
         ),
       );
       
@@ -140,7 +140,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Your payment has been approved! Your account is now active.'),
-          backgroundColor: Colors.green,
           duration: Duration(seconds: 3),
         ),
       );
@@ -156,7 +155,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Your subscription has been activated successfully!'),
-          backgroundColor: Colors.green,
           duration: Duration(seconds: 3),
         ),
       );
@@ -229,7 +227,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to pick image: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -279,10 +277,10 @@ class _ActivationScreenState extends State<ActivationScreen> {
   Future<void> _submitPaymentProof() async {
     if (_paymentProof == null || _selectedPlan == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Payment proof is required. Please attach a payment proof image.'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: const Text('Payment proof is required. Please attach a payment proof image.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 3),
         ),
       );
       return;
@@ -304,7 +302,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('No internet connection. Please check your network and try again.'),
-            backgroundColor: Colors.orange,
             duration: Duration(seconds: 4),
           ),
         );
@@ -344,7 +341,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Payment proof submitted successfully! Please wait for admin approval...'),
-            backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
         );
@@ -370,11 +366,10 @@ class _ActivationScreenState extends State<ActivationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
             action: SnackBarAction(
                label: 'Retry',
                onPressed: _submitPaymentProof,
-               textColor: Colors.white,
             ),
             duration: const Duration(seconds: 5),
           ),
@@ -448,11 +443,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
           return true;
         },
         child: Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
             title: const Text('Account Activation'),
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            foregroundColor: Theme.of(context).colorScheme.onSurface,
           ),
         body: Center(
           child: Column(
@@ -476,7 +468,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
               Text(
                 'Please wait while we activate your account...',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -485,7 +477,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                 'This may take a few moments.',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -499,11 +491,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Account Activation'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
         leading: widget.selectedPlan != null ? IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () async {
@@ -548,7 +537,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         : 'Your subscription has ended. Please renew to continue using all features.',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -574,7 +563,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
               'Select the plan that best fits your needs',
               style: TextStyle(
                 fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
 
@@ -600,18 +589,9 @@ class _ActivationScreenState extends State<ActivationScreen> {
                   border: Border.all(
                     color: _selectedPlan == 'monthly'
                         ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                        : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                     width: _selectedPlan == 'monthly' ? 2 : 1,
                   ),
-                  boxShadow: _selectedPlan == 'monthly'
-                      ? [
-                          BoxShadow(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          )
-                        ]
-                      : null,
                 ),
                 child: Row(
                   children: [
@@ -653,7 +633,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                             'Perfect for trying out our features. Access to all features for one month.',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                               height: 1.4,
                             ),
                           ),
@@ -687,18 +667,9 @@ class _ActivationScreenState extends State<ActivationScreen> {
                   border: Border.all(
                     color: _selectedPlan == 'yearly'
                         ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                        : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                     width: _selectedPlan == 'yearly' ? 2 : 1,
                   ),
-                  boxShadow: _selectedPlan == 'yearly'
-                      ? [
-                          BoxShadow(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          )
-                        ]
-                      : null,
                 ),
                 child: Row(
                   children: [
@@ -728,16 +699,16 @@ class _ActivationScreenState extends State<ActivationScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
+                                  color: const Color(0xFF22C55E).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                                  border: Border.all(color: const Color(0xFF22C55E).withValues(alpha: 0.3)),
                                 ),
                                 child: const Text(
                                   'SAVE 25%',
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.green,
+                                    color: Color(0xFF22C55E),
                                   ),
                                 ),
                               ),
@@ -757,7 +728,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                             'Best value for long-term users. Access to all features for one year with significant savings.',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                               height: 1.4,
                             ),
                           ),
@@ -775,10 +746,10 @@ class _ActivationScreenState extends State<ActivationScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
               child: Column(
@@ -819,7 +790,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Column(
@@ -874,10 +845,10 @@ class _ActivationScreenState extends State<ActivationScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
               child: Column(
@@ -912,7 +883,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                   Text(
                     'Attach a screenshot or photo of your payment confirmation to speed up the activation process.',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                       height: 1.4,
                     ),
                   ),
@@ -924,7 +895,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Column(
@@ -959,7 +930,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                                         _formatFileSize(_fileSize!),
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                         ),
                                       ),
                                   ],
@@ -978,8 +949,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
                                           child: const Text('Cancel')
                                         ),
                                         TextButton(
-                                          onPressed: () => Navigator.pop(context, true), 
-                                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                          onPressed: () => Navigator.pop(context, true),
+                                          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
                                           child: const Text('Remove')
                                         ),
                                       ],
@@ -1018,12 +989,12 @@ class _ActivationScreenState extends State<ActivationScreen> {
                       child: FilledButton.icon(
                         onPressed: _isSendingEmail ? null : _submitPaymentProof,
                         icon: _isSendingEmail
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.onSecondary),
                                 ),
                               )
                             : const Icon(Icons.send),
@@ -1067,18 +1038,12 @@ class _ActivationScreenState extends State<ActivationScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  backgroundColor: (_selectedPlan != null && _paymentProof != null)
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
                 ),
-                child: Text(
+                child: const Text(
                   'I\'ve Made Payment',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: (_selectedPlan != null && _paymentProof != null)
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                   ),
                 ),
               ),
@@ -1159,7 +1124,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Payment submitted successfully! Your account will be activated within 24 hours after verification.'),
-              backgroundColor: Colors.green,
               duration: Duration(seconds: 5),
             ),
           );
@@ -1203,7 +1167,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to process payment: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 5),
         ),
       );
@@ -1217,7 +1181,7 @@ Widget _buildBankDetailRow(BuildContext context, String label, String value) {
       Text(
         label,
         style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
         ),
       ),
       Row(
@@ -1288,7 +1252,7 @@ Widget _buildPaymentStep(BuildContext context, String number, String text) {
         child: Text(
           text,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
             height: 1.4,
           ),
         ),

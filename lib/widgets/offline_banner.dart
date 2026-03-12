@@ -12,22 +12,23 @@ class OfflineBanner extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final cs = Theme.of(context).colorScheme;
     return SafeArea(
       bottom: false,
       child: Material(
-        color: Colors.red,
+        color: cs.error,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-           child: Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.wifi_off, color: Colors.white, size: 18),
-              SizedBox(width: 8),
+            children: [
+              Icon(Icons.wifi_off, color: cs.onError, size: 18),
+              const SizedBox(width: 8),
               Text(
                 'Offline Mode - Local updates only',
                 style: TextStyle(
-                  color: Colors.white, 
+                  color: cs.onError,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   decoration: TextDecoration.none,

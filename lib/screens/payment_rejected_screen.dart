@@ -13,11 +13,8 @@ class PaymentRejectedScreen extends StatelessWidget {
     final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Payment Rejected'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
@@ -34,13 +31,13 @@ class PaymentRejectedScreen extends StatelessWidget {
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.errorContainer,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.cancel_outlined,
                     size: 70,
-                    color: Colors.red.shade700,
+                    color: Theme.of(context).colorScheme.onErrorContainer,
                   ),
                 ),
                 
@@ -64,7 +61,7 @@ class PaymentRejectedScreen extends StatelessWidget {
                   'Your payment proof was reviewed by the admin but could not be approved.',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,
@@ -73,104 +70,118 @@ class PaymentRejectedScreen extends StatelessWidget {
                 const SizedBox(height: 32),
                 
                 // Rejection Reason Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.red.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                Builder(
+                  builder: (bCtx) {
+                    final cs = Theme.of(bCtx).colorScheme;
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: cs.errorContainer.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: cs.error.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Colors.red.shade700,
-                            size: 22,
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: cs.onErrorContainer,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Reason for Rejection',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.onErrorContainer,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(height: 12),
                           Text(
-                            'Reason for Rejection',
+                            rejectionReason.isEmpty
+                                ? 'No specific reason provided.'
+                                : rejectionReason,
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.red.shade700,
+                              fontSize: 15,
+                              color: cs.onSurface,
+                              height: 1.5,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        rejectionReason.isEmpty 
-                          ? 'No specific reason provided.' 
-                          : rejectionReason,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Theme.of(context).colorScheme.onSurface,
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 
                 const SizedBox(height: 32),
                 
                 // Instructions
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                Builder(
+                  builder: (bCtx) {
+                    final cs = Theme.of(bCtx).colorScheme;
+                    final isDark = Theme.of(bCtx).brightness == Brightness.dark;
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(16),
+                        border: isDark
+                            ? null
+                            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.lightbulb_outline,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 22,
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.lightbulb_outline,
+                                color: cs.primary,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Next Steps',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.primary,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Next Steps',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                          const SizedBox(height: 12),
+                          _buildStepItem(
+                            context,
+                            '1',
+                            'Review the rejection reason carefully',
+                          ),
+                          const SizedBox(height: 8),
+                          _buildStepItem(
+                            context,
+                            '2',
+                            'Prepare correct payment proof image',
+                          ),
+                          const SizedBox(height: 8),
+                          _buildStepItem(
+                            context,
+                            '3',
+                            'Submit a new payment proof',
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      _buildStepItem(
-                        context,
-                        '1',
-                        'Review the rejection reason carefully',
-                      ),
-                      const SizedBox(height: 8),
-                      _buildStepItem(
-                        context,
-                        '2',
-                        'Prepare correct payment proof image',
-                      ),
-                      const SizedBox(height: 8),
-                      _buildStepItem(
-                        context,
-                        '3',
-                        'Submit a new payment proof',
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 
                 const SizedBox(height: 40),
@@ -179,19 +190,15 @@ class PaymentRejectedScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   height: 54,
-                  child: ElevatedButton(
+                  child: FilledButton(
                     onPressed: () {
-                      // Navigate to subscription screen to reselect plan and submit payment
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(
                           builder: (context) => const SubscriptionScreen(),
                         ),
                       );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 2,
+                    style: FilledButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -223,7 +230,7 @@ class PaymentRejectedScreen extends StatelessWidget {
                     'Logout',
                     style: TextStyle(
                       fontSize: 15,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -245,7 +252,7 @@ class PaymentRejectedScreen extends StatelessWidget {
           width: 24,
           height: 24,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -265,7 +272,7 @@ class PaymentRejectedScreen extends StatelessWidget {
             text,
             style: TextStyle(
               fontSize: 14,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
               height: 1.4,
             ),
           ),

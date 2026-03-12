@@ -20,7 +20,6 @@ class _ActivationDialogState extends State<ActivationDialog> {
   Widget build(BuildContext context) {
     if (_isWaiting) {
       return AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
         title: Row(
           children: [
             const SizedBox(
@@ -51,7 +50,7 @@ class _ActivationDialogState extends State<ActivationDialog> {
               'This may take a few moments.',
               style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
           ],
@@ -60,12 +59,11 @@ class _ActivationDialogState extends State<ActivationDialog> {
     }
 
     return AlertDialog(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       title: Row(
         children: [
           Icon(
             widget.auth.isActivated ? Icons.verified : Icons.verified_outlined,
-            color: widget.auth.isActivated ? Colors.green : Colors.orange,
+            color: widget.auth.isActivated ? const Color(0xFF22C55E) : Theme.of(context).colorScheme.tertiary,
           ),
           const SizedBox(width: 12),
           Text(
@@ -120,7 +118,7 @@ class _ActivationDialogState extends State<ActivationDialog> {
                     Text(
                       'LKR 1,000 per month',
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -145,7 +143,7 @@ class _ActivationDialogState extends State<ActivationDialog> {
                     Text(
                       'LKR 8,000 per year',
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -157,7 +155,7 @@ class _ActivationDialogState extends State<ActivationDialog> {
               'After making the payment, click "Payment Done" to wait for activation.',
               style: TextStyle(
                 fontStyle: FontStyle.italic,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
           ],
@@ -218,7 +216,6 @@ class _ActivationDialogState extends State<ActivationDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Activation is taking longer than expected. Please try again later or contact support.'),
-          backgroundColor: Colors.orange,
           duration: Duration(seconds: 5),
         ),
       );

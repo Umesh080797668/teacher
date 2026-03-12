@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
-/// Reusable custom button with consistent styling
+// ─────────────────────────────────────────────────────────────────────────────
+//  CustomButton — Primary action button
+// ─────────────────────────────────────────────────────────────────────────────
 class CustomButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -24,46 +26,86 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget buttonChild;
+    final cs = Theme.of(context).colorScheme;
+    final bool useGradient = backgroundColor == null;
+    final bg = backgroundColor ?? cs.primary;
+    final fg = textColor ?? Colors.white;
 
+    Widget inner;
     if (isLoading) {
-      buttonChild = const SizedBox(
-        height: 20,
-        width: 20,
-        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+      inner = SizedBox(
+        height: 22,
+        width: 22,
+        child: CircularProgressIndicator(strokeWidth: 2.5, color: fg),
       );
     } else if (icon != null) {
-      buttonChild = Row(
+      inner = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon),
+          Icon(icon, size: 20, color: fg),
           const SizedBox(width: 8),
-          Text(text),
+          Text(
+            text,
+            style: TextStyle(
+              color: fg,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
+          ),
         ],
       );
     } else {
-      buttonChild = Text(text);
+      inner = Text(
+        text,
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.w700,
+          fontSize: 15,
+        ),
+      );
     }
 
     return SizedBox(
       width: isFullWidth ? double.infinity : null,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? Theme.of(context).colorScheme.primary,
-          foregroundColor: textColor ?? Theme.of(context).colorScheme.onPrimary,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+      height: 52,
+      child: GestureDetector(
+        onTap: (isLoading) ? null : onPressed,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          decoration: BoxDecoration(
+            gradient: useGradient
+                ? const LinearGradient(
+                    colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  )
+                : null,
+            color: useGradient ? null : bg,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: isLoading
+                ? []
+                : [
+                    BoxShadow(
+                      color: (useGradient
+                              ? const Color(0xFF4F46E5)
+                              : bg)
+                          .withValues(alpha: 0.35),
+                      blurRadius: 14,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
           ),
+          alignment: Alignment.center,
+          child: inner,
         ),
-        child: buttonChild,
       ),
     );
   }
 }
 
-/// Reusable status badge
+// ─────────────────────────────────────────────────────────────────────────────
+//  StatusBadge — Attendance / payment status chip
+// ─────────────────────────────────────────────────────────────────────────────
 class StatusBadge extends StatelessWidget {
   final String status;
   final Color? color;
@@ -82,23 +124,27 @@ class StatusBadge extends StatelessWidget {
     final badgeIcon = icon ?? _getStatusIcon(status);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: badgeColor.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: badgeColor, width: 1),
+        color: badgeColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: badgeColor.withValues(alpha: 0.35),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(badgeIcon, size: 16, color: badgeColor),
+          Icon(badgeIcon, size: 14, color: badgeColor),
           const SizedBox(width: 4),
           Text(
             status.toUpperCase(),
             style: TextStyle(
               color: badgeColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+              letterSpacing: 0.4,
             ),
           ),
         ],
@@ -109,31 +155,49 @@ class StatusBadge extends StatelessWidget {
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'present':
-        return Colors.green;
+        return const Color(0xFF22C55E);
       case 'absent':
-        return Colors.red;
+        return const Color(0xFFEF4444);
       case 'late':
-        return Colors.orange;
+        return const Color(0xFFF97316);
+      case 'paid':
+        return const Color(0xFF22C55E);
+      case 'unpaid':
+        return const Color(0xFFEF4444);
+      case 'active':
+        return const Color(0xFF22C55E);
+      case 'inactive':
+        return const Color(0xFFEF4444);
       default:
-        return Colors.grey;
+        return const Color(0xFF94A3B8);
     }
   }
 
   IconData _getStatusIcon(String status) {
     switch (status.toLowerCase()) {
       case 'present':
-        return Icons.check_circle;
+        return Icons.check_circle_rounded;
       case 'absent':
-        return Icons.cancel;
+        return Icons.cancel_rounded;
       case 'late':
-        return Icons.access_time;
+        return Icons.schedule_rounded;
+      case 'paid':
+        return Icons.check_circle_rounded;
+      case 'unpaid':
+        return Icons.pending_rounded;
+      case 'active':
+        return Icons.radio_button_checked_rounded;
+      case 'inactive':
+        return Icons.radio_button_unchecked_rounded;
       default:
-        return Icons.help;
+        return Icons.help_outline_rounded;
     }
   }
 }
 
-/// Reusable info card
+// ─────────────────────────────────────────────────────────────────────────────
+//  InfoCard — Metric / stat card
+// ─────────────────────────────────────────────────────────────────────────────
 class InfoCard extends StatelessWidget {
   final String title;
   final String value;
@@ -152,41 +216,90 @@ class InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: color, size: 32),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.12),
+                    blurRadius: 18,
+                    offset: const Offset(0, 5),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+          border: isDark
+              ? Border.all(
+                  color: Colors.white.withValues(alpha: 0.06))
+              : null,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [color, color.withValues(alpha: 0.7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center,
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: cs.onSurface,
+                height: 1,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: cs.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Reusable empty state widget
+// ─────────────────────────────────────────────────────────────────────────────
+//  EmptyState — No-data placeholder
+// ─────────────────────────────────────────────────────────────────────────────
 class EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -203,35 +316,57 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 80,
-              color: Theme.of(context).colorScheme.outline,
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    cs.primary,
+                    cs.primary.withValues(alpha: 0.65),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: cs.primary.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Icon(icon, size: 44, color: Colors.white),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
               title,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
-              ),
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               message,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
-              ),
+                    color: cs.onSurfaceVariant,
+                    height: 1.5,
+                  ),
               textAlign: TextAlign.center,
             ),
             if (action != null) ...[
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               action!,
             ],
           ],
@@ -241,7 +376,9 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// Reusable loading overlay
+// ─────────────────────────────────────────────────────────────────────────────
+//  LoadingOverlay — Dim + spinner over a child widget
+// ─────────────────────────────────────────────────────────────────────────────
 class LoadingOverlay extends StatelessWidget {
   final bool isLoading;
   final Widget child;
@@ -254,14 +391,28 @@ class LoadingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Stack(
       children: [
         child,
         if (isLoading)
           Container(
-            color: Colors.black.withOpacity(0.3),
-            child: const Center(
-              child: CircularProgressIndicator(),
+            color: cs.scrim.withValues(alpha: 0.35),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: cs.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: cs.shadow.withValues(alpha: 0.15),
+                      blurRadius: 20,
+                    ),
+                  ],
+                ),
+                child: CircularProgressIndicator(color: cs.primary),
+              ),
             ),
           ),
       ],
@@ -269,7 +420,9 @@ class LoadingOverlay extends StatelessWidget {
   }
 }
 
-/// Custom app bar with gradient
+// ─────────────────────────────────────────────────────────────────────────────
+//  CustomAppBar — Delegates to theme; kept for backward compat
+// ─────────────────────────────────────────────────────────────────────────────
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget>? actions;
@@ -286,9 +439,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       title: Text(title),
-      elevation: 0,
-      backgroundColor: backgroundColor ?? Theme.of(context).colorScheme.primaryContainer,
-      foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+      backgroundColor: backgroundColor,
       actions: actions,
     );
   }
@@ -297,153 +448,141 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
 
-/// Skeleton loading widget for student cards
+// ─────────────────────────────────────────────────────────────────────────────
+//  _shimmerWidget — Helper for skeleton shimmer blocks
+// ─────────────────────────────────────────────────────────────────────────────
+Widget _shimmer(
+  BuildContext context,
+  Widget child,
+) {
+  final cs = Theme.of(context).colorScheme;
+  return Shimmer.fromColors(
+    baseColor: cs.surfaceContainerHighest,
+    highlightColor: cs.surfaceContainerLow,
+    child: child,
+  );
+}
+
+Widget _shimmerBox(
+  BuildContext context, {
+  required double width,
+  required double height,
+  double radius = 8,
+}) {
+  return _shimmer(
+    context,
+    Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    ),
+  );
+}
+
+Widget _shimmerCircle(BuildContext context, double radius) {
+  return _shimmer(
+    context,
+    Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        shape: BoxShape.circle,
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  StudentCardSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
 class StudentCardSkeleton extends StatelessWidget {
   const StudentCardSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      color: Theme.of(context).colorScheme.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              highlightColor: Theme.of(context).colorScheme.surface,
-              child: CircleAvatar(
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                radius: 28,
-              ),
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? null
+            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          _shimmerCircle(context, 26),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _shimmerBox(context, width: 140, height: 15),
+                const SizedBox(height: 6),
+                _shimmerBox(context, width: 90, height: 12),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Shimmer.fromColors(
-                    baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    highlightColor: Theme.of(context).colorScheme.surface,
-                    child: Container(
-                      height: 16,
-                      width: 120,
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Shimmer.fromColors(
-                    baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    highlightColor: Theme.of(context).colorScheme.surface,
-                    child: Container(
-                      height: 12,
-                      width: 80,
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Wrap(
-              spacing: 8,
-              children: List.generate(
-                3,
-                (index) => Shimmer.fromColors(
-                  baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  highlightColor: Theme.of(context).colorScheme.surface,
-                  child: Container(
-                    width: 44,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+          _shimmerBox(context, width: 70, height: 30, radius: 20),
+        ],
       ),
     );
   }
 }
 
-/// Skeleton loading widget for class cards
+// ─────────────────────────────────────────────────────────────────────────────
+//  ClassCardSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
 class ClassCardSkeleton extends StatelessWidget {
   const ClassCardSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      color: Theme.of(context).colorScheme.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              highlightColor: Theme.of(context).colorScheme.surface,
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? null
+            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          _shimmerBox(context, width: 48, height: 48, radius: 12),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _shimmerBox(context, width: 130, height: 15),
+                const SizedBox(height: 6),
+                _shimmerBox(context, width: 80, height: 12),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Shimmer.fromColors(
-                    baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    highlightColor: Theme.of(context).colorScheme.surface,
-                    child: Container(
-                      height: 18,
-                      width: 140,
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Shimmer.fromColors(
-                    baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    highlightColor: Theme.of(context).colorScheme.surface,
-                    child: Container(
-                      height: 14,
-                      width: 100,
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              highlightColor: Theme.of(context).colorScheme.surface,
-              child: Container(
-                width: 80,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+          _shimmerBox(context, width: 36, height: 36, radius: 10),
+        ],
       ),
     );
   }
 }
 
-/// Skeleton loading widget for list views
+// ─────────────────────────────────────────────────────────────────────────────
+//  ListSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
 class ListSkeleton extends StatelessWidget {
   final int itemCount;
   final Widget Function(BuildContext) itemBuilder;
@@ -461,75 +600,54 @@ class ListSkeleton extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: itemCount,
-      itemBuilder: (context, index) => itemBuilder(context),
+      itemBuilder: (context, _) => itemBuilder(context),
     );
   }
 }
 
-/// Skeleton loading widget for dashboard cards
+// ─────────────────────────────────────────────────────────────────────────────
+//  DashboardCardSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
 class DashboardCardSkeleton extends StatelessWidget {
   const DashboardCardSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      color: Theme.of(context).colorScheme.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? null
+            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          _shimmerCircle(context, 22),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Shimmer.fromColors(
-                  baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  highlightColor: Theme.of(context).colorScheme.surface,
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Shimmer.fromColors(
-                        baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        highlightColor: Theme.of(context).colorScheme.surface,
-                        child: Container(
-                          height: 16,
-                          width: 100,
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Shimmer.fromColors(
-                        baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        highlightColor: Theme.of(context).colorScheme.surface,
-                        child: Container(
-                          height: 20,
-                          width: 60,
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _shimmerBox(context, width: 100, height: 14),
+                const SizedBox(height: 6),
+                _shimmerBox(context, width: 60, height: 20),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Skeleton loading widget for attendance statistics
+// ─────────────────────────────────────────────────────────────────────────────
+//  AttendanceStatsSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
 class AttendanceStatsSkeleton extends StatelessWidget {
   const AttendanceStatsSkeleton({super.key});
 
@@ -539,185 +657,387 @@ class AttendanceStatsSkeleton extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: _buildStatCardSkeleton(context)),
+            Expanded(child: _buildStatCard(context)),
             const SizedBox(width: 12),
-            Expanded(child: _buildStatCardSkeleton(context)),
+            Expanded(child: _buildStatCard(context)),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _buildStatCardSkeleton(context)),
+            Expanded(child: _buildStatCard(context)),
             const SizedBox(width: 12),
-            Expanded(child: _buildStatCardSkeleton(context)),
+            Expanded(child: _buildStatCard(context)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildStatCardSkeleton(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              highlightColor: Theme.of(context).colorScheme.surface,
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              highlightColor: Theme.of(context).colorScheme.surface,
-              child: Container(
-                height: 20,
-                width: 40,
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              highlightColor: Theme.of(context).colorScheme.surface,
-              child: Container(
-                height: 14,
-                width: 50,
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              ),
-            ),
-          ],
-        ),
+  Widget _buildStatCard(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          _shimmerCircle(context, 18),
+          const SizedBox(height: 8),
+          _shimmerBox(context, width: 40, height: 20),
+          const SizedBox(height: 4),
+          _shimmerBox(context, width: 50, height: 12),
+        ],
       ),
     );
   }
 }
 
-/// Skeleton loading widget for attendance cards
+// ─────────────────────────────────────────────────────────────────────────────
+//  AttendanceCardSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
 class AttendanceCardSkeleton extends StatelessWidget {
   const AttendanceCardSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          highlightColor: Theme.of(context).colorScheme.surface,
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              shape: BoxShape.circle,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          _shimmerCircle(context, 22),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _shimmerBox(context, width: 100, height: 14),
+                const SizedBox(height: 5),
+                _shimmerBox(context, width: 70, height: 11),
+              ],
             ),
           ),
-        ),
-        title: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          highlightColor: Theme.of(context).colorScheme.surface,
-          child: Container(
-            height: 16,
-            width: 80,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
-        ),
-        subtitle: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          highlightColor: Theme.of(context).colorScheme.surface,
-          child: Container(
-            height: 14,
-            width: 100,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
-        ),
-        trailing: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          highlightColor: Theme.of(context).colorScheme.surface,
-          child: Container(
-            height: 14,
-            width: 40,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
-        ),
+          _shimmerBox(context, width: 55, height: 26, radius: 20),
+        ],
       ),
     );
   }
 }
 
-/// Skeleton loading widget for payment cards
+// ─────────────────────────────────────────────────────────────────────────────
+//  PaymentCardSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
 class PaymentCardSkeleton extends StatelessWidget {
   const PaymentCardSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          highlightColor: Theme.of(context).colorScheme.surface,
-          child: Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              shape: BoxShape.circle,
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? null
+            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          _shimmerCircle(context, 28),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _shimmerBox(context, width: 120, height: 15),
+                const SizedBox(height: 6),
+                _shimmerBox(context, width: 80, height: 12),
+              ],
             ),
           ),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              highlightColor: Theme.of(context).colorScheme.surface,
-              child: Container(
-                height: 16,
-                width: 120,
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Shimmer.fromColors(
-              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              highlightColor: Theme.of(context).colorScheme.surface,
-              child: Container(
-                height: 14,
-                width: 80,
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              ),
-            ),
-          ],
-        ),
-        subtitle: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          highlightColor: Theme.of(context).colorScheme.surface,
-          child: Container(
-            height: 14,
-            width: 60,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _shimmerBox(context, width: 70, height: 15),
+              const SizedBox(height: 5),
+              _shimmerBox(context, width: 50, height: 24, radius: 20),
+            ],
           ),
-        ),
-        trailing: Shimmer.fromColors(
-          baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          highlightColor: Theme.of(context).colorScheme.surface,
-          child: Container(
-            height: 16,
-            width: 70,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  QuizListTileSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
+class QuizListTileSkeleton extends StatelessWidget {
+  const QuizListTileSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? null
+            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          _shimmerBox(context, width: 44, height: 44, radius: 12),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _shimmerBox(context, width: 160, height: 15),
+                const SizedBox(height: 7),
+                _shimmerBox(context, width: 110, height: 12),
+              ],
+            ),
           ),
-        ),
+          _shimmerBox(context, width: 28, height: 28, radius: 8),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  QuizResultTileSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
+class QuizResultTileSkeleton extends StatelessWidget {
+  const QuizResultTileSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? null
+            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          _shimmerCircle(context, 24),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _shimmerBox(context, width: 150, height: 15),
+                const SizedBox(height: 7),
+                _shimmerBox(context, width: 100, height: 12),
+              ],
+            ),
+          ),
+          _shimmerBox(context, width: 56, height: 28, radius: 14),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  NoticeCardSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
+class NoticeCardSkeleton extends StatelessWidget {
+  const NoticeCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? null
+            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _shimmerCircle(context, 22),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _shimmerBox(context, width: 140, height: 15),
+                const SizedBox(height: 8),
+                _shimmerBox(context, width: double.infinity, height: 11),
+                const SizedBox(height: 5),
+                _shimmerBox(context, width: 200, height: 11),
+                const SizedBox(height: 8),
+                _shimmerBox(context, width: 80, height: 11),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  ResourceCardSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
+class ResourceCardSkeleton extends StatelessWidget {
+  const ResourceCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? null
+            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          _shimmerCircle(context, 22),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _shimmerBox(context, width: 150, height: 15),
+                const SizedBox(height: 7),
+                _shimmerBox(context, width: 90, height: 12),
+              ],
+            ),
+          ),
+          _shimmerBox(context, width: 32, height: 32, radius: 8),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  LinkedDeviceSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
+class LinkedDeviceSkeleton extends StatelessWidget {
+  const LinkedDeviceSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? null
+            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          _shimmerBox(context, width: 44, height: 44, radius: 12),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _shimmerBox(context, width: 130, height: 15),
+                const SizedBox(height: 7),
+                _shimmerBox(context, width: 90, height: 12),
+                const SizedBox(height: 5),
+                _shimmerBox(context, width: 60, height: 11),
+              ],
+            ),
+          ),
+          _shimmerBox(context, width: 60, height: 26, radius: 20),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  BackupItemSkeleton
+// ─────────────────────────────────────────────────────────────────────────────
+class BackupItemSkeleton extends StatelessWidget {
+  const BackupItemSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? null
+            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          _shimmerCircle(context, 22),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _shimmerBox(context, width: 120, height: 15),
+                const SizedBox(height: 7),
+                _shimmerBox(context, width: 80, height: 12),
+              ],
+            ),
+          ),
+          _shimmerBox(context, width: 28, height: 28, radius: 8),
+        ],
       ),
     );
   }

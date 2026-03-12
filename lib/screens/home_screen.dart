@@ -9,6 +9,7 @@ import 'attendance_mark_screen.dart';
 import 'attendance_view_screen.dart';
 import 'classes_screen.dart';
 import 'payment_screen.dart';
+import 'payment_collection_screen.dart';
 import 'reports_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
@@ -54,6 +55,9 @@ class _HomeScreenState extends State<HomeScreen> {
   
   // Track if activation notification has been shown
   bool _activationNotificationShown = false;
+
+  // Speed-dial FAB
+  bool _fabExpanded = false;
   
   // Safe references saved in didChangeDependencies
   AuthProvider? _authProvider;
@@ -423,6 +427,14 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         {
           'type': 'feature',
+          'title': 'Collect Payments',
+          'subtitle': 'Mark paid/unpaid per class & month',
+          'icon': Icons.payments_outlined,
+          'color': const Color(0xFF00897B),
+          'screen': const PaymentCollectionScreen(),
+        },
+        {
+          'type': 'feature',
           'title': 'View Records',
           'subtitle': 'Check attendance history',
           'icon': Icons.analytics_rounded,
@@ -713,185 +725,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showActivityDetails(BuildContext context, RecentActivity activity) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(
-                _getActivityIcon(activity.type),
-                color: _getActivityColor(activity.type),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                activity.title,
-                style: TextStyle(
-                  color: isDarkMode ? Colors.white : null,
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  activity.subtitle,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color:
-                            isDarkMode ? Colors.white.withOpacity(0.9) : null,
-                      ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.access_time,
-                      size: 16,
-                      color: isDarkMode
-                          ? Colors.white.withOpacity(0.8)
-                          : Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.8),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _formatTimestamp(activity.timestamp),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: isDarkMode
-                                ? Colors.white.withOpacity(0.8)
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.8),
-                          ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.category,
-                      size: 16,
-                      color: isDarkMode
-                          ? Colors.white.withOpacity(0.8)
-                          : Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.8),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _getActivityTypeLabel(activity.type),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: isDarkMode
-                                ? Colors.white.withOpacity(0.8)
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.8),
-                          ),
-                    ),
-                  ],
-                ),
-                if (activity.type == 'attendance') ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'This activity represents attendance records that were marked for students.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.75),
-                        ),
-                  ),
-                ],
-                if (activity.type == 'student') ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'A new student has been registered in the system.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.75),
-                        ),
-                  ),
-                ],
-                if (activity.type == 'payment') ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'A payment has been recorded in the system.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.75),
-                        ),
-                  ),
-                ],
-                if (activity.type == 'class') ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'A new class has been created in the system.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.75),
-                        ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  String _formatTimestamp(DateTime timestamp) {
+  String _getTimeAgo(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
-
     if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} minutes ago';
+      return '${difference.inMinutes}m ago';
     } else if (difference.inHours < 24) {
-      return '${difference.inHours} hours ago';
+      return '${difference.inHours}h ago';
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
+      return '${difference.inDays}d ago';
     } else {
-      return DateFormat('MMM dd, yyyy').format(timestamp);
-    }
-  }
-
-  String _getActivityTypeLabel(String type) {
-    switch (type) {
-      case 'attendance':
-        return 'Attendance';
-      case 'student':
-        return 'Student Management';
-      case 'payment':
-        return 'Payment';
-      case 'class':
-        return 'Class Management';
-      case 'report':
-        return 'Reports';
-      default:
-        return 'Activity';
+      return '${(difference.inDays / 7).floor()}w ago';
     }
   }
 
@@ -929,57 +773,193 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // ─── Speed-dial FAB ─────────────────────────────────────────────────────────
+
+  Widget _buildSpeedDial(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Mini FAB: Collect Payments
+        AnimatedScale(
+          scale: _fabExpanded ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          child: AnimatedOpacity(
+            opacity: _fabExpanded ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 180),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Label bubble
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        )
+                      ],
+                    ),
+                    child: Text(
+                      'Collect Payments',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FloatingActionButton.small(
+                    heroTag: 'fab_collect_payments',
+                    onPressed: () {
+                      setState(() => _fabExpanded = false);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const PaymentCollectionScreen(),
+                        ),
+                      );
+                    },
+                    backgroundColor:
+                        Theme.of(context).colorScheme.secondary,
+                    foregroundColor:
+                        Theme.of(context).colorScheme.onSecondary,
+                    child: const Icon(Icons.payments_outlined),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Mini FAB: Mark Attendance
+        AnimatedScale(
+          scale: _fabExpanded ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
+          child: AnimatedOpacity(
+            opacity: _fabExpanded ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 140),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        )
+                      ],
+                    ),
+                    child: Text(
+                      'Mark Attendance',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FloatingActionButton.small(
+                    heroTag: 'fab_mark_attendance',
+                    onPressed: () {
+                      setState(() => _fabExpanded = false);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AttendanceMarkScreen(),
+                        ),
+                      );
+                    },
+                    backgroundColor:
+                        Theme.of(context).colorScheme.primary,
+                    foregroundColor:
+                        Theme.of(context).colorScheme.onPrimary,
+                    child: const Icon(Icons.check_circle_outline),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Main FAB (toggle)
+        FloatingActionButton(
+          heroTag: 'fab_main',
+          onPressed: () =>
+              setState(() => _fabExpanded = !_fabExpanded),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          child: AnimatedRotation(
+            turns: _fabExpanded ? 0.125 : 0.0,
+            duration: const Duration(milliseconds: 220),
+            child: const Icon(Icons.add, size: 28),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      floatingActionButton: Consumer<AuthProvider>(
-        builder: (context, auth, child) {
-          // Allow guest to see the button to test simulation
-          return FloatingActionButton.extended(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AttendanceMarkScreen(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Mark Attendance'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-          );
-        },
-      ),
+      backgroundColor: isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
+      floatingActionButton: _buildSpeedDial(context),
       body: RefreshIndicator(
         onRefresh: _loadData,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        color: Theme.of(context).colorScheme.primary,
+        backgroundColor: cs.surface,
+        color: cs.primary,
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(
-                  context,
-                ).colorScheme.primaryContainer.withOpacity(0.1),
-                Theme.of(
-                  context,
-                ).colorScheme.secondaryContainer.withOpacity(0.1),
-                Theme.of(
-                  context,
-                ).colorScheme.tertiaryContainer.withOpacity(0.05),
-              ],
-            ),
+            color: isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
           ),
           child: SafeArea(
             child: CustomScrollView(
               slivers: [
-                // Header with Search
+                // ── Premium Gradient Header ────────────────────────────
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: isDark
+                          ? const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF1E1A2E), Color(0xFF2D2660), Color(0xFF1E1A2E)],
+                            )
+                          : const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF3730A3), Color(0xFF6D28D9), Color(0xFF7C3AED)],
+                              stops: [0.0, 0.55, 1.0],
+                            ),
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(32),
+                        bottomRight: Radius.circular(32),
+                      ),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -992,37 +972,28 @@ class _HomeScreenState extends State<HomeScreen> {
                                 children: [
                                   Consumer<AuthProvider>(
                                     builder: (context, auth, child) {
-                                      // Extract first name from full name
                                       String getFirstName(String? fullName) {
-                                        if (fullName == null ||
-                                            fullName.isEmpty) {
-                                          return '';
-                                        }
+                                        if (fullName == null || fullName.isEmpty) return '';
                                         return fullName.split(' ').first;
                                       }
-
                                       String welcomeMessage;
                                       if (auth.isGuest) {
-                                        welcomeMessage = 'Welcome, Guest!';
+                                        welcomeMessage = 'Hello, Guest!';
                                       } else {
-                                        final firstName =
-                                            getFirstName(auth.userName);
+                                        final firstName = getFirstName(auth.userName);
                                         welcomeMessage = firstName.isNotEmpty
-                                            ? 'Welcome back, $firstName!'
+                                            ? 'Hello, $firstName!'
                                             : 'Welcome Back!';
                                       }
-
                                       return Text(
                                         welcomeMessage,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .headlineSmall
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onSurface,
-                                            ),
+                                        style: const TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                          letterSpacing: -0.5,
+                                          height: 1.2,
+                                        ),
                                       );
                                     },
                                   ),
@@ -1033,15 +1004,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                         auth.isGuest
                                             ? 'Browse attendance records (read-only)'
                                             : 'Manage your classroom attendance',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withOpacity(0.7),
-                                            ),
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(alpha: 0.75),
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w400,
+                                        ),
                                       );
                                     },
                                   ),
@@ -1050,79 +1017,66 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             Consumer<AuthProvider>(
                               builder: (context, auth, child) {
+                                // Avatar with first letter of name
+                                final name = auth.userName ?? 'T';
+                                final initial = name.isNotEmpty ? name[0].toUpperCase() : 'T';
                                 return PopupMenuButton<String>(
-                                  icon: CircleAvatar(
-                                    radius: 28,
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    child: Icon(
-                                      Icons.person,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimary,
-                                      size: 28,
+                                  child: Container(
+                                    width: 52,
+                                    height: 52,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      border: Border.all(
+                                          color: Colors.white.withValues(alpha: 0.4),
+                                          width: 2),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        initial,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                   onSelected: (value) async {
                                     final authProvider =
-                                        Provider.of<AuthProvider>(
-                                      context,
-                                      listen: false,
-                                    );
+                                        Provider.of<AuthProvider>(context, listen: false);
                                     if (value == 'logout') {
                                       await authProvider.logout();
                                       if (context.mounted) {
-                                        Navigator.of(
-                                          context,
-                                        ).pushAndRemoveUntil(
+                                        Navigator.of(context).pushAndRemoveUntil(
                                           MaterialPageRoute(
-                                            builder: (context) =>
-                                                const AccountSelectionScreen(),
-                                          ),
+                                              builder: (context) => const AccountSelectionScreen()),
                                           (route) => false,
                                         );
                                       }
                                     } else if (value == 'login') {
-                                      await authProvider
-                                          .logout(); // Clear guest state
+                                      await authProvider.logout();
                                       if (context.mounted) {
-                                        Navigator.of(
-                                          context,
-                                        ).pushAndRemoveUntil(
+                                        Navigator.of(context).pushAndRemoveUntil(
                                           MaterialPageRoute(
-                                            builder: (context) =>
-                                                const AccountSelectionScreen(),
-                                          ),
+                                              builder: (context) => const AccountSelectionScreen()),
                                           (route) => false,
                                         );
                                       }
                                     } else if (value == 'profile') {
                                       if (context.mounted) {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const ProfileScreen(),
-                                          ),
-                                        );
+                                        Navigator.of(context).push(MaterialPageRoute(
+                                            builder: (context) => const ProfileScreen()));
                                       }
                                     } else if (value == 'settings') {
                                       if (context.mounted) {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const SettingsScreen(),
-                                          ),
-                                        );
+                                        Navigator.of(context).push(MaterialPageRoute(
+                                            builder: (context) => const SettingsScreen()));
                                       }
                                     } else if (value == 'qr_scanner') {
                                       if (context.mounted) {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const QRScannerScreen(),
-                                          ),
-                                        );
+                                        Navigator.of(context).push(MaterialPageRoute(
+                                            builder: (context) => const QRScannerScreen()));
                                       }
                                     }
                                   },
@@ -1130,78 +1084,45 @@ class _HomeScreenState extends State<HomeScreen> {
                                     if (!auth.isGuest) ...[
                                       PopupMenuItem<String>(
                                         value: 'profile',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.person_outline,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            const Text('Profile'),
-                                          ],
-                                        ),
+                                        child: Row(children: [
+                                          Icon(Icons.person_outline, color: cs.primary),
+                                          const SizedBox(width: 12),
+                                          const Text('Profile'),
+                                        ]),
                                       ),
                                       PopupMenuItem<String>(
                                         value: 'settings',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.settings_outlined,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            const Text('Settings'),
-                                          ],
-                                        ),
+                                        child: Row(children: [
+                                          Icon(Icons.settings_outlined, color: cs.primary),
+                                          const SizedBox(width: 12),
+                                          const Text('Settings'),
+                                        ]),
                                       ),
                                       PopupMenuItem<String>(
                                         value: 'qr_scanner',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.qr_code_scanner,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            const Text('Web Login QR'),
-                                          ],
-                                        ),
+                                        child: Row(children: [
+                                          Icon(Icons.qr_code_scanner, color: cs.primary),
+                                          const SizedBox(width: 12),
+                                          const Text('Web Login QR'),
+                                        ]),
                                       ),
                                       const PopupMenuDivider(),
                                     ],
                                     PopupMenuItem<String>(
                                       value: auth.isGuest ? 'login' : 'logout',
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            auth.isGuest
-                                                ? Icons.login
-                                                : Icons.logout,
-                                            color: auth.isGuest
-                                                ? Theme.of(
-                                                    context,
-                                                  ).colorScheme.primary
-                                                : Colors.red[700],
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Text(
-                                            auth.isGuest
-                                                ? 'Login / Register'
-                                                : 'Logout',
-                                            style: auth.isGuest
-                                                ? null
-                                                : TextStyle(
-                                                    color: Colors.red[700],
-                                                  ),
-                                          ),
-                                        ],
-                                      ),
+                                      child: Row(children: [
+                                        Icon(
+                                          auth.isGuest ? Icons.login : Icons.logout,
+                                          color: auth.isGuest ? cs.primary : Colors.red[700],
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          auth.isGuest ? 'Login / Register' : 'Logout',
+                                          style: auth.isGuest
+                                              ? null
+                                              : TextStyle(color: Colors.red[700]),
+                                        ),
+                                      ]),
                                     ),
                                   ],
                                 );
@@ -1210,44 +1131,51 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        // Search Bar
+                        // Search Bar inside header
                         Container(
+                          height: 50,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.shadow.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.white.withValues(alpha: 0.92),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.2)
+                                  : Colors.white.withValues(alpha: 0.6),
+                            ),
                           ),
                           child: TextField(
                             controller: _searchController,
                             focusNode: _searchFocusNode,
                             autofocus: false,
-                            onChanged: (value) {
-                              _performSearch(value);
-                            },
+                            onChanged: (value) => _performSearch(value),
+                            onTapOutside: (_) => _searchFocusNode.unfocus(),
+                            style: TextStyle(
+                              color: isDark ? Colors.white : const Color(0xFF1E1B4B),
+                              fontSize: 14,
+                            ),
                             decoration: InputDecoration(
                               hintText: 'Search features, students, classes...',
+                              hintStyle: TextStyle(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.55)
+                                    : const Color(0xFF6B7280),
+                                fontSize: 14,
+                              ),
                               prefixIcon: Icon(
-                                Icons.search,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withOpacity(0.6),
+                                Icons.search_rounded,
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.7)
+                                    : const Color(0xFF4F46E5),
                               ),
                               suffixIcon: _searchController.text.isNotEmpty
                                   ? IconButton(
                                       icon: Icon(
                                         Icons.clear,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.6),
+                                        color: isDark
+                                            ? Colors.white.withValues(alpha: 0.7)
+                                            : const Color(0xFF6B7280),
                                       ),
                                       onPressed: () {
                                         _searchController.clear();
@@ -1256,18 +1184,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     )
                                   : null,
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 16,
-                              ),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                             ),
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyLarge
-                                ?.copyWith(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                ),
                           ),
                         ),
                       ],
@@ -1354,7 +1273,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               size: 64,
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.3),
+                              ).colorScheme.onSurface.withValues(alpha: 0.3),
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -1366,7 +1285,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onSurface
-                                        .withOpacity(0.5),
+                                        .withValues(alpha: 0.5),
                                   ),
                             ),
                           ],
@@ -1422,123 +1341,293 @@ class _HomeScreenState extends State<HomeScreen> {
                         }
 
                         return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Overview',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface,
-                                    ),
+                              // Section Label
+                              Row(
+                                children: [
+                                  Text(
+                                    'Overview',
+                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                          letterSpacing: -0.3,
+                                        ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    DateFormat('MMM dd').format(DateTime.now()),
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.75),
+                                        ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 14),
+                              // Gradient stat cards row
                               SizedBox(
-                                height: 130,
+                                height: 120,
                                 child: ListView(
                                   scrollDirection: Axis.horizontal,
+                                  clipBehavior: Clip.none,
                                   children: [
-                                    _StatisticsCard(
-                                      title: 'Total Students',
+                                    _GradientStatCard(
+                                      title: 'Students',
                                       value: '${_stats?.totalStudents ?? 0}',
-                                      icon: Icons.people,
-                                      color: const Color(0xFF6750A4),
+                                      icon: Icons.people_alt_rounded,
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
                                       trend: _stats?.studentsTrend ?? '0',
-                                      trendColor:
-                                          (_stats?.studentsPositive ?? true)
-                                              ? Colors.green
-                                              : Colors.red,
+                                      positive: _stats?.studentsPositive ?? true,
                                     ),
-                                    const SizedBox(width: 16),
-                                    _StatisticsCard(
-                                      title: 'Today\'s Attendance',
-                                      value:
-                                          '${(_stats?.todayAttendancePercentage ?? 0).toStringAsFixed(0)}%',
-                                      icon: Icons.check_circle,
-                                      color: const Color(0xFF00BFA5),
+                                    const SizedBox(width: 12),
+                                    _GradientStatCard(
+                                      title: "Today's",
+                                      value: '${(_stats?.todayAttendancePercentage ?? 0).toStringAsFixed(0)}%',
+                                      icon: Icons.check_circle_rounded,
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF0EA5E9), Color(0xFF10B981)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
                                       trend: _stats?.attendanceTrend ?? '0%',
-                                      trendColor:
-                                          (_stats?.attendancePositive ?? true)
-                                              ? Colors.green
-                                              : Colors.red,
+                                      positive: _stats?.attendancePositive ?? true,
                                     ),
-                                    const SizedBox(width: 16),
-                                    _StatisticsCard(
-                                      title: 'Total Classes',
+                                    const SizedBox(width: 12),
+                                    _GradientStatCard(
+                                      title: 'Classes',
                                       value: '${_stats?.totalClasses ?? 0}',
-                                      icon: Icons.class_,
-                                      color: const Color(0xFF00796B),
+                                      icon: Icons.class_rounded,
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF059669), Color(0xFF0EA5E9)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
                                       trend: _stats?.classesTrend ?? '0',
-                                      trendColor:
-                                          (_stats?.classesPositive ?? true)
-                                              ? Colors.green
-                                              : Colors.red,
+                                      positive: _stats?.classesPositive ?? true,
                                     ),
-                                    const SizedBox(width: 16),
-                                    _StatisticsCard(
-                                      title: 'Payment Status',
-                                      value:
-                                          '${(_stats?.paymentStatusPercentage ?? 0).toStringAsFixed(0)}%',
-                                      icon: Icons.payment,
-                                      color: const Color(0xFF6200EE),
+                                    const SizedBox(width: 12),
+                                    _GradientStatCard(
+                                      title: 'Payments',
+                                      value: '${(_stats?.paymentStatusPercentage ?? 0).toStringAsFixed(0)}%',
+                                      icon: Icons.account_balance_wallet_rounded,
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
                                       trend: _stats?.paymentTrend ?? '0%',
-                                      trendColor:
-                                          (_stats?.paymentPositive ?? true)
-                                              ? Colors.green
-                                              : Colors.red,
+                                      positive: _stats?.paymentPositive ?? true,
                                     ),
                                   ],
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              Text(
-                                'Recent Activity',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface,
+                              // Recent Activity label
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 4,
+                                    height: 20,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                      ),
+                                      borderRadius: BorderRadius.circular(2),
                                     ),
-                              ),
-                              const SizedBox(height: 16),
-                              ..._activities.map(
-                                (activity) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _RecentActivityCard(
-                                    activity: activity,
-                                    onTap: () =>
-                                        _showActivityDetails(context, activity),
                                   ),
-                                ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Recent Activity',
+                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                          letterSpacing: -0.3,
+                                        ),
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: 14),
                               if (_activities.isEmpty)
-                                Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(20),
-                                    child: Text(
-                                      'No recent activities',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
+                                Container(
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFF1E1B2E)
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white.withValues(alpha: 0.06)
+                                          : Colors.grey.withValues(alpha: 0.1),
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      children: [
+                                        Icon(Icons.history_rounded,
+                                            size: 40,
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onSurface
-                                                .withOpacity(0.5),
-                                          ),
+                                                .withValues(alpha: 0.3)),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'No recent activities',
+                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.5),
+                                              ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
-                              const SizedBox(height: 32),
+                                )
+                              else
+                                ...List.generate(_activities.length, (i) {
+                                  final activity = _activities[i];
+                                  final isLast = i == _activities.length - 1;
+                                  final actColor = _getActivityColor(activity.type);
+                                  return IntrinsicHeight(
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        // Timeline indicator
+                                        SizedBox(
+                                          width: 36,
+                                          child: Column(
+                                            children: [
+                                              Container(
+                                                width: 32,
+                                                height: 32,
+                                                decoration: BoxDecoration(
+                                                  color: actColor.withValues(alpha: 0.15),
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                      color: actColor.withValues(alpha: 0.5),
+                                                      width: 2),
+                                                ),
+                                                child: Icon(
+                                                  _getActivityIcon(activity.type),
+                                                  size: 15,
+                                                  color: actColor,
+                                                ),
+                                              ),
+                                              if (!isLast)
+                                                Expanded(
+                                                  child: Center(
+                                                    child: Container(
+                                                      width: 2,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface
+                                                          .withValues(alpha: 0.12),
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        // Content
+                                        Expanded(
+                                          child: Padding(
+                                            padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+                                            child: GestureDetector(
+                                              child: Container(
+                                                padding: const EdgeInsets.all(12),
+                                                decoration: BoxDecoration(
+                                                  color: Theme.of(context).brightness == Brightness.dark
+                                                      ? const Color(0xFF1E1B2E)
+                                                      : Colors.white,
+                                                  borderRadius: BorderRadius.circular(14),
+                                                  boxShadow: Theme.of(context).brightness == Brightness.dark
+                                                      ? []
+                                                      : [
+                                                          BoxShadow(
+                                                            color: Colors.black.withValues(alpha: 0.05),
+                                                            blurRadius: 10,
+                                                            offset: const Offset(0, 2),
+                                                          )
+                                                        ],
+                                                  border: Border.all(
+                                                    color: actColor.withValues(alpha: 0.2),
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            activity.title,
+                                                            style: TextStyle(
+                                                              fontWeight: FontWeight.w600,
+                                                              fontSize: 14,
+                                                              color: Theme.of(context).colorScheme.onSurface,
+                                                            ),
+                                                          ),
+                                                          if (activity.subtitle.isNotEmpty)
+                                                            Padding(
+                                                              padding: const EdgeInsets.only(top: 2),
+                                                              child: Text(
+                                                                activity.subtitle,
+                                                                style: TextStyle(
+                                                                  fontSize: 12,
+                                                                  color: Theme.of(context)
+                                                                      .colorScheme
+                                                                      .onSurfaceVariant,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                                      children: [
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(
+                                                              horizontal: 8, vertical: 3),
+                                                          decoration: BoxDecoration(
+                                                            color: actColor.withValues(alpha: 0.12),
+                                                            borderRadius: BorderRadius.circular(8),
+                                                          ),
+                                                          child: Text(
+                                                            _getTimeAgo(activity.timestamp),
+                                                            style: TextStyle(
+                                                              fontSize: 10,
+                                                              fontWeight: FontWeight.w600,
+                                                              color: actColor,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              const SizedBox(height: 24),
                             ],
                           ),
                         );
@@ -1548,15 +1637,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // Feature Cards
                 if (!_isSearching)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Quick Access',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  letterSpacing: -0.3,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SliverToBoxAdapter(child: SizedBox(height: 14)),
+
+                if (!_isSearching)
                   SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     sliver: SliverGrid(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: 0.7,
+                        mainAxisSpacing: 14,
+                        crossAxisSpacing: 14,
+                        childAspectRatio: 1.05,
                       ),
                       delegate: SliverChildListDelegate([
                         Consumer<AuthProvider>(
@@ -1646,6 +1768,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         Consumer<AuthProvider>(
                           builder: (context, auth, child) {
                             return _FeatureCard(
+                              title: 'Collect Payments',
+                              subtitle: 'Mark paid/unpaid per class',
+                              icon: Icons.payments_outlined,
+                              color: const Color(0xFF00897B),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const PaymentCollectionScreen(),
+                                  ),
+                                );
+                              },
+                              isDisabled: false,
+                            );
+                          },
+                        ),
+                        Consumer<AuthProvider>(
+                          builder: (context, auth, child) {
+                            return _FeatureCard(
                               title: 'View Records',
                               subtitle: 'Check attendance history',
                               icon: Icons.analytics_rounded,
@@ -1724,256 +1866,98 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _StatisticsCard extends StatelessWidget {
+class _GradientStatCard extends StatelessWidget {
   final String title;
   final String value;
   final IconData icon;
-  final Color color;
+  final LinearGradient gradient;
   final String trend;
-  final Color trendColor;
+  final bool positive;
 
-  const _StatisticsCard({
+  const _GradientStatCard({
     required this.title,
     required this.value,
     required this.icon,
-    required this.color,
+    required this.gradient,
     required this.trend,
-    required this.trendColor,
+    this.positive = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 180,
+      width: 140,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        gradient: gradient,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: gradient.colors.first.withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: color, size: 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: trendColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      trend,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: trendColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 11,
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                child: Icon(icon, color: Colors.white, size: 18),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  trend,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 24,
-                  ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.7),
-                    fontSize: 12,
-                  ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  height: 1.0,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
-  }
-}
-
-class _RecentActivityCard extends StatelessWidget {
-  final RecentActivity activity;
-  final VoidCallback? onTap;
-
-  const _RecentActivityCard({
-    required this.activity,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _getActivityColor(activity.type)
-                    .withOpacity(isDarkMode ? 0.2 : 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(_getActivityIcon(activity.type),
-                  color: _getActivityColor(activity.type), size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    activity.title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: isDarkMode
-                              ? Colors.white
-                              : Theme.of(context).colorScheme.onSurface,
-                          fontSize: 14,
-                        ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    activity.subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: isDarkMode
-                              ? Colors.white.withOpacity(0.9)
-                              : Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.85),
-                          fontSize: 12,
-                        ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _getTimeAgo(activity.timestamp),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: isDarkMode
-                        ? Colors.white.withOpacity(0.7)
-                        : Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.7),
-                    fontSize: 11,
-                  ),
-              textAlign: TextAlign.right,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _getActivityIcon(String type) {
-    switch (type) {
-      case 'attendance':
-        return Icons.check_circle;
-      case 'student':
-        return Icons.person_add;
-      case 'payment':
-        return Icons.payment;
-      case 'class':
-        return Icons.class_;
-      case 'report':
-        return Icons.assessment;
-      default:
-        return Icons.info;
-    }
-  }
-
-  Color _getActivityColor(String type) {
-    switch (type) {
-      case 'attendance':
-        return Colors.green;
-      case 'student':
-        return Colors.blue;
-      case 'payment':
-        return Colors.purple;
-      case 'class':
-        return Colors.orange;
-      case 'report':
-        return Colors.teal;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getTimeAgo(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-
-    if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} minutes ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours} hours ago';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${(difference.inDays / 7).floor()} weeks ago';
-    }
   }
 }
 
@@ -1994,55 +1978,72 @@ class _SearchResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(
-                context,
-              ).colorScheme.shadow.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+          border: isDark
+              ? Border.all(color: Colors.white.withValues(alpha: 0.06))
+              : null,
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                gradient: LinearGradient(
+                  colors: [color, color.withValues(alpha: 0.7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: Colors.white, size: 20),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.onSurface,
+                          color: cs.onSurface,
+                          fontSize: 13.5,
                         ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withOpacity(0.7),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontSize: 11.5,
                         ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -2050,19 +2051,23 @@ class _SearchResultCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withOpacity(0.3),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: isDark ? 0.18 : 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 13,
+                color: color,
+              ),
             ),
           ],
         ),
       ),
     );
   }
-
 }
 
 class _FeatureCard extends StatefulWidget {
@@ -2095,10 +2100,10 @@ class _FeatureCardState extends State<_FeatureCard>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 150),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.96).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
   }
@@ -2111,131 +2116,150 @@ class _FeatureCardState extends State<_FeatureCard>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+
     return AnimatedBuilder(
       animation: _scaleAnimation,
       builder: (context, child) {
         return Transform.scale(
           scale: _scaleAnimation.value,
-          child: Card(
-            elevation: widget.isDisabled ? 2 : 6,
-            shadowColor: widget.color.withOpacity(
-              widget.isDisabled ? 0.2 : 0.3,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: InkWell(
-              onTap: widget.isDisabled
-                  ? null
-                  : () {
-                      _animationController.forward().then((_) {
-                        _animationController.reverse();
-                        widget.onTap();
-                      });
-                    },
-              onTapDown: widget.isDisabled
-                  ? null
-                  : (_) => _animationController.forward(),
-              onTapUp: widget.isDisabled
-                  ? null
-                  : (_) => _animationController.reverse(),
-              onTapCancel: widget.isDisabled
-                  ? null
-                  : () => _animationController.reverse(),
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      widget.color.withOpacity(
-                        widget.isDisabled ? 0.03 : 0.08,
-                      ),
-                      widget.color.withOpacity(
-                        widget.isDisabled ? 0.01 : 0.04,
-                      ),
-                    ],
-                  ),
-                ),
+          child: GestureDetector(
+            onTapDown: widget.isDisabled
+                ? null
+                : (_) => _animationController.forward(),
+            onTapUp: widget.isDisabled
+                ? null
+                : (_) {
+                    _animationController.reverse();
+                    widget.onTap();
+                  },
+            onTapCancel: widget.isDisabled
+                ? null
+                : () => _animationController.reverse(),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: widget.isDisabled
+                    ? []
+                    : isDark
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: widget.color.withValues(alpha: 0.12),
+                              blurRadius: 18,
+                              offset: const Offset(0, 5),
+                            ),
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                border: isDark
+                    ? Border.all(
+                        color: Colors.white.withValues(alpha: 0.06),
+                        width: 1,
+                      )
+                    : null,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(18),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Gradient icon badge
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      width: 52,
+                      height: 52,
                       decoration: BoxDecoration(
-                        color: widget.color.withOpacity(
-                          widget.isDisabled ? 0.08 : 0.15,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: widget.color.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                        gradient: widget.isDisabled
+                            ? null
+                            : LinearGradient(
+                                colors: [
+                                  widget.color,
+                                  widget.color.withValues(alpha: 0.7),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                        color: widget.isDisabled
+                            ? cs.surfaceContainerHigh
+                            : null,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: widget.isDisabled
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color:
+                                      widget.color.withValues(alpha: 0.35),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
                       ),
                       child: Icon(
                         widget.icon,
-                        size: 32,
+                        size: 26,
                         color: widget.isDisabled
-                            ? widget.color.withOpacity(0.4)
-                            : widget.color,
+                            ? cs.onSurface.withValues(alpha: 0.3)
+                            : Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
                     Text(
                       widget.title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w700,
                             color: widget.isDisabled
-                                ? Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withOpacity(0.4)
-                                : Theme.of(context).colorScheme.onSurface,
+                                ? cs.onSurface.withValues(alpha: 0.4)
+                                : cs.onSurface,
+                            fontSize: 14,
+                            letterSpacing: -0.2,
                           ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 3),
                     Text(
                       widget.subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: widget.isDisabled
-                                ? Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withOpacity(0.3)
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withOpacity(0.6),
-                          ),
+                      style:
+                          Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: widget.isDisabled
+                                    ? cs.onSurface.withValues(alpha: 0.28)
+                                    : cs.onSurfaceVariant,
+                                fontSize: 11,
+                              ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
                     ),
                     if (widget.isDisabled) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.orange.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           'Login Required',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.orange[700],
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                          style: TextStyle(
+                            color: Colors.orange[700],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 10,
+                          ),
                         ),
                       ),
                     ],

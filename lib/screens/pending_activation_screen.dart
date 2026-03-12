@@ -67,7 +67,6 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Your payment proof was rejected by the admin.'),
-          backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
         ),
       );
@@ -94,7 +93,6 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Your account has been activated! Welcome!'),
-          backgroundColor: Colors.green,
           duration: Duration(seconds: 3),
         ),
       );
@@ -125,11 +123,8 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
     final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Account Pending Activation'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -153,13 +148,6 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primaryContainer,
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
                 ),
                 child: Icon(
                   Icons.hourglass_empty,
@@ -195,71 +183,70 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
               const SizedBox(height: 32),
 
               // Status Card
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+              Builder(
+                builder: (bCtx) {
+                  final cs = Theme.of(bCtx).colorScheme;
+                  final isDark = Theme.of(bCtx).brightness == Brightness.dark;
+                  return Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(20),
+                      border: isDark
+                          ? null
+                          : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
                     ),
-                  ],
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.info_outline,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'What happens next?',
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          _buildStep(
+                            context,
+                            '1',
+                            'An administrator will review your account details',
+                          ),
+                          const SizedBox(height: 16),
+                          _buildStep(
+                            context,
+                            '2',
+                            'Your account will be activated for full access',
+                          ),
+                          const SizedBox(height: 16),
+                          _buildStep(
+                            context,
+                            '3',
+                            'You will receive immediate access to all features',
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.info_outline,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'What happens next?',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    _buildStep(
-                      context,
-                      '1',
-                      'An administrator will review your account details',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStep(
-                      context,
-                      '2',
-                      'Your account will be activated for full access',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStep(
-                      context,
-                      '3',
-                      'You will receive immediate access to all features',
-                    ),
-                  ],
-                ),
-              ),
 
               const SizedBox(height: 32),
 
@@ -270,13 +257,6 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(25),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,

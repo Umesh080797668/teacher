@@ -2,6 +2,7 @@ import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:provider/provider.dart';
 import '../models/student.dart';
@@ -53,11 +54,14 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
     if (mounted) {
        if (FaceRecognitionService().isModelLoaded) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Face Recognition Model Ready'), backgroundColor: Colors.green),
+            const SnackBar(content: Text('Face Recognition Model Ready')),
           );
        } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to load Face Recognition Model'), backgroundColor: Colors.red),
+            SnackBar(
+              content: const Text('Failed to load Face Recognition Model'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
           );
        }
     }
@@ -292,27 +296,16 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
           context: context,
           barrierDismissible: false,
           builder: (ctx) {
-            final isDark = Theme.of(context).brightness == Brightness.dark;
             return AlertDialog(
-              backgroundColor: isDark ? Colors.grey[900] : Colors.white,
-              title: Text(
-                'Registration Complete',
-                style: TextStyle(color: isDark ? Colors.white : Colors.black),
-              ),
-              content: Text(
-                'Biometric data secured.',
-                style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
-              ),
+              title: const Text('Registration Complete'),
+              content: const Text('Biometric data secured.'),
               actions: [
                 TextButton(
                   onPressed: () {
                     Navigator.of(ctx).pop(); 
                     Navigator.of(context).pop(); 
                   },
-                  child: Text(
-                    'Finish',
-                    style: TextStyle(color: isDark ? Colors.blueAccent : Colors.blue),
-                  ),
+                  child: const Text('Finish'),
                 )
               ],
             );
@@ -346,20 +339,67 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
   Widget build(BuildContext context) {
     if (!_isCameraInitialized || _cameraController == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Register Face')),
-        body: const Center(child: CircularProgressIndicator()),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1E1A2E), Color(0xFF2D2660)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+                const Expanded(
+                  child: Center(
+                    child: CircularProgressIndicator(color: Color(0xFF7C3AED)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
+    // Determine status colour
+    Color statusColor;
+    IconData statusIcon;
+    if (_isProcessingRegistration) {
+      statusColor = const Color(0xFFF59E0B);
+      statusIcon = Icons.hourglass_top_rounded;
+    } else if (_isFaceAligned) {
+      statusColor = const Color(0xFF22C55E);
+      statusIcon = Icons.check_circle_outline_rounded;
+    } else if (_statusMessage.contains('Move') || _statusMessage.contains('Center') ||
+               _statusMessage.contains('Straight') || _statusMessage.contains('Position')) {
+      statusColor = const Color(0xFFF97316);
+      statusIcon = Icons.face_retouching_natural_rounded;
+    } else {
+      statusColor = Colors.white70;
+      statusIcon = Icons.info_outline_rounded;
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Register Face')),
+      backgroundColor: Colors.black,
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          // Camera Preview
-          SizedBox.expand(
-            child: CameraPreview(_cameraController!),
-          ),
-          
+          // ── Camera Preview ──────────────────────────────────────────────
+          CameraPreview(_cameraController!),
+
+          // ── Face bounding box painter ───────────────────────────────────
           if (_imageSize != Size.zero)
             CustomPaint(
               painter: FacePainter(
@@ -369,57 +409,162 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
               ),
             ),
 
-          // Overlay
+          // ── Oval cutout overlay ─────────────────────────────────────────
           Container(
-            decoration: ShapeDecoration(
-              shape: OverlayShape(),
-            ),
+            decoration: ShapeDecoration(shape: OverlayShape()),
           ),
-          
-          // Capture Button
+
+          // ── Gradient header bar ─────────────────────────────────────────
           Positioned(
-            bottom: 120, 
-            left: 0, 
-            right: 0,
-            child: Center(
-              child: ElevatedButton.icon(
-                onPressed: (_isFaceAligned && !_isProcessingRegistration) 
-                    ? () {
-                        setState(() {
-                          _captureRequested = true;
-                          _statusMessage = "Capturing...";
-                        });
-                      } 
-                    : null,
-                icon: const Icon(Icons.camera),
-                label: const Text('CAPTURE FACE'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _isFaceAligned ? Colors.blue : Colors.grey,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+            top: 0, left: 0, right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.black.withValues(alpha: 0.75), Colors.transparent],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 16, 20),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Face Registration',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 20,
+                              ),
+                            ),
+                            Text(
+                              widget.student.name,
+                              style: const TextStyle(color: Colors.white70, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                        ),
+                        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.shield_rounded, color: Colors.white, size: 14),
+                          SizedBox(width: 4),
+                          Text('Secure', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                        ]),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
 
-          // Status & Instructions
+          // ── Bottom panel ────────────────────────────────────────────────
           Positioned(
-            bottom: 50,
-            left: 20,
-            right: 20,
+            bottom: 0, left: 0, right: 0,
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
               decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(30),
+                gradient: LinearGradient(
+                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.85)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
-              child: Text(
-                _statusMessage,
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-                textAlign: TextAlign.center,
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Status pill
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(statusIcon, color: statusColor, size: 18),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            _statusMessage,
+                            style: TextStyle(color: statusColor, fontWeight: FontWeight.w600, fontSize: 14),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Tips row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _TipChip(icon: Icons.light_mode_rounded, label: 'Good lighting'),
+                      _TipChip(icon: Icons.face_rounded, label: 'Face the camera'),
+                      _TipChip(icon: Icons.remove_red_eye_rounded, label: 'Eyes open'),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  // Capture button
+                  GestureDetector(
+                    onTap: (_isFaceAligned && !_isProcessingRegistration)
+                        ? () => setState(() {
+                              _captureRequested = true;
+                              _statusMessage = 'Capturing...';
+                            })
+                        : null,
+                    child: AnimatedOpacity(
+                      opacity: (_isFaceAligned && !_isProcessingRegistration) ? 1.0 : 0.45,
+                      duration: const Duration(milliseconds: 300),
+                      child: Container(
+                        height: 60,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: (_isFaceAligned && !_isProcessingRegistration)
+                              ? [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.5), blurRadius: 16, offset: const Offset(0, 6))]
+                              : [],
+                        ),
+                        child: Center(
+                          child: _isProcessingRegistration
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                              : const Row(mainAxisSize: MainAxisSize.min, children: [
+                                  Icon(Icons.camera_alt_rounded, color: Colors.white, size: 22),
+                                  SizedBox(width: 12),
+                                  Text('Capture Face', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: 0.3)),
+                                ]),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -564,4 +709,31 @@ class OverlayShape extends ShapeBorder {
 
   @override
   ShapeBorder scale(double t) => this;
+}
+
+class _TipChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _TipChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white70, size: 14),
+          const SizedBox(width: 5),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+        ],
+      ),
+    );
+  }
 }

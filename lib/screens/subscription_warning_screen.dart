@@ -48,11 +48,8 @@ class _SubscriptionWarningScreenState extends State<SubscriptionWarningScreen> {
       : 0;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Subscription Warning'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -67,13 +64,13 @@ class _SubscriptionWarningScreenState extends State<SubscriptionWarningScreen> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.tertiaryContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.warning_amber_rounded,
                       size: 40,
-                      color: Colors.orange,
+                      color: Theme.of(context).colorScheme.onTertiaryContainer,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -86,22 +83,28 @@ class _SubscriptionWarningScreenState extends State<SubscriptionWarningScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      'Your subscription will expire in $daysLeft day${daysLeft == 1 ? '' : 's'}. Please renew now to avoid service interruption.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
-                        height: 1.4,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                  Builder(
+                    builder: (bCtx) {
+                      final cs = Theme.of(bCtx).colorScheme;
+                      final isDark = Theme.of(bCtx).brightness == Brightness.dark;
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                          border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                        ),
+                        child: Text(
+                          'Your subscription will expire in $daysLeft day${daysLeft == 1 ? '' : 's'}. Please renew now to avoid service interruption.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: cs.onSurface.withValues(alpha: 0.8),
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -137,14 +140,12 @@ class _SubscriptionWarningScreenState extends State<SubscriptionWarningScreen> {
                 Expanded(
                   child: FilledButton(
                     onPressed: () {
-                      // Navigate to activation screen for renewal
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (context) => const ActivationScreen()),
                       );
                     },
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: Theme.of(context).colorScheme.primary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

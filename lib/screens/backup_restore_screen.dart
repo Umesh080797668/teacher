@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import '../services/backup_service.dart';
+import '../widgets/custom_widgets.dart';
 import 'package:intl/intl.dart';
 
 class BackupRestoreScreen extends StatefulWidget {
@@ -70,25 +71,17 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        title: Text(
-          'Restore Backup',
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-        ),
-        content: Text(
+        title: const Text('Restore Backup'),
+        content: const Text(
           'This will replace all current data with the backup data. This action cannot be undone. Continue?',
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-            ),
             child: const Text('Restore'),
           ),
         ],
@@ -174,24 +167,19 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        title: Text(
-          'Delete Backup',
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-        ),
-        content: Text(
+        title: const Text('Delete Backup'),
+        content: const Text(
           'Are you sure you want to delete this backup?',
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
             child: const Text('Delete'),
           ),
@@ -225,15 +213,12 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       SnackBar(
         content: Row(
           children: [
-            Icon(
-              isError ? Icons.error : Icons.check_circle,
-              color: Colors.white,
-            ),
+            Icon(isError ? Icons.error : Icons.check_circle),
             const SizedBox(width: 12),
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
@@ -253,9 +238,6 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Backup & Restore'),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -265,7 +247,11 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: 4,
+              itemBuilder: (_, __) => const BackupItemSkeleton(),
+            )
           : Column(
               children: [
                 // Action Buttons
@@ -275,26 +261,23 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                     children: [
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton.icon(
+                        child: FilledButton.icon(
                           onPressed: _isCreatingBackup ? null : _createBackup,
                           icon: _isCreatingBackup
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 20,
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.white,
+                                    color: Theme.of(context).colorScheme.onPrimary,
                                   ),
                                 )
                               : const Icon(Icons.add),
                           label: Text(_isCreatingBackup
                               ? 'Creating Backup...'
                               : 'Create New Backup'),
-                          style: ElevatedButton.styleFrom(
+                          style: FilledButton.styleFrom(
                             padding: const EdgeInsets.all(16),
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
                           ),
                         ),
                       ),
@@ -350,7 +333,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.7),
+                                    .withValues(alpha: 0.7),
                               ),
                             ),
                           ],
@@ -391,7 +374,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.3),
+                                    .withValues(alpha: 0.3),
                               ),
                               const SizedBox(height: 16),
                               Text(
@@ -401,7 +384,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withOpacity(0.5),
+                                      .withValues(alpha: 0.5),
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -412,7 +395,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withOpacity(0.5),
+                                      .withValues(alpha: 0.5),
                                 ),
                               ),
                             ],
@@ -428,18 +411,26 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                             final isAutoBackup = filename.startsWith('backup_');
                             final isManual = filename.startsWith('manual_');
 
-                            return Card(
+                            final cs = Theme.of(context).colorScheme;
+                            final isDark = Theme.of(context).brightness == Brightness.dark;
+                            return Container(
                               margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(12),
+                                border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                              ),
                               child: ListTile(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 leading: CircleAvatar(
                                   backgroundColor: isManual
-                                      ? Colors.blue.withOpacity(0.2)
-                                      : Colors.green.withOpacity(0.2),
+                                      ? cs.primaryContainer
+                                      : const Color(0xFF22C55E).withValues(alpha: 0.2),
                                   child: Icon(
                                     isManual
                                         ? Icons.folder
                                         : Icons.access_time,
-                                    color: isManual ? Colors.blue : Colors.green,
+                                    color: isManual ? cs.onPrimaryContainer : const Color(0xFF22C55E),
                                   ),
                                 ),
                                 title: Text(
@@ -464,7 +455,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withOpacity(0.6),
+                                            .withValues(alpha: 0.6),
                                       ),
                                     ),
                                     Text(
@@ -474,7 +465,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withOpacity(0.5),
+                                            .withValues(alpha: 0.5),
                                       ),
                                     ),
                                   ],
@@ -514,13 +505,13 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                                         ],
                                       ),
                                     ),
-                                    const PopupMenuItem(
+                                    PopupMenuItem(
                                       value: 'delete',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.delete, size: 20, color: Colors.red),
-                                          SizedBox(width: 12),
-                                          Text('Delete', style: TextStyle(color: Colors.red)),
+                                          Icon(Icons.delete, size: 20, color: cs.error),
+                                          const SizedBox(width: 12),
+                                          Text('Delete', style: TextStyle(color: cs.error)),
                                         ],
                                       ),
                                     ),

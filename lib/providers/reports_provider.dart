@@ -131,7 +131,7 @@ class ReportsProvider with ChangeNotifier {
           _loadPayments(teacherId: teacherId),
           _loadStudentsAndClasses(teacherId: teacherId),
           _loadMonthlyEarningsByClass(teacherId: teacherId),
-        ]).timeout(const Duration(seconds: 5));
+        ]).timeout(const Duration(seconds: 15));
 
         // Cache for next time
         if (teacherId != null) {
@@ -202,7 +202,30 @@ class ReportsProvider with ChangeNotifier {
   Future<void> _loadMonthlyByClass({String? teacherId}) async {
     try {
       final response = await ApiService.getMonthlyByClass(teacherId: teacherId);
-      _monthlyByClass = List<Map<String, dynamic>>.from(response);
+      final rawList = List<Map<String, dynamic>>.from(response);
+
+      // Deduplicate conductedDays per class entry: the backend now groups by date
+      // string at the aggregate level, but as a safety net we also deduplicate in
+      // Flutter. Each entry is a Map with a 'date' key (YYYY-MM-DD string from the
+      // fixed backend), so we normalise by that key.
+      _monthlyByClass = rawList.map((classEntry) {
+        final rawDays = classEntry['conductedDays'];
+        if (rawDays is List) {
+          final seen = <String>{};
+          final uniqueDays = rawDays.where((d) {
+            // d is a Map<String,dynamic> — extract the 'date' field
+            final dateVal = d is Map ? d['date'] : d;
+            final dateStr = dateVal?.toString().split('T').first ?? '';
+            return seen.add(dateStr); // keeps first occurrence, discards duplicates
+          }).toList();
+          return {
+            ...classEntry,
+            'conductedDays': uniqueDays,
+            'totalConductedDays': uniqueDays.length,
+          };
+        }
+        return classEntry;
+      }).toList();
     } catch (e) {
       debugPrint('Error loading monthly by class: $e');
       _monthlyByClass = [];
@@ -338,7 +361,7 @@ class ReportsProvider with ChangeNotifier {
           ApiService.getAttendance(teacherId: teacherId, month: month, year: year),
           ApiService.getStudents(teacherId: teacherId),
           ApiService.getClasses(teacherId: teacherId),
-        ]).timeout(const Duration(seconds: 5));
+        ]).timeout(const Duration(seconds: 15));
 
         final attendanceList = results[0] as List<Attendance>;
         final studentsList = results[1] as List<Student>;
@@ -366,13 +389,13 @@ class ReportsProvider with ChangeNotifier {
         
         debugPrint('✓ Loaded fresh daily attendance data');
       } on TimeoutException {
-        debugPrint('⚠️ Daily attendance loading timed out, using cached data if available');
+        debugPrint('⚠️ Daily attendance loading timed out, keeping cached data');
+        // Do NOT clear existing data — cached data from the loading block above is still valid
       } catch (e) {
         debugPrint('Error loading daily attendance: $e');
-        if (_dailyAttendance.isEmpty || _allStudents.isEmpty || _allClasses.isEmpty) {
+        // Only reset if we have absolutely nothing to show
+        if (_allClasses.isEmpty && _allStudents.isEmpty) {
           _dailyAttendance = [];
-          _allStudents = [];
-          _allClasses = [];
         }
       }
     } finally {

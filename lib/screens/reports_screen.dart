@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
@@ -50,65 +51,105 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     int selectedMonth = DateTime.now().month;
     int selectedYear = DateTime.now().year;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        final isDark = Theme.of(sheetCtx).brightness == Brightness.dark;
+        final cs = Theme.of(sheetCtx).colorScheme;
         return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Download Monthly Report'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Select Month and Year for the report:'),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<int>(
-                          value: selectedMonth,
-                          decoration: const InputDecoration(labelText: 'Month'),
-                          items: List.generate(12, (index) {
-                            return DropdownMenuItem(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 30, offset: const Offset(0, -4))],
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(child: Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20), decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(2)))),
+                    Row(
+                      children: [
+                        Container(
+                          width: 46, height: 46,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                            borderRadius: BorderRadius.circular(13),
+                            boxShadow: [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 4))],
+                          ),
+                          child: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text('Download Monthly Report', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18, color: cs.onSurface)),
+                            Text('Select month and year for the report', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                          ]),
+                        ),
+                        IconButton(onPressed: () => Navigator.pop(sheetCtx), icon: Icon(Icons.close_rounded, color: cs.onSurfaceVariant)),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: selectedMonth,
+                            dropdownColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                            style: TextStyle(color: cs.onSurface),
+                            items: List.generate(12, (index) => DropdownMenuItem(
                               value: index + 1,
-                              child: Text(DateFormat('MMMM').format(DateTime(2022, index + 1))),
-                            );
-                          }),
-                          onChanged: (val) => setState(() => selectedMonth = val!),
+                              child: Text(DateFormat('MMMM').format(DateTime(2022, index + 1)), style: TextStyle(color: cs.onSurface)),
+                            )),
+                            onChanged: (val) => setSheetState(() => selectedMonth = val!),
+                            decoration: InputDecoration(labelText: 'Month', labelStyle: TextStyle(color: cs.onSurfaceVariant)),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: DropdownButtonFormField<int>(
-                          value: selectedYear,
-                          decoration: const InputDecoration(labelText: 'Year'),
-                          items: List.generate(10, (index) {
-                            final year = DateTime.now().year - 5 + index;
-                            return DropdownMenuItem(
-                              value: year,
-                              child: Text(year.toString()),
-                            );
-                          }),
-                          onChanged: (val) => setState(() => selectedYear = val!),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: selectedYear,
+                            dropdownColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                            style: TextStyle(color: cs.onSurface),
+                            items: List.generate(10, (index) {
+                              final year = DateTime.now().year - 5 + index;
+                              return DropdownMenuItem(value: year, child: Text(year.toString(), style: TextStyle(color: cs.onSurface)));
+                            }),
+                            onChanged: (val) => setSheetState(() => selectedYear = val!),
+                            decoration: InputDecoration(labelText: 'Year', labelStyle: TextStyle(color: cs.onSurfaceVariant)),
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(sheetCtx);
+                        _generateReport(selectedMonth, selectedYear);
+                      },
+                      child: Container(
+                        height: 54,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], begin: Alignment.centerLeft, end: Alignment.centerRight),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 5))],
+                        ),
+                        child: const Center(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.download_rounded, color: Colors.white, size: 20),
+                          SizedBox(width: 10),
+                          Text('Download Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                        ])),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    _generateReport(selectedMonth, selectedYear);
-                  },
-                  child: const Text('Download'),
-                ),
-              ],
             );
           },
         );
@@ -177,38 +218,127 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     final reportsProvider = Provider.of<ReportsProvider>(context, listen: false);
-    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Reports'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
-            tooltip: 'Download Monthly Report',
-            onPressed: () => _showMonthlyReportDialog(context),
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Attendance Summary'),
-            Tab(text: 'Student Reports'),
-            Tab(text: 'Payments'),
-            Tab(text: 'Earnings'),
-          ],
-        ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refreshReports,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        color: Theme.of(context).colorScheme.primary,
-        child: TabBarView(
-          controller: _tabController,
+      backgroundColor: isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
+      body: SafeArea(
+        child: Column(
           children: [
-            _AttendanceSummaryTab(reportsProvider: reportsProvider),
-            _StudentReportsTab(reportsProvider: reportsProvider),
-            _PaymentsTab(reportsProvider: reportsProvider),
-            _MonthlyEarningsTab(reportsProvider: reportsProvider),
+            // Gradient Header with TabBar
+            Container(
+              decoration: BoxDecoration(
+                gradient: isDark
+                    ? const LinearGradient(
+                        colors: [Color(0xFF1E1A2E), Color(0xFF2D2660)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : const LinearGradient(
+                        colors: [Color(0xFF3730A3), Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 8, 12),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Reports',
+                              style: GoogleFonts.poppins(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              'Analytics & insights',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.75),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.picture_as_pdf, color: Colors.white, size: 20),
+                            tooltip: 'Download Monthly Report',
+                            onPressed: () => _showMonthlyReportDialog(context),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+                            tooltip: 'Refresh',
+                            onPressed: _refreshReports,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white60,
+                    indicatorColor: Colors.white,
+                    indicatorWeight: 3,
+                    dividerColor: Colors.transparent,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    tabs: const [
+                      Tab(text: 'Attendance'),
+                      Tab(text: 'Students'),
+                      Tab(text: 'Payments'),
+                      Tab(text: 'Earnings'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Tab content
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _refreshReports,
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _AttendanceSummaryTab(reportsProvider: reportsProvider),
+                    _StudentReportsTab(reportsProvider: reportsProvider),
+                    _PaymentsTab(reportsProvider: reportsProvider),
+                    _MonthlyEarningsTab(reportsProvider: reportsProvider),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -298,90 +428,105 @@ class _AttendanceSummaryTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              ...provider.dailyByClass.map((classData) => Card(
-            key: ValueKey('summary-${classData['classId'] ?? classData['className']}'),
-            margin: const EdgeInsets.only(bottom: 12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          classData['className'] ?? 'Unknown Class',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
+              ...provider.dailyByClass.map((classData) {
+                return Builder(
+                  key: ValueKey('summary-${classData['classId'] ?? classData['className']}'),
+                  builder: (context) {
+                    final cs = Theme.of(context).colorScheme;
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(16),
+                        border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  classData['className'] ?? 'Unknown Class',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: cs.onSurface,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: cs.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${classData['totalStudents'] ?? 0} Students',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: cs.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${classData['totalStudents'] ?? 0} Students',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _StatItem(
+                                  label: 'Present',
+                                  value: classData['presentCount']?.toString() ?? '0',
+                                  color: const Color(0xFF22C55E),
+                                ),
+                              ),
+                              Expanded(
+                                child: _StatItem(
+                                  label: 'Absent',
+                                  value: classData['absentCount']?.toString() ?? '0',
+                                  color: cs.error,
+                                ),
+                              ),
+                              Expanded(
+                                child: _StatItem(
+                                  label: 'Late',
+                                  value: classData['lateCount']?.toString() ?? '0',
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                          const SizedBox(height: 8),
+                          LinearProgressIndicator(
+                            value: (classData['attendanceRate'] ?? 0) / 100,
+                            backgroundColor: cs.outlineVariant.withValues(alpha: 0.3),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              (classData['attendanceRate'] ?? 0) >= 75
+                                  ? const Color(0xFF22C55E)
+                                  : Colors.orange,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Attendance Rate: ${(classData['attendanceRate'] ?? 0).toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: (classData['attendanceRate'] ?? 0) >= 75
+                                  ? const Color(0xFF22C55E)
+                                  : Colors.orange,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatItem(
-                          label: 'Present',
-                          value: classData['presentCount']?.toString() ?? '0',
-                          color: Colors.green,
-                        ),
-                      ),
-                      Expanded(
-                        child: _StatItem(
-                          label: 'Absent',
-                          value: classData['absentCount']?.toString() ?? '0',
-                          color: Colors.red,
-                        ),
-                      ),
-                      Expanded(
-                        child: _StatItem(
-                          label: 'Late',
-                          value: classData['lateCount']?.toString() ?? '0',
-                          color: Colors.orange,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: (classData['attendanceRate'] ?? 0) / 100,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      (classData['attendanceRate'] ?? 0) >= 75 ? Colors.green : Colors.orange,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Attendance Rate: ${(classData['attendanceRate'] ?? 0).toStringAsFixed(1)}%',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: (classData['attendanceRate'] ?? 0) >= 75 ? Colors.green : Colors.orange,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )),
+                    );
+                  },
+                );
+              }),
           const SizedBox(height: 24),
           Text(
             'Monthly Overview',
@@ -442,7 +587,7 @@ class _StudentReportsTabState extends State<_StudentReportsTab> {
             Container(
               padding: const EdgeInsets.all(16),
               child: DropdownButtonFormField<String>(
-                initialValue: _selectedClassId,
+                value: _selectedClassId,
                 decoration: InputDecoration(
                   labelText: 'Filter by Class',
                   border: OutlineInputBorder(
@@ -471,84 +616,76 @@ class _StudentReportsTabState extends State<_StudentReportsTab> {
             // Student reports list
             Expanded(
               child: filteredReports.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.people_outline,
-                            size: 64,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No students found',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ? const EmptyState(
+                      icon: Icons.people_outline,
+                      title: 'No students found',
+                      message: 'Try selecting a different class',
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: filteredReports.length,
                       itemBuilder: (context, index) {
                         final report = filteredReports[index];
-                        return Card(
+                        final cs = Theme.of(context).colorScheme;
+                        final isDark = Theme.of(context).brightness == Brightness.dark;
+                        return Container(
                           key: ValueKey('report-${report['studentId'] ?? index}'),
                           margin: const EdgeInsets.only(bottom: 12),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  report['studentName'] ?? 'Unknown Student',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onSurface,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(16),
+                            border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                report['studentName'] ?? 'Unknown Student',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: cs.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                report['className'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  _StatChip(
+                                    label: 'Present: ${report['presentCount'] ?? 0}',
+                                    color: const Color(0xFF22C55E),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  report['className'] ?? '',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  const SizedBox(width: 8),
+                                  _StatChip(
+                                    label: 'Absent: ${report['absentCount'] ?? 0}',
+                                    color: cs.error,
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    _StatChip(
-                                      label: 'Present: ${report['presentCount'] ?? 0}',
-                                      color: Colors.green,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _StatChip(
-                                      label: 'Absent: ${report['absentCount'] ?? 0}',
-                                      color: Colors.red,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _StatChip(
-                                      label: 'Late: ${report['lateCount'] ?? 0}',
-                                      color: Colors.orange,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Attendance Rate: ${report['attendanceRate']?.toStringAsFixed(1) ?? '0.0'}%',
-                                  style: TextStyle(
-                                    color: (report['attendanceRate'] ?? 0) >= 75 ? Colors.green : Colors.red,
-                                    fontWeight: FontWeight.w500,
+                                  const SizedBox(width: 8),
+                                  _StatChip(
+                                    label: 'Late: ${report['lateCount'] ?? 0}',
+                                    color: Colors.orange,
                                   ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Attendance Rate: ${report['attendanceRate']?.toStringAsFixed(1) ?? '0.0'}%',
+                                style: TextStyle(
+                                  color: (report['attendanceRate'] ?? 0) >= 75
+                                      ? const Color(0xFF22C55E)
+                                      : cs.error,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         );
                       },
@@ -578,30 +715,42 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-              textAlign: TextAlign.center,
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -618,9 +767,9 @@ class _StatChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         label,
@@ -651,7 +800,7 @@ class _StatItem extends StatelessWidget {
         ),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
+          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -667,66 +816,71 @@ class _MonthlyOverviewChart extends StatelessWidget {
   Widget build(BuildContext context) {
     // Simple bar chart representation
     final monthlyStats = reportsProvider.monthlyStats.take(6).toList().reversed.toList();
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Last 6 Months',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Last 6 Months',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: cs.onSurface,
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: monthlyStats.map((stat) {
-                  final present = stat['presentCount'] ?? 0;
-                  final absent = stat['absentCount'] ?? 0;
-                  final total = present + absent;
-                  final presentHeight = total > 0 ? (present / total) * 150 : 0.0;
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 200,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: monthlyStats.map((stat) {
+                final present = stat['presentCount'] ?? 0;
+                final absent = stat['absentCount'] ?? 0;
+                final total = present + absent;
+                final presentHeight = total > 0 ? (present / total) * 150 : 0.0;
 
-                  return Expanded(
-                    key: ValueKey('chart-${stat['month']}'),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Container(
-                            height: presentHeight,
-                            decoration: const BoxDecoration(
-                              color: Colors.green,
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(4),
-                                topRight: Radius.circular(4),
-                              ),
+                return Expanded(
+                  key: ValueKey('chart-${stat['month']}'),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(
+                          height: presentHeight,
+                          decoration: BoxDecoration(
+                            color: cs.primary,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(4),
+                              topRight: Radius.circular(4),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${stat['month']}',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${stat['month']}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: cs.onSurfaceVariant,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  );
-                }).toList(),
-              ),
+                  ),
+                );
+              }).toList(),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -906,25 +1060,10 @@ class _PaymentsTabState extends State<_PaymentsTab> {
             // Payments list
             Expanded(
               child: studentPaymentsMap.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.payment,
-                            size: 64,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No payments found',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ? const EmptyState(
+                      icon: Icons.payment,
+                      title: 'No payments found',
+                      message: 'Try selecting a different class or month',
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -933,30 +1072,41 @@ class _PaymentsTabState extends State<_PaymentsTab> {
                         final studentId = studentPaymentsMap.keys.elementAt(index);
                         final data = studentPaymentsMap[studentId]!;
                         final payments = data['payments'] as List;
-                        
-                        return Card(
+                        final cs = Theme.of(context).colorScheme;
+                        final isDark = Theme.of(context).brightness == Brightness.dark;
+                        return Container(
                           key: ValueKey('payment-group-$studentId'),
                           margin: const EdgeInsets.only(bottom: 12),
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(16),
+                            border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                          ),
                           child: ExpansionTile(
                             title: Text(
                               data['studentName'] ?? 'Unknown Student',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
+                                color: cs.onSurface,
                               ),
                             ),
-                            subtitle: Text(data['className'] ?? ''),
+                            subtitle: Text(
+                              data['className'] ?? '',
+                              style: TextStyle(color: cs.onSurfaceVariant),
+                            ),
                             trailing: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.1),
+                                color: const Color(0xFF22C55E).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.green.withOpacity(0.3)),
+                                border: Border.all(color: const Color(0xFF22C55E).withValues(alpha: 0.3)),
                               ),
                               child: Text(
                                 'Rs. ${data['totalAmount'].toStringAsFixed(2)}',
                                 style: const TextStyle(
-                                  color: Colors.green,
+                                  color: Color(0xFF22C55E),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -1104,7 +1254,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: !_showByDate ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : null,
+                        backgroundColor: !_showByDate ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : null,
                         side: BorderSide(
                           color: !_showByDate ? Theme.of(context).colorScheme.primary : Colors.grey,
                         ),
@@ -1130,7 +1280,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: _showByDate ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : null,
+                        backgroundColor: _showByDate ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : null,
                         side: BorderSide(
                           color: _showByDate ? Theme.of(context).colorScheme.primary : Colors.grey,
                         ),
@@ -1261,12 +1411,12 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
+                        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.calendar_today),
+                          Icon(Icons.calendar_today_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -1275,7 +1425,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                                   : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
                               style: TextStyle(
                                 color: _selectedDate == null
-                                    ? Colors.grey
+                                    ? Theme.of(context).colorScheme.onSurfaceVariant
                                     : Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
@@ -1331,33 +1481,29 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.green.shade400, Colors.green.shade600],
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.primaryContainer,
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.green.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
             child: Column(
               children: [
-                const Text(
+                Text(
                   'Total Earnings',
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
                     fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Rs. ${totalEarnings.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1365,8 +1511,8 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                 const SizedBox(height: 4),
                 Text(
                   '$totalPayments payment${totalPayments != 1 ? 's' : ''}',
-                  style: const TextStyle(
-                    color: Colors.white70,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
                     fontSize: 14,
                   ),
                 ),
@@ -1378,27 +1524,12 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
 
           // Earnings list
           if (filteredEarnings.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.account_balance_wallet,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No earnings for ${_getMonthName(_selectedMonth)} $_selectedYear',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                    ),
-                  ],
-                ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: EmptyState(
+                icon: Icons.account_balance_wallet,
+                title: 'No earnings',
+                message: 'No earnings for ${_getMonthName(_selectedMonth)} $_selectedYear',
               ),
             )
           else
@@ -1418,7 +1549,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.school, color: Colors.green),
@@ -1436,9 +1567,9 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                     trailing: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                        border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         'Rs. ${(earning['amount'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'}',
@@ -1513,33 +1644,29 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.blue.shade400, Colors.blue.shade600],
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.secondary,
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blue.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
             child: Column(
               children: [
                 Text(
                   'Payments on ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
-                  style: const TextStyle(
-                    color: Colors.white70,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
                     fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Rs. ${totalDailyPayments.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1547,8 +1674,8 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                 const SizedBox(height: 4),
                 Text(
                   '$paymentCount payment${paymentCount != 1 ? 's' : ''}',
-                  style: const TextStyle(
-                    color: Colors.white70,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
                     fontSize: 14,
                   ),
                 ),
@@ -1560,27 +1687,12 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
 
           // Daily payments list
           if (dailyPaymentsByClass.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.receipt,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No payments recorded on this date',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                    ),
-                  ],
-                ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: EmptyState(
+                icon: Icons.receipt,
+                title: 'No payments',
+                message: 'No payments recorded on this date',
               ),
             )
           else
@@ -1600,7 +1712,7 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.receipt, color: Colors.blue),
@@ -1618,9 +1730,9 @@ class _MonthlyEarningsTabState extends State<_MonthlyEarningsTab> {
                     trailing: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         'Rs. ${(classPayment['amount'] as num).toStringAsFixed(2)}',

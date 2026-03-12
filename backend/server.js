@@ -3468,36 +3468,50 @@ app.get('/api/reports/student-reports', verifyToken, async (req, res) => {
     }
 
     const students = await Student.find(studentQuery);
-    const reports = [];
 
-    for (const student of students) {
-      let attendanceQuery = { studentId: student._id };
-      if (month) attendanceQuery.month = parseInt(month);
-      if (year) attendanceQuery.year = parseInt(year);
+    // ── Batch-fetch all classes and attendance records to avoid N+1 queries ──
+    // Pre-load class names in one query
+    const uniqueClassIds = [...new Set(
+      students.filter(s => s.classId).map(s => s.classId.toString())
+    )];
+    const classObjects = await Class.find({ _id: { $in: uniqueClassIds } });
+    const classNameMap = {};
+    classObjects.forEach(c => { classNameMap[c._id.toString()] = c.name; });
 
-      const attendanceRecords = await Attendance.find(attendanceQuery);
-      const totalRecords = attendanceRecords.length;
-      const presentCount = attendanceRecords.filter(a => a.status === 'present').length;
-      const absentCount = attendanceRecords.filter(a => a.status === 'absent').length;
-      const lateCount = attendanceRecords.filter(a => a.status === 'late').length;
+    // Fetch all relevant attendance in one query
+    const studentObjectIds = students.map(s => s._id);
+    let batchAttendanceQuery = { studentId: { $in: studentObjectIds } };
+    if (month) batchAttendanceQuery.month = parseInt(month);
+    if (year) batchAttendanceQuery.year = parseInt(year);
+    const allAttendance = await Attendance.find(batchAttendanceQuery);
 
-      const attendanceRate = totalRecords > 0 ? (presentCount / totalRecords) * 100 : 0;
+    // Group attendance by studentId for O(1) lookup
+    const attendanceMap = {};
+    allAttendance.forEach(a => {
+      const key = a.studentId.toString();
+      if (!attendanceMap[key]) attendanceMap[key] = [];
+      attendanceMap[key].push(a);
+    });
 
-      // Get class name
-      const classDoc = await Class.findById(student.classId);
+    const reports = students.map(student => {
+      const records = attendanceMap[student._id.toString()] || [];
+      const presentCount = records.filter(a => a.status === 'present').length;
+      const absentCount = records.filter(a => a.status === 'absent').length;
+      const lateCount = records.filter(a => a.status === 'late').length;
+      const attendanceRate = records.length > 0 ? (presentCount / records.length) * 100 : 0;
 
-      reports.push({
+      return {
         studentId: student._id,
         studentName: student.name,
         classId: student.classId,
-        className: classDoc ? classDoc.name : 'Unknown Class',
-        totalRecords,
+        className: classNameMap[student.classId?.toString()] || 'Unknown Class',
+        totalRecords: records.length,
         presentCount,
         absentCount,
         lateCount,
         attendanceRate
-      });
-    }
+      };
+    });
 
     res.json(reports);
   } catch (error) {
@@ -3749,7 +3763,7 @@ app.get('/api/reports/monthly-by-class', verifyToken, async (req, res) => {
         continue;
       }
 
-      // Get attendance records grouped by year, month, and date
+      // Get attendance records grouped by year, month, and calendar date (not full datetime)
       const dailyPipeline = [
         {
           $match: { studentId: { $in: studentIds } }
@@ -3759,7 +3773,8 @@ app.get('/api/reports/monthly-by-class', verifyToken, async (req, res) => {
             _id: {
               year: '$year',
               month: '$month',
-              date: '$date'
+              // Normalise to YYYY-MM-DD so multiple sessions on the same day merge into one
+              dateStr: { $dateToString: { format: '%Y-%m-%d', date: '$date' } }
             },
             presentCount: { $sum: { $cond: [{ $eq: ['$status', 'present'] }, 1, 0] } },
             absentCount: { $sum: { $cond: [{ $eq: ['$status', 'absent'] }, 1, 0] } },
@@ -3772,7 +3787,7 @@ app.get('/api/reports/monthly-by-class', verifyToken, async (req, res) => {
             _id: 0,
             year: '$_id.year',
             month: '$_id.month',
-            date: '$_id.date',
+            date: '$_id.dateStr',
             presentCount: 1,
             absentCount: 1,
             lateCount: 1,

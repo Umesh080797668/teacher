@@ -22,12 +22,9 @@ class SubscriptionStatusAlertScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        automaticallyImplyLeading: false, // Remove back button
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
         child: Padding(
@@ -69,7 +66,7 @@ class SubscriptionStatusAlertScreen extends StatelessWidget {
                 message,
                 style: TextStyle(
                   fontSize: 16,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -80,9 +77,9 @@ class SubscriptionStatusAlertScreen extends StatelessWidget {
               // Action Button
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: FilledButton(
                   onPressed: onActionPressed ?? () => _goToHome(context),
-                  style: ElevatedButton.styleFrom(
+                  style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

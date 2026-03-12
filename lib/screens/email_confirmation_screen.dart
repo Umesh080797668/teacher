@@ -113,7 +113,6 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter the complete 5-digit code'),
-          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -145,12 +144,12 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.error_outline, color: Colors.white),
+              Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onError),
               const SizedBox(width: 8),
               Expanded(child: Text(errorMessage)),
             ],
           ),
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 5),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -163,14 +162,13 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
         SnackBar(
           content: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              Icon(Icons.warning_amber_rounded),
               SizedBox(width: 8),
               Expanded(
                 child: Text('Unable to verify code. Please check your connection and try again.'),
               ),
             ],
           ),
-          backgroundColor: Colors.orange.shade700,
           duration: const Duration(seconds: 4),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -206,7 +204,6 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Registration successful!'),
-          backgroundColor: Colors.green,
         ),
       );
 
@@ -230,12 +227,12 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.error_outline, color: Colors.white),
+              Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onError),
               const SizedBox(width: 8),
               Expanded(child: Text(errorMessage)),
             ],
           ),
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 5),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -248,14 +245,13 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
         SnackBar(
           content: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              Icon(Icons.warning_amber_rounded),
               SizedBox(width: 8),
               Expanded(
                 child: Text('Unable to complete registration. Please try again.'),
               ),
             ],
           ),
-          backgroundColor: Colors.orange.shade700,
           duration: const Duration(seconds: 4),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -281,7 +277,6 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Verification code sent successfully'),
-          backgroundColor: Colors.green,
         ),
       );
     } on ApiException catch (e) {
@@ -296,12 +291,12 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.error_outline, color: Colors.white),
+              Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onError),
               const SizedBox(width: 8),
               Expanded(child: Text(errorMessage)),
             ],
           ),
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 5),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -312,14 +307,13 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
         SnackBar(
           content: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              Icon(Icons.warning_amber_rounded),
               SizedBox(width: 8),
               Expanded(
                 child: Text('Unable to send code. Please check your connection and try again.'),
               ),
             ],
           ),
-          backgroundColor: Colors.orange.shade700,
           duration: const Duration(seconds: 4),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -372,7 +366,7 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 20,
                               spreadRadius: 2,
                             ),
@@ -402,7 +396,7 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
                         'We sent a 5-digit code to',
                         style: GoogleFonts.poppins(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
 
@@ -426,11 +420,11 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
                             height: 60,
                             margin: const EdgeInsets.symmetric(horizontal: 4),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.3),
+                              color: Colors.black.withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
+                                  color: Colors.black.withValues(alpha: 0.1),
                                   blurRadius: 10,
                                   spreadRadius: 1,
                                 ),
@@ -466,15 +460,14 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
                       SizedBox(
                         width: double.infinity,
                         height: 56,
-                        child: ElevatedButton(
+                        child: FilledButton(
                           onPressed: _isLoading ? null : _verifyCode,
-                          style: ElevatedButton.styleFrom(
+                          style: FilledButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: const Color(0xFF6750A4),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            elevation: 2,
                           ),
                           child: _isLoading
                               ? const SizedBox(
@@ -504,7 +497,7 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
                             Text(
                               'Resend code in ${_formatTime(_remainingSeconds)}',
                               style: GoogleFonts.poppins(
-                                color: Colors.white.withOpacity(0.8),
+                                color: Colors.white.withValues(alpha: 0.8),
                                 fontSize: 14,
                               ),
                             )
@@ -543,7 +536,7 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> with 
                         child: Text(
                           'Change Email',
                           style: GoogleFonts.poppins(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 14,
                           ),
                         ),

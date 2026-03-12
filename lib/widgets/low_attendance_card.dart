@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../models/student.dart';
-import 'package:provider/provider.dart';
 
 class LowAttendanceCard extends StatefulWidget {
   final String classId;
@@ -42,14 +41,16 @@ class _LowAttendanceCardState extends State<LowAttendanceCard> {
     if (_isLoading) return const SizedBox.shrink();
     if (_students.isEmpty) return const SizedBox.shrink();
 
+    final cs = Theme.of(context).colorScheme;
+
     return Card(
-      color: Colors.red[50], // Alert color
+      color: cs.errorContainer,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ExpansionTile(
-        leading: const Icon(Icons.warning, color: Colors.red),
+        leading: Icon(Icons.warning, color: cs.error),
         title: Text(
           'Action Needed: Low Attendance (${_students.length})',
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+          style: TextStyle(fontWeight: FontWeight.bold, color: cs.error),
         ),
         subtitle: const Text('Students with 3+ consecutive absences'),
         children: _students.map((data) {
@@ -59,7 +60,7 @@ class _LowAttendanceCardState extends State<LowAttendanceCard> {
             title: Text(student.name),
             subtitle: Text('$absences consecutive absences'),
             trailing: IconButton(
-              icon: const Icon(Icons.message, color: Colors.green),
+              icon: const Icon(Icons.message, color: Color(0xFF25D366)),
               onPressed: () async {
                 if (student.phoneNumber == null) return;
                 

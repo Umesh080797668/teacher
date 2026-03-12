@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../providers/payment_provider.dart';
@@ -88,112 +89,153 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
     
-    // Default values for the dialog
     String? selectedRemindClassId = classes.isNotEmpty ? classes.first.id : null;
     int selectedRemindMonth = DateTime.now().month;
     int selectedRemindYear = DateTime.now().year;
     
-    await showDialog(
+    await showModalBottomSheet(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: const Text('Send WhatsApp Reminders'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Send WhatsApp reminders to all students who haven\'t paid for the selected month.', style: TextStyle(fontSize: 13, color: Colors.grey)),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(labelText: 'Class', border: OutlineInputBorder()),
-                    value: selectedRemindClassId,
-                    items: classes.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                    onChanged: (val) {
-                      setDialogState(() => selectedRemindClassId = val);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<int>(
-                          decoration: const InputDecoration(labelText: 'Month', border: OutlineInputBorder()),
-                          value: selectedRemindMonth,
-                          items: List.generate(12, (i) => i + 1).map((m) => 
-                            DropdownMenuItem(value: m, child: Text(_getMonthName(m)))
-                          ).toList(),
-                          onChanged: (val) => setDialogState(() => selectedRemindMonth = val!),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        final isDark = Theme.of(sheetCtx).brightness == Brightness.dark;
+        final cs = Theme.of(sheetCtx).colorScheme;
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 30, offset: const Offset(0, -4))],
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(child: Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20), decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(2)))),
+                    Row(
+                      children: [
+                        Container(
+                          width: 46, height: 46,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF25D366), Color(0xFF128C7E)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                            borderRadius: BorderRadius.circular(13),
+                            boxShadow: [BoxShadow(color: const Color(0xFF25D366).withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 4))],
+                          ),
+                          child: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButtonFormField<int>(
-                          decoration: const InputDecoration(labelText: 'Year', border: OutlineInputBorder()),
-                          value: selectedRemindYear,
-                          items: List.generate(5, (i) => DateTime.now().year - 2 + i).map((y) => 
-                            DropdownMenuItem(value: y, child: Text(y.toString()))
-                          ).toList(),
-                          onChanged: (val) => setDialogState(() => selectedRemindYear = val!),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text('WhatsApp Reminders', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18, color: cs.onSurface)),
+                            Text('Send payment reminders to students', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                          ]),
                         ),
+                        IconButton(onPressed: () => Navigator.pop(sheetCtx), icon: Icon(Icons.close_rounded, color: cs.onSurfaceVariant)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF25D366).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.2)),
                       ),
-                    ],
-                  ),
-                ],
+                      child: Text(
+                        'Reminders will be sent to all students who haven\'t paid for the selected month.',
+                        style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedRemindClassId,
+                      dropdownColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                      style: TextStyle(color: cs.onSurface),
+                      isExpanded: true,
+                      items: classes.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, style: TextStyle(color: cs.onSurface)))).toList(),
+                      onChanged: (val) => setSheetState(() => selectedRemindClassId = val),
+                      decoration: InputDecoration(
+                        labelText: 'Class',
+                        labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                        prefixIcon: const Icon(Icons.class_rounded),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: selectedRemindMonth,
+                            dropdownColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                            style: TextStyle(color: cs.onSurface),
+                            items: List.generate(12, (i) => i + 1).map((m) => DropdownMenuItem(value: m, child: Text(_getMonthName(m), style: TextStyle(color: cs.onSurface)))).toList(),
+                            onChanged: (val) => setSheetState(() => selectedRemindMonth = val!),
+                            decoration: InputDecoration(labelText: 'Month', labelStyle: TextStyle(color: cs.onSurfaceVariant)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: selectedRemindYear,
+                            dropdownColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                            style: TextStyle(color: cs.onSurface),
+                            items: List.generate(5, (i) => DateTime.now().year - 2 + i).map((y) => DropdownMenuItem(value: y, child: Text(y.toString(), style: TextStyle(color: cs.onSurface)))).toList(),
+                            onChanged: (val) => setSheetState(() => selectedRemindYear = val!),
+                            decoration: InputDecoration(labelText: 'Year', labelStyle: TextStyle(color: cs.onSurfaceVariant)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    GestureDetector(
+                      onTap: () async {
+                        if (selectedRemindClassId == null) return;
+                        Navigator.pop(sheetCtx);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Row(children: [SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)), SizedBox(width: 12), Text('Sending reminders...')]), duration: Duration(seconds: 2)),
+                          );
+                        }
+                        try {
+                          final result = await ApiService.sendPaymentReminders(classId: selectedRemindClassId!, month: selectedRemindMonth, year: selectedRemindYear);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            final msg = result['message'] ?? 'Reminders sent!';
+                            final count = result['remindedCount'] ?? 0;
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$msg ($count sent)'), backgroundColor: Colors.green));
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red));
+                          }
+                        }
+                      },
+                      child: Container(
+                        height: 54,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFF25D366), Color(0xFF128C7E)], begin: Alignment.centerLeft, end: Alignment.centerRight),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [BoxShadow(color: const Color(0xFF25D366).withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 5))],
+                        ),
+                        child: const Center(child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                          SizedBox(width: 10),
+                          Text('Send Reminders', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                        ])),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.send),
-                label: const Text('Send'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                onPressed: () async {
-                  if (selectedRemindClassId == null) return;
-                  Navigator.pop(ctx);
-                  
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Row(children: [CircularProgressIndicator(color: Colors.white, strokeWidth: 2), SizedBox(width: 10), Text('Sending reminders...')]),
-                        duration: Duration(seconds: 2),
-                      )
-                    );
-                  }
-                  
-                  try {
-                    final result = await ApiService.sendPaymentReminders(
-                      classId: selectedRemindClassId!,
-                      month: selectedRemindMonth,
-                      year: selectedRemindYear
-                    );
-                    
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      final msg = result['message'] ?? 'Reminders sent!';
-                      final count = result['remindedCount'] ?? 0;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('$msg ($count sent)'), backgroundColor: Colors.green),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
-                      );
-                    }
-                  }
-                },
-              ),
-            ],
-          );
-        },
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -305,164 +347,200 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Payments'),
-        elevation: 0,
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_active),
-            tooltip: 'Send Payment Reminders',
-            onPressed: _showReminderDialog,
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
+      backgroundColor: isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
+      body: SafeArea(
         child: Column(
           children: [
-            // Header with stats
+            // Gradient Header
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
+                gradient: isDark
+                    ? const LinearGradient(
+                        colors: [Color(0xFF1E1A2E), Color(0xFF2D2660)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : const LinearGradient(
+                        colors: [Color(0xFF3730A3), Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
               ),
-              child: Consumer<PaymentProvider>(
-                builder: (context, provider, child) {
-                  final currentMonth = DateTime.now().month;
-                  final currentYear = DateTime.now().year;
-                  final monthlyPayments = provider.payments.where((p) => 
-                    p.month == currentMonth && p.year == currentYear
-                  ).toList();
-                  
-                  final totalRevenue = monthlyPayments.fold<double>(0, (sum, payment) => sum + payment.amount);
-                  final fullPayments = monthlyPayments.where((p) => p.type == 'full').length;
-                  final halfPayments = monthlyPayments.where((p) => p.type == 'half').length;
-                  final freePayments = monthlyPayments.where((p) => p.type == 'free').length;
-
-                  return Column(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 20),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Total Revenue and Total Payments in one line
+                      Text(
+                        'Payments',
+                        style: GoogleFonts.poppins(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        'Track & manage payments',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.75),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.notifications_active, color: Colors.white, size: 20),
+                      tooltip: 'Send Payment Reminders',
+                      onPressed: _showReminderDialog,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+                      onPressed: _loadData,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Scrollable body
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+            // Header with stats
+            Consumer<PaymentProvider>(
+              builder: (context, provider, _) {
+                final cs = Theme.of(context).colorScheme;
+                final currentMonth = DateTime.now().month;
+                final currentYear = DateTime.now().year;
+                final monthlyPayments = provider.payments.where((p) =>
+                  p.month == currentMonth && p.year == currentYear
+                ).toList();
+                final totalRevenue = monthlyPayments.fold<double>(0, (sum, p) => sum + p.amount);
+                final fullPayments = monthlyPayments.where((p) => p.type == 'full').length;
+                final halfPayments = monthlyPayments.where((p) => p.type == 'half').length;
+                final freePayments = monthlyPayments.where((p) => p.type == 'free').length;
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Column(
+                    children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Flexible(
+                          Expanded(
                             child: _StatCard(
-                              title: 'Total Revenue',
+                              title: 'Revenue',
                               value: 'LKR ${totalRevenue.toStringAsFixed(0)}',
-                              icon: Icons.attach_money,
-                              color: Theme.of(context).colorScheme.primary,
+                              icon: Icons.attach_money_rounded,
+                              color: cs.primary,
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Flexible(
+                          const SizedBox(width: 12),
+                          Expanded(
                             child: _StatCard(
-                              title: 'Total Payments',
+                              title: 'Total',
                               value: '${monthlyPayments.length}',
-                              icon: Icons.receipt,
-                              color: Colors.green,
+                              icon: Icons.receipt_rounded,
+                              color: const Color(0xFF22C55E),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      // Full, Free, Half cards in one line
+                      const SizedBox(height: 12),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Flexible(
-                            child: _PaymentTypeCard(
-                              title: 'Full',
-                              count: fullPayments,
-                              color: Colors.blue,
-                            ),
-                          ),
-                          Flexible(
-                            child: _PaymentTypeCard(
-                              title: 'Half',
-                              count: halfPayments,
-                              color: Colors.orange,
-                            ),
-                          ),
-                          Flexible(
-                            child: _PaymentTypeCard(
-                              title: 'Free',
-                              count: freePayments,
-                              color: Colors.purple,
-                            ),
-                          ),
+                          Expanded(child: _PaymentTypeCard(title: 'Full', count: fullPayments, color: Colors.blue)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _PaymentTypeCard(title: 'Half', count: halfPayments, color: Colors.orange)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _PaymentTypeCard(title: 'Free', count: freePayments, color: Colors.purple)),
                         ],
                       ),
                     ],
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
 
             // Add Payment Button
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.all(16),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
                 child: !_showForm
-                    ? ElevatedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _showForm = true;
-                          });
-                        },
-                        icon: const Icon(Icons.add),
-                        label: const Text('Record New Payment'),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    ? SizedBox(
+                        key: const ValueKey('btn'),
+                        width: double.infinity,
+                        height: 52,
+                        child: FilledButton.icon(
+                          onPressed: () => setState(() => _showForm = true),
+                          icon: const Icon(Icons.add_rounded),
+                          label: const Text('Record New Payment'),
                         ),
                       )
-                    : Card(
-                        elevation: 4,
-                        color: Theme.of(context).colorScheme.surface,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Form(
+                    : Builder(
+                        key: const ValueKey('form'),
+                        builder: (context) {
+                          final cs = Theme.of(context).colorScheme;
+                          final isDark = Theme.of(context).brightness == Brightness.dark;
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                              borderRadius: BorderRadius.circular(20),
+                              border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+                            ),
+                            padding: const EdgeInsets.all(20),
+                            child: Form(
                             key: _formKey,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Record Payment',
-                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                      ),
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Record Payment',
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: Theme.of(context).colorScheme.onSurface,
                                     ),
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.close,
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _showForm = false;
-                                        });
-                                      },
+                                  ),
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.close_rounded,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
-                                  ],
-                                ),
+                                    onPressed: () => setState(() => _showForm = false),
+                                  ),
+                                ],
+                              ),
                                 const SizedBox(height: 16),
 
                                 // Class Selection
@@ -477,11 +555,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                       decoration: InputDecoration(
                                         labelText: 'Select Class',
                                         labelStyle: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                         ),
                                         prefixIcon: Icon(
                                           Icons.class_,
-                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                         ),
                                       ),
                                       items: classesProvider.classes.map((classObj) {
@@ -528,11 +606,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                       decoration: InputDecoration(
                                         labelText: 'Select Student',
                                         labelStyle: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                         ),
                                         prefixIcon: Icon(
                                           Icons.person,
-                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                         ),
                                       ),
                                       items: classStudents.map((student) {
@@ -575,11 +653,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                         decoration: InputDecoration(
                                           labelText: 'Month',
                                           labelStyle: TextStyle(
-                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                           ),
                                           prefixIcon: Icon(
                                             Icons.calendar_month,
-                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                           ),
                                         ),
                                         items: List.generate(12, (index) {
@@ -615,11 +693,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                         decoration: InputDecoration(
                                           labelText: 'Year',
                                           labelStyle: TextStyle(
-                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                           ),
                                           prefixIcon: Icon(
                                             Icons.date_range,
-                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                           ),
                                         ),
                                         items: List.generate(6, (index) {
@@ -690,7 +768,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                               'Recording Date',
                                               style: TextStyle(
                                                 fontSize: 12,
-                                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                               ),
                                             ),
                                             const SizedBox(height: 4),
@@ -722,11 +800,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   decoration: InputDecoration(
                                     labelText: 'Payment Type',
                                     labelStyle: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                     ),
                                     prefixIcon: Icon(
                                       Icons.payment,
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                     ),
                                   ),
                                   items: [
@@ -779,15 +857,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   decoration: InputDecoration(
                                     labelText: 'Amount (LKR)',
                                     labelStyle: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                     ),
                                     prefixIcon: Icon(
                                       Icons.attach_money,
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                     ),
                                     hintText: 'Enter payment amount',
                                     hintStyle: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                                     ),
                                   ),
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -803,21 +881,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   },
                                 ),
                                 const SizedBox(height: 16),
-
-                                ElevatedButton.icon(
-                                  onPressed: _addPayment,
-                                  icon: const Icon(Icons.save),
-                                  label: const Text('Record Payment'),
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size(double.infinity, 50),
-                                    backgroundColor: Theme.of(context).colorScheme.primary,
-                                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 50,
+                                  child: FilledButton.icon(
+                                    onPressed: _addPayment,
+                                    icon: const Icon(Icons.save_rounded),
+                                    label: const Text('Record Payment'),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
+                          );
+                        },
                       ),
               ),
             ),
@@ -838,17 +915,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 decoration: InputDecoration(
                   hintText: 'Search payments by student name...',
                   hintStyle: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   prefixIcon: Icon(
                     Icons.search,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   suffixIcon: _searchText.isNotEmpty
                       ? IconButton(
                           icon: Icon(
                             Icons.clear,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           onPressed: () {
                             _searchController.clear();
@@ -862,7 +939,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: Theme.of(context).colorScheme.surface,
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).colorScheme.surfaceContainerHigh
+                      : Theme.of(context).colorScheme.surfaceContainerLow,
                 ),
               ),
             ),
@@ -893,33 +972,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       }).toList();
 
                 if (filteredPayments.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.payment_outlined,
-                          size: 80,
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchText.isNotEmpty ? 'No payments found matching "$_searchText"' : 'No payments yet',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _searchText.isNotEmpty 
-                              ? 'Try a different search term'
-                              : 'Record your first payment',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                      ],
-                    ),
+                  return EmptyState(
+                    icon: _searchText.isNotEmpty ? Icons.search_off_rounded : Icons.payment_outlined,
+                    title: _searchText.isNotEmpty ? 'No Results Found' : 'No Payments Yet',
+                    message: _searchText.isNotEmpty
+                        ? 'No payments match "$_searchText"'
+                        : 'Record your first payment using the button above',
                   );
                 }
 
@@ -960,95 +1018,83 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 },
                               );
                             },
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            icon: Icons.delete,
+                            backgroundColor: Theme.of(context).colorScheme.error,
+                            foregroundColor: Theme.of(context).colorScheme.onError,
+                            icon: Icons.delete_rounded,
                             label: 'Delete',
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ],
                       ),
-                      child: Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: CircleAvatar(
-                            backgroundColor: _getPaymentTypeColor(payment.type),
-                            radius: 28,
-                            child: Icon(
-                              _getPaymentTypeIcon(payment.type),
-                              color: Colors.white,
-                              size: 28,
-                            ),
+                      child: Builder(builder: (bCtx) {
+                          final cs = Theme.of(bCtx).colorScheme;
+                          final isDark = Theme.of(bCtx).brightness == Brightness.dark;
+                          return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(16),
+                            border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
                           ),
-                          title: Consumer2<StudentsProvider, ClassesProvider>(
-                            builder: (context, studentsProvider, classesProvider, child) {
-                              final student = studentsProvider.students.firstWhere(
-                                (s) => s.id == payment.studentId,
-                                orElse: () => Student(id: '', name: '', studentId: ''),
-                              );
-                              final classObj = classesProvider.classes.firstWhere(
-                                (c) => c.id == payment.classId,
-                                orElse: () => class_model.Class(id: '', name: '', teacherId: ''),
-                              );
-
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {},
+                            child: Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    student.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16,
+                                  CircleAvatar(
+                                    backgroundColor: _getPaymentTypeColor(payment.type).withValues(alpha: 0.15),
+                                    radius: 24,
+                                    child: Icon(
+                                      _getPaymentTypeIcon(payment.type),
+                                      color: _getPaymentTypeColor(payment.type),
+                                      size: 24,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${classObj.name} • ${_getPaymentTypeLabel(payment.type)}',
-                                    style: TextStyle(
-                                      color: Theme.of(context).colorScheme.outline,
-                                      fontSize: 14,
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Consumer2<StudentsProvider, ClassesProvider>(
+                                      builder: (context, sp, cp, _) {
+                                        final student = sp.students.firstWhere(
+                                          (s) => s.id == payment.studentId,
+                                          orElse: () => Student(id: '', name: '', studentId: ''),
+                                        );
+                                        final classObj = cp.classes.firstWhere(
+                                          (c) => c.id == payment.classId,
+                                          orElse: () => class_model.Class(id: '', name: '', teacherId: ''),
+                                        );
+                                        return Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(student.name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: cs.onSurface)),
+                                            const SizedBox(height: 2),
+                                            Text('${classObj.name} • ${_getPaymentTypeLabel(payment.type)}', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                                            const SizedBox(height: 1),
+                                            Text(_formatMonthYear(payment.month ?? payment.date.month, payment.year ?? payment.date.year), style: TextStyle(color: cs.primary, fontSize: 11, fontWeight: FontWeight.w500)),
+                                          ],
+                                        );
+                                      },
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
                                   Text(
-                                    _formatMonthYear(payment.month ?? payment.date.month, payment.year ?? payment.date.year),
-                                    style: TextStyle(
-                                      color: Theme.of(context).colorScheme.primary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Recorded: ${_formatPaidDate(payment.date)}',
-                                    style: TextStyle(
-                                      color: Theme.of(context).colorScheme.outline,
-                                      fontSize: 11,
-                                    ),
+                                    'LKR ${payment.amount.toStringAsFixed(0)}',
+                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: cs.primary),
                                   ),
                                 ],
-                              );
-                            },
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: SizedBox.shrink(),
-                          ),
-                          trailing: Text(
-                            'LKR ${payment.amount.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+                              ),
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                        }),
                     );
                   },
                 );
               },
+            ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -1101,19 +1147,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  String _formatPaidDate(DateTime date) {
-    // Format as: 2026-January-10 14:26 (with time and local timezone)
-    final months = [
-      '', 'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    final monthName = months[date.month];
-    final day = date.day.toString().padLeft(2, '0');
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '${date.year}-$monthName-$day $hour:$minute';
-  }
-
   String _formatMonthYear(int month, int year) {
     // Format as: december-2025 (lowercase month-year)
     final months = [
@@ -1153,46 +1186,41 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      constraints: const BoxConstraints(minWidth: 120, maxWidth: 160),
-      padding: const EdgeInsets.all(12), // Reduced padding
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Icon(icon, color: color, size: 28), // Slightly smaller icon
-          const SizedBox(height: 6), // Reduced spacing
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 20, // Slightly smaller font
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-              maxLines: 1,
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(height: 2), // Reduced spacing
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-              maxLines: 1,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(value,
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w800, color: color)),
+                ),
+                Text(title,
+                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+              ],
             ),
           ),
         ],
@@ -1215,39 +1243,20 @@ class _PaymentTypeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 70, maxWidth: 100),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // Reduced padding
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              count.toString(),
+          Text(count.toString(),
               style: TextStyle(
-                fontSize: 16, // Slightly smaller font
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-              maxLines: 1,
-            ),
-          ),
-          const SizedBox(height: 1), // Reduced spacing
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 11, // Slightly smaller font
-                color: color,
-              ),
-              maxLines: 1,
-            ),
-          ),
+                  fontSize: 18, fontWeight: FontWeight.w800, color: color)),
+          Text(title,
+              style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500)),
         ],
       ),
     );

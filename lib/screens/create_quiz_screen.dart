@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/quiz.dart';
-import '../models/class.dart';
 import '../providers/classes_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -89,118 +89,298 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: Text('Create Quiz')),
+      backgroundColor: isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Form(
+          ? const Center(child: CircularProgressIndicator())
+          : SafeArea(
+              child: Column(
+                children: [
+                  // Gradient Header
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: isDark
+                          ? const LinearGradient(
+                              colors: [Color(0xFF1E1A2E), Color(0xFF2D2660)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : const LinearGradient(
+                              colors: [Color(0xFF3730A3), Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Create Quiz',
+                              style: GoogleFonts.poppins(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              'Build a new quiz for students',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.75),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Form body
+                  Expanded(
+                    child: Form(
               key: _formKey,
               child: ListView(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 children: [
+                  // Quiz Title
+                  _sectionLabel('Quiz Details', cs),
+                  const SizedBox(height: 10),
                   TextFormField(
                     controller: _titleController,
                     decoration: InputDecoration(
-                        labelText: 'Quiz Title',
-                        border: OutlineInputBorder(),
+                      labelText: 'Quiz Title',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                      prefixIcon: const Icon(Icons.title_rounded),
                     ),
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                    style: TextStyle(color: cs.onSurface),
                     validator: (v) => v!.isEmpty ? 'Required' : null,
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   Row(
                     children: [
-                        Expanded(
-                            child: TextFormField(
-                                controller: _durationController,
-                                decoration: InputDecoration(
-                                    labelText: 'Duration (m)',
-                                    border: OutlineInputBorder(),
-                                ),
-                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                                keyboardType: TextInputType.number,
-                                validator: (v) => v!.isEmpty ? 'Required' : int.tryParse(v) == null ? 'Must be a number' : null,
-                            ),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _durationController,
+                          decoration: InputDecoration(
+                            labelText: 'Duration (min)',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            filled: true,
+                            fillColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                            prefixIcon: const Icon(Icons.timer_rounded),
+                          ),
+                          style: TextStyle(color: cs.onSurface),
+                          keyboardType: TextInputType.number,
+                          validator: (v) => v!.isEmpty ? 'Required' : int.tryParse(v) == null ? 'Must be a number' : null,
                         ),
-                        SizedBox(width: 16),
-                        Expanded(
-                            child: TextFormField(
-                                controller: _attemptsController,
-                                decoration: InputDecoration(
-                                    labelText: 'Max Attempts',
-                                    border: OutlineInputBorder(),
-                                ),
-                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                                keyboardType: TextInputType.number,
-                                validator: (v) => v!.isEmpty ? 'Required' : int.tryParse(v) == null ? 'Must be a number' : null,
-                            ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _attemptsController,
+                          decoration: InputDecoration(
+                            labelText: 'Max Attempts',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            filled: true,
+                            fillColor: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                            prefixIcon: const Icon(Icons.repeat_rounded),
+                          ),
+                          style: TextStyle(color: cs.onSurface),
+                          keyboardType: TextInputType.number,
+                          validator: (v) => v!.isEmpty ? 'Required' : int.tryParse(v) == null ? 'Must be a number' : null,
                         ),
+                      ),
                     ],
                   ),
-                  SizedBox(height: 20),
-                  Text('Assign to Classes', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
-                  Consumer<ClassesProvider>(
-                    builder: (context, classesProvider, _) {
+                  const SizedBox(height: 24),
+                  _sectionLabel('Assign to Classes', cs),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: isDark
+                          ? Border.all(color: Colors.white.withValues(alpha: 0.07))
+                          : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                    ),
+                    child: Consumer<ClassesProvider>(
+                      builder: (context, classesProvider, _) {
                         return Wrap(
-                            spacing: 8.0,
-                            children: classesProvider.classes.map((cls) {
-                                final isSelected = _selectedClassIds.contains(cls.id);
-                                return FilterChip(
-                                    label: Text(cls.name),
-                                    selected: isSelected,
-                                    onSelected: (selected) {
-                                        setState(() {
-                                            if (selected) {
-                                                _selectedClassIds.add(cls.id);
-                                            } else {
-                                                _selectedClassIds.remove(cls.id);
-                                            }
-                                        });
-                                    },
-                                );
-                            }).toList(),
+                          spacing: 8.0,
+                          runSpacing: 4.0,
+                          children: classesProvider.classes.map((cls) {
+                            final isSelected = _selectedClassIds.contains(cls.id);
+                            return FilterChip(
+                              label: Text(cls.name),
+                              selected: isSelected,
+                              selectedColor: const Color(0xFF4F46E5).withValues(alpha: 0.15),
+                              checkmarkColor: const Color(0xFF4F46E5),
+                              onSelected: (selected) {
+                                setState(() {
+                                  if (selected) {
+                                    _selectedClassIds.add(cls.id);
+                                  } else {
+                                    _selectedClassIds.remove(cls.id);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
                         );
-                    },
+                      },
+                    ),
                   ),
-                  SizedBox(height: 20),
-                  Text('Questions (${_questions.length})', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      _sectionLabel('Questions (${_questions.length})', cs),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: _addQuestion,
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Add'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF4F46E5),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   ..._questions.asMap().entries.map((entry) {
-                        final idx = entry.key;
-                        final q = entry.value;
-                        return Card(
-                        margin: EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          title: Text('Q${idx + 1}: ${q.text}'),
-                          subtitle: Text('Answer: Option ${q.correctOptionIndex + 1}'),
-                          trailing: IconButton(
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
-                              setState(() => _questions.remove(q));
-                            },
+                    final idx = entry.key;
+                    final q = entry.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: isDark
+                            ? Border.all(color: Colors.white.withValues(alpha: 0.07))
+                            : Border.all(color: cs.outlineVariant.withValues(alpha: 0.35)),
+                      ),
+                      child: ListTile(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        leading: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${idx + 1}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
                         ),
-                      );
+                        title: Text(
+                          q.text,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: cs.onSurface,
+                            fontSize: 14,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          'Correct: Option ${q.correctOptionIndex + 1}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: const Color(0xFF22C55E).withValues(alpha: 0.9),
+                          ),
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete_outline_rounded, color: cs.error),
+                          onPressed: () => setState(() => _questions.remove(q)),
+                        ),
+                      ),
+                    );
                   }),
-                  ElevatedButton.icon(
-                    onPressed: _addQuestion,
-                    icon: Icon(Icons.add),
-                    label: Text('Add Question'),
-                    style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                  const SizedBox(height: 28),
+                  // Submit button
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4F46E5).withValues(alpha: 0.35),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: _submit,
+                      icon: const Icon(Icons.check_rounded, color: Colors.white),
+                      label: Text(
+                        'Create Quiz',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        minimumSize: const Size(double.infinity, 52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _submit,
-                    child: Text('Create Quiz'),
-                    style: ElevatedButton.styleFrom(
-                       minimumSize: Size(double.infinity, 50),
-                    ),
-                  )
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _sectionLabel(String text, ColorScheme cs) {
+    return Text(
+      text,
+      style: GoogleFonts.poppins(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: cs.onSurface,
+      ),
     );
   }
 }
@@ -269,7 +449,7 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> {
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel')),
-        ElevatedButton(
+        FilledButton(
           onPressed: () {
             if (_questionController.text.isEmpty) return;
             final options = _optionControllers.map((c) => c.text).where((t) => t.isNotEmpty).toList();
@@ -296,7 +476,7 @@ class _AddQuestionDialogState extends State<AddQuestionDialog> {
             FocusScope.of(context).unfocus();
             Navigator.pop(context);
           },
-          child: Text('Add'),
+          child: const Text('Add'),
         ),
       ],
     );

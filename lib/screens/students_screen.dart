@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import '../models/class.dart' as class_model;
 import '../providers/students_provider.dart';
 import '../providers/classes_provider.dart';
 import '../providers/auth_provider.dart';
@@ -22,9 +22,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
   final _phoneController = TextEditingController();
   final _studentIdController = TextEditingController();
   String? _selectedClassId;
-  bool _showForm = false;
+
   bool _isExisting = false;
   String _searchQuery = '';
+  String _filterType = 'all';
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -64,8 +65,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
     }
   }
 
-  Future<void> _addStudent() async {
-    if (_formKey.currentState!.validate()) {
+  Future<void> _addStudent([GlobalKey<FormState>? formKey]) async {
+    final key = formKey ?? _formKey;
+    if (key.currentState!.validate()) {
       final provider = Provider.of<StudentsProvider>(context, listen: false);
       try {
         await provider.addStudent(
@@ -81,8 +83,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
         _studentIdController.clear();
         setState(() {
           _selectedClassId = null;
-          _showForm = false;
         });
+        if (mounted) Navigator.of(context).pop();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -120,785 +122,1015 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        appBar: AppBar(
-          title: const Text('Students'),
-          elevation: 0,
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-          actions: [],
-        ),
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Search Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value.trim().toLowerCase();
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Search students...',
-                    prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.outline),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                  ),
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                ),
-              ),
-              // Header with stats
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30),
-                  ),
-                ),
-                child: Consumer<StudentsProvider>(
-                  builder: (context, provider, child) {
-                    return Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _StatCard(
-                                title: 'Total Students',
-                                value: '${provider.students.length}',
-                                icon: Icons.people,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _StatCard(
-                                title: 'Active',
-                                value: '${provider.students.length}',
-                                icon: Icons.check_circle,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-              // Add Student Button
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  child: !_showForm
-                      ? ElevatedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _showForm = true;
-                              // Generate student ID when form is opened
-                              _studentIdController.text = _generateStudentId();
-                            });
-                          },
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add New Student'),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 50),
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+    return Scaffold(
+      backgroundColor:
+          isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddStudentSheet(context),
+        backgroundColor: const Color(0xFF4F46E5),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.person_add_rounded),
+        label: Text('Add Student',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Pinned Gradient Header ────────────────────────────
+            Consumer<StudentsProvider>(
+              builder: (context, provider, _) {
+                final total = provider.students.length;
+                final restricted =
+                    provider.students.where((s) => s.isRestricted).length;
+                final active = total - restricted;
+                return Container(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 8, 20),
+                  decoration: BoxDecoration(
+                    gradient: isDark
+                        ? const LinearGradient(
+                            colors: [Color(0xFF1E1A2E), Color(0xFF2D2660)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : const LinearGradient(
+                            colors: [
+                              Color(0xFF3730A3),
+                              Color(0xFF4F46E5),
+                              Color(0xFF7C3AED)
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                        )
-                      : Card(
-                          elevation: 4,
-                          color: Theme.of(context).colorScheme.surface,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Add New Student',
-                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: Theme.of(context).colorScheme.onSurface,
-                                            ),
-                                      ),
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.close,
-                                          color: Theme.of(context).colorScheme.onSurface,
-                                        ),
-                                        onPressed: () {
-                                          setState(() {
-                                            _showForm = false;
-                                            _studentIdController
-                                                .clear(); // Clear the generated ID when closing
-                                          });
-                                        },
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.arrow_back_rounded,
+                                  color: Colors.white, size: 20),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              'Students',
+                              style: GoogleFonts.poppins(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _loadStudents,
+                            icon: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.refresh_rounded,
+                                  color: Colors.white, size: 20),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          _statPill('Total', total,
+                              Colors.white.withValues(alpha: 0.22)),
+                          const SizedBox(width: 8),
+                          _statPill('Active', active,
+                              const Color(0xFF22C55E).withValues(alpha: 0.35)),
+                          const SizedBox(width: 8),
+                          _statPill('Restricted', restricted,
+                              Colors.red.withValues(alpha: 0.35)),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+
+            // ── Search + Filter Chips ─────────────────────────────
+            Container(
+              color: isDark
+                  ? const Color(0xFF0F0E17)
+                  : const Color(0xFFF5F5FA),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: isDark
+                          ? []
+                          : [
+                              BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.06),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3))
+                            ],
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (v) =>
+                          setState(() => _searchQuery = v.trim().toLowerCase()),
+                      decoration: InputDecoration(
+                        hintText: 'Search students...',
+                        prefixIcon: Icon(Icons.search_rounded,
+                            color: cs.onSurfaceVariant),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.clear_rounded,
+                                    color: cs.onSurfaceVariant),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _searchQuery = '');
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _filterChip(context, 'All', 'all', isDark),
+                      const SizedBox(width: 8),
+                      _filterChip(context, 'Active', 'active', isDark),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                          context, 'Restricted', 'restricted', isDark),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Students List ─────────────────────────────────────
+            Expanded(
+              child: Consumer<StudentsProvider>(
+                builder: (context, provider, _) {
+                  if (provider.isLoading) {
+                    return ListSkeleton(
+                      itemCount: 6,
+                      itemBuilder: (_) => const StudentCardSkeleton(),
+                    );
+                  }
+
+                  final filtered = provider.students.where((s) {
+                    final matchesSearch = _searchQuery.isEmpty ||
+                        s.name
+                            .toLowerCase()
+                            .contains(_searchQuery) ||
+                        (s.email?.toLowerCase().contains(_searchQuery) ??
+                            false) ||
+                        s.studentId.toLowerCase().contains(_searchQuery);
+                    final matchesFilter = _filterType == 'all' ||
+                        (_filterType == 'active' && !s.isRestricted) ||
+                        (_filterType == 'restricted' && s.isRestricted);
+                    return matchesSearch && matchesFilter;
+                  }).toList();
+
+                  if (filtered.isEmpty) {
+                    return EmptyState(
+                      icon: Icons.people_outline_rounded,
+                      title: _searchQuery.isEmpty
+                          ? 'No Students Yet'
+                          : 'No Results',
+                      message: _searchQuery.isEmpty
+                          ? 'Tap + Add Student to get started'
+                          : 'Try a different search term',
+                      action: _searchQuery.isEmpty
+                          ? FilledButton.icon(
+                              onPressed: () => _showAddStudentSheet(context),
+                              icon: const Icon(Icons.person_add_rounded),
+                              label: const Text('Add Student'),
+                            )
+                          : null,
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final student = filtered[index];
+                      return Slidable(
+                        endActionPane: ActionPane(
+                          motion: const ScrollMotion(),
+                          children: [
+                            SlidableAction(
+                              onPressed: (ctx) async {
+                                final isRestricted = student.isRestricted;
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    title: Text(
+                                        isRestricted
+                                            ? 'Unrestrict Student'
+                                            : 'Restrict Student',
+                                        style:
+                                            TextStyle(color: cs.onSurface)),
+                                    content: Text(
+                                        'Are you sure you want to ${isRestricted ? 'unrestrict' : 'restrict'} ${student.name}?',
+                                        style:
+                                            TextStyle(color: cs.onSurface)),
+                                    actions: [
+                                      TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text('Cancel')),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        style: isRestricted
+                                            ? FilledButton.styleFrom(
+                                                backgroundColor:
+                                                    const Color(0xFF22C55E))
+                                            : FilledButton.styleFrom(
+                                                backgroundColor:
+                                                    Colors.orange),
+                                        child: Text(isRestricted
+                                            ? 'Unrestrict'
+                                            : 'Restrict'),
                                       ),
                                     ],
                                   ),
-                                  // Switch to add existing student
-                                  SwitchListTile(
-                                    title: Text(
-                                      'Add Existing Student by ID',
-                                      style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurface),
-                                    ),
-                                    value: _isExisting,
-                                    onChanged: (bool value) {
-                                      setState(() {
-                                        _isExisting = value;
-                                        if (value) {
-                                          _studentIdController.clear();
-                                          _nameController.clear(); // Optional for existing
-                                        } else {
-                                          _studentIdController.text = _generateStudentId();
-                                        }
-                                      });
-                                    },
-                                    activeColor: Theme.of(context).colorScheme.primary,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  if (!_isExisting) ...[
-                                    TextFormField(
-                                      controller: _nameController,
-                                    style: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
-                                    decoration: InputDecoration(
-                                      labelText: 'Name',
-                                      prefixIcon: Icon(
-                                        Icons.person,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.6),
-                                      ),
-                                      labelStyle: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.7),
-                                      ),
-                                    ),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Please enter a name';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  const SizedBox(height: 12),
-                                  TextFormField(
-                                    controller: _emailController,
-                                    style: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
-                                    decoration: InputDecoration(
-                                      labelText: 'Email (optional)',
-                                      prefixIcon: Icon(
-                                        Icons.email,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.6),
-                                      ),
-                                      labelStyle: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.7),
-                                      ),
-                                    ),
-                                    keyboardType: TextInputType.emailAddress,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  TextFormField(
-                                    controller: _phoneController,
-                                    style: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
-                                    decoration: InputDecoration(
-                                      labelText: 'Mobile Number',
-                                      prefixIcon: Icon(
-                                        Icons.phone,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.6),
-                                      ),
-                                      labelStyle: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.7),
-                                      ),
-                                    ),
-                                    keyboardType: TextInputType.phone,
-                                  ),
-                                  ],
-                                  const SizedBox(height: 12),
-                                  TextFormField(
-                                    controller: _studentIdController,
-                                    style: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
-                                    validator: (value) {
-                                      if (_isExisting && (value == null || value.isEmpty)) {
-                                        return 'Please enter Student ID';
-                                      }
-                                      return null;
-                                    },
-                                    decoration: InputDecoration(
-                                      labelText: _isExisting
-                                          ? 'Existing Student ID'
-                                          : 'Student ID (Auto-generated)',
-                                      prefixIcon: Icon(
-                                        Icons.badge,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.6),
-                                      ),
-                                      labelStyle: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.7),
-                                      ),
-                                      filled: true,
-                                      fillColor: Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainerHighest
-                                          .withOpacity(0.3),
-                                      helperText: _isExisting
-                                          ? 'Enter the ID of the student to add'
-                                          : 'This ID is automatically generated',
-                                      helperStyle: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.5),
-                                      ),
-                                    ),
-                                    enabled: _isExisting, // Make the field disabled
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Consumer<ClassesProvider>(
-                                    builder: (context, classesProvider, child) {
-                                      return DropdownButtonFormField<String>(
-                                        initialValue: _selectedClassId,
+                                );
+                                if (confirm == true && ctx.mounted) {
+                                  try {
+                                    final p = Provider.of<StudentsProvider>(
+                                        context,
+                                        listen: false);
+                                    isRestricted
+                                        ? await p.unrestrictStudent(student.id)
+                                        : await p.restrictStudent(student.id);
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(SnackBar(
+                                        content: Text(
+                                            'Student ${isRestricted ? 'unrestricted' : 'restricted'} successfully'),
+                                        backgroundColor: isRestricted
+                                            ? const Color(0xFF22C55E)
+                                            : Colors.orange,
+                                      ));
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(SnackBar(
+                                        content: Text('Failed: $e'),
+                                        backgroundColor: cs.error,
+                                      ));
+                                    }
+                                  }
+                                }
+                              },
+                              backgroundColor: student.isRestricted
+                                  ? const Color(0xFF22C55E)
+                                  : Colors.orange,
+                              foregroundColor: Colors.white,
+                              icon: student.isRestricted
+                                  ? Icons.lock_open_rounded
+                                  : Icons.lock_rounded,
+                              label: student.isRestricted
+                                  ? 'Unrestrict'
+                                  : 'Restrict',
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            SlidableAction(
+                              onPressed: (ctx) async {
+                                final sm = ScaffoldMessenger.of(context);
+                                final nav = Navigator.of(context);
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    title: Text('Delete Student',
                                         style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurface,
-                                        ),
-                                        dropdownColor: Theme.of(context).colorScheme.surface,
-                                        decoration: InputDecoration(
-                                          labelText: 'Class (optional)',
-                                          prefixIcon: Icon(
-                                            Icons.class_,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withOpacity(0.6),
-                                          ),
-                                          labelStyle: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withOpacity(0.7),
-                                          ),
-                                        ),
-                                        items: [
-                                          DropdownMenuItem<String>(
-                                            value: null,
-                                            child: Text(
-                                              'No class assigned',
+                                            color: cs.onSurface)),
+                                    content: Text(
+                                        'Delete ${student.name}? This action cannot be undone.',
+                                        style: TextStyle(
+                                            color: cs.onSurface)),
+                                    actions: [
+                                      TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text('Cancel')),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        style: FilledButton.styleFrom(
+                                            backgroundColor: cs.error),
+                                        child: const Text('Delete'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (confirm == true) {
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (_) => AlertDialog(
+                                      content: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const CircularProgressIndicator(),
+                                          const SizedBox(width: 16),
+                                          Text('Deleting...',
                                               style: TextStyle(
-                                                color: Theme.of(context).colorScheme.onSurface,
-                                              ),
-                                            ),
-                                          ),
-                                          ...classesProvider.classes.map((classObj) {
-                                            return DropdownMenuItem<String>(
-                                              value: classObj.id,
-                                              child: Text(
-                                                classObj.name,
-                                                style: TextStyle(
-                                                  color: Theme.of(context).colorScheme.onSurface,
-                                                ),
-                                              ),
-                                            );
-                                          }),
+                                                  color: cs.onSurface)),
                                         ],
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _selectedClassId = value;
-                                          });
-                                        },
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton.icon(
-                                    onPressed: _addStudent,
-                                    icon: const Icon(Icons.save),
-                                    label: const Text('Save Student'),
-                                    style: ElevatedButton.styleFrom(
-                                      minimumSize: const Size(double.infinity, 50),
-                                      backgroundColor: Theme.of(context).colorScheme.primary,
-                                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  );
+                                  try {
+                                    await Provider.of<StudentsProvider>(
+                                            context,
+                                            listen: false)
+                                        .deleteStudent(student.id);
+                                    nav.pop();
+                                    sm.showSnackBar(const SnackBar(
+                                      content: Row(children: [
+                                        Icon(Icons.check_circle,
+                                            color: Colors.white),
+                                        SizedBox(width: 8),
+                                        Text('Student deleted'),
+                                      ]),
+                                      backgroundColor: Color(0xFF22C55E),
+                                    ));
+                                  } catch (e) {
+                                    nav.pop();
+                                    sm.showSnackBar(SnackBar(
+                                      content: Text('Failed: $e'),
+                                      backgroundColor: cs.error,
+                                    ));
+                                  }
+                                }
+                              },
+                              backgroundColor: cs.error,
+                              foregroundColor: Colors.white,
+                              icon: Icons.delete_rounded,
+                              label: 'Delete',
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ],
+                        ),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF1E1B2E)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: isDark
+                                ? []
+                                : [
+                                    BoxShadow(
+                                      color: Colors.black
+                                          .withValues(alpha: 0.06),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 3),
+                                    )
+                                  ],
+                            border: isDark
+                                ? Border.all(
+                                    color: Colors.white.withValues(alpha: 0.06))
+                                : null,
+                          ),
+                          child: InkWell(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => StudentDetailsScreen(
+                                    student: student),
                               ),
                             ),
-                          ),
-                        ),
-                ),
-              ),
-
-              // Students List
-              SizedBox(
-                height:
-                    MediaQuery.of(context).size.height * 0.5, // Fixed height for scrollable area
-                child: Consumer<StudentsProvider>(
-                  builder: (context, provider, child) {
-                    if (provider.isLoading) {
-                      return ListSkeleton(
-                        itemCount: 6,
-                        itemBuilder: (context) => const StudentCardSkeleton(),
-                      );
-                    }
-
-                    final filteredStudents = provider.students.where((student) {
-                      if (_searchQuery.isEmpty) return true;
-                      return student.name.toLowerCase().contains(_searchQuery) ||
-                          (student.email?.toLowerCase().contains(_searchQuery) ?? false) ||
-                          student.studentId.toLowerCase().contains(_searchQuery);
-                    }).toList();
-                    if (filteredStudents.isEmpty) {
-                      return SizedBox(
-                        height: 200,
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.people_outline,
-                                size: 80,
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No students found',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      color: Theme.of(context).colorScheme.outline,
-                                    ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _searchQuery.isEmpty
-                                    ? 'Add your first student to get started'
-                                    : 'Try a different search term',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Theme.of(context).colorScheme.outline,
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: filteredStudents.length,
-                      itemBuilder: (context, index) {
-                        final student = filteredStudents[index];
-                        return Slidable(
-                          endActionPane: ActionPane(
-                            motion: const ScrollMotion(),
-                            children: [
-                              // Restrict/Unrestrict action
-                              SlidableAction(
-                                onPressed: (context) async {
-                                  final isCurrentlyRestricted = student.isRestricted;
-                                  final action = isCurrentlyRestricted ? 'unrestrict' : 'restrict';
-                                  final actionText =
-                                      isCurrentlyRestricted ? 'Unrestrict' : 'Restrict';
-
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: Text('$actionText Student',
-                                          style: TextStyle(
-                                              color: Theme.of(context).colorScheme.onSurface)),
-                                      content: Text(
-                                          'Are you sure you want to $action ${student.name}?',
-                                          style: TextStyle(
-                                              color: Theme.of(context).colorScheme.onSurface)),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context, false),
-                                          child: const Text('Cancel'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context, true),
-                                          child: Text(actionText,
-                                              style: TextStyle(
-                                                  color: isCurrentlyRestricted
-                                                      ? Colors.green
-                                                      : Colors.orange)),
-                                        ),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Row(
+                                children: [
+                                  // Avatar
+                                  Container(
+                                    width: 52,
+                                    height: 52,
+                                    decoration: BoxDecoration(
+                                      gradient: student.isRestricted
+                                          ? const LinearGradient(
+                                              colors: [
+                                                Color(0xFFEF4444),
+                                                Color(0xFFB91C1C)
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            )
+                                          : const LinearGradient(
+                                              colors: [
+                                                Color(0xFF4F46E5),
+                                                Color(0xFF7C3AED)
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                      borderRadius:
+                                          BorderRadius.circular(14),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: (student.isRestricted
+                                                  ? const Color(0xFFEF4444)
+                                                  : const Color(0xFF4F46E5))
+                                              .withValues(alpha: 0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 3),
+                                        )
                                       ],
                                     ),
-                                  );
-
-                                  if (confirm == true && context.mounted) {
-                                    try {
-                                      final provider =
-                                          Provider.of<StudentsProvider>(context, listen: false);
-                                      if (isCurrentlyRestricted) {
-                                        await provider.unrestrictStudent(student.id);
-                                      } else {
-                                        await provider.restrictStudent(student.id);
-                                      }
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                                'Student ${isCurrentlyRestricted ? 'unrestricted' : 'restricted'} successfully'),
-                                            backgroundColor: isCurrentlyRestricted
-                                                ? Colors.green
-                                                : Colors.orange,
-                                          ),
-                                        );
-                                      }
-                                    } catch (e) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Failed to ${action} student: $e'),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  }
-                                },
-                                backgroundColor:
-                                    student.isRestricted ? Colors.green : Colors.orange,
-                                foregroundColor: Colors.white,
-                                icon: student.isRestricted ? Icons.lock_open : Icons.lock,
-                                label: student.isRestricted ? 'Unrestrict' : 'Restrict',
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              // Delete action
-                              SlidableAction(
-                                onPressed: (slidableContext) async {
-                                  // Capture the scaffold messenger before showing dialogs
-                                  final scaffoldMessenger = ScaffoldMessenger.of(context);
-                                  final navigator = Navigator.of(context);
-                                  
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (dialogContext) => AlertDialog(
-                                      title: Text('Delete Student',
-                                          style: TextStyle(
-                                              color: Theme.of(dialogContext).colorScheme.onSurface)),
-                                      content: Text(
-                                          'Are you sure you want to delete ${student.name}?',
-                                          style: TextStyle(
-                                              color: Theme.of(dialogContext).colorScheme.onSurface)),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.of(dialogContext).pop(false),
-                                          child: Text('Cancel',
-                                              style: TextStyle(
-                                                  color: Theme.of(dialogContext).colorScheme.primary)),
+                                    child: Center(
+                                      child: Text(
+                                        student.name.isNotEmpty
+                                            ? student.name[0].toUpperCase()
+                                            : '?',
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
                                         ),
-                                        TextButton(
-                                          onPressed: () => Navigator.of(dialogContext).pop(true),
-                                          child: const Text('Delete',
-                                              style: TextStyle(color: Colors.red)),
-                                        ),
-                                      ],
+                                      ),
                                     ),
-                                  );
-
-                                  if (confirm == true) {
-                                    // Show loading dialog
-                                    showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (dialogContext) => const AlertDialog(
-                                        content: Row(
-                                          mainAxisSize: MainAxisSize.min,
+                                  ),
+                                  const SizedBox(width: 14),
+                                  // Info
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          student.name,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 15,
+                                            color: cs.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Row(
                                           children: [
-                                            CircularProgressIndicator(),
-                                            SizedBox(width: 16),
-                                            Text('Deleting student...'),
+                                            // ID chip
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 7,
+                                                      vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: isDark
+                                                    ? Colors.white
+                                                        .withValues(alpha: 0.1)
+                                                    : const Color(0xFF4F46E5)
+                                                        .withValues(alpha: 0.08),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                student.studentId,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: isDark
+                                                      ? Colors.white
+                                                          .withValues(
+                                                              alpha: 0.7)
+                                                      : const Color(0xFF4F46E5),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            // Class chip
+                                            Consumer<ClassesProvider>(
+                                              builder: (_, cp, __) {
+                                                final cls = cp.classes
+                                                    .where((c) =>
+                                                        c.id ==
+                                                        student.classId);
+                                                if (cls.isEmpty) {
+                                                  return const SizedBox
+                                                      .shrink();
+                                                }
+                                                return Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                          horizontal: 7,
+                                                          vertical: 3),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                            0xFF10B981)
+                                                        .withValues(alpha: 0.12),
+                                                    borderRadius:
+                                                        BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    cls.first.name,
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Color(0xFF10B981),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
                                           ],
                                         ),
-                                      ),
-                                    );
-
-                                    try {
-                                      await Provider.of<StudentsProvider>(context, listen: false)
-                                          .deleteStudent(student.id);
-
-                                      // Close loading dialog
-                                      navigator.pop();
-                                      
-                                      // Show success message
-                                      scaffoldMessenger.showSnackBar(
-                                        const SnackBar(
-                                          content: Row(
-                                            children: [
-                                              Icon(Icons.check_circle, color: Colors.white),
-                                              SizedBox(width: 12),
-                                              Text('Student deleted successfully'),
-                                            ],
-                                          ),
-                                          backgroundColor: Colors.green,
-                                          duration: Duration(seconds: 2),
-                                          behavior: SnackBarBehavior.floating,
-                                        ),
-                                      );
-                                    } catch (e) {
-                                      // Close loading dialog
-                                      navigator.pop();
-                                      
-                                      // Show error message
-                                      scaffoldMessenger.showSnackBar(
-                                        SnackBar(
-                                          content: Row(
-                                            children: [
-                                              const Icon(Icons.error, color: Colors.white),
-                                              const SizedBox(width: 12),
-                                              Expanded(
-                                                child: Text('Failed to delete: ${e.toString()}'),
-                                              ),
-                                            ],
-                                          ),
-                                          backgroundColor: Colors.red,
-                                          duration: const Duration(seconds: 3),
-                                          behavior: SnackBarBehavior.floating,
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                icon: Icons.delete,
-                                label: 'Delete',
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ],
-                          ),
-                          child: Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.all(16),
-                              leading: CircleAvatar(
-                                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                                radius: 28,
-                                child: Text(
-                                  student.name.isNotEmpty ? student.name[0].toUpperCase() : '?',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                  ),
-                                ),
-                              ),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      student.name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
+                                      ],
                                     ),
                                   ),
-                                  if (student.isRestricted) ...[
-                                    const SizedBox(width: 8),
+                                  // Right: status indicator
+                                  if (student.isRestricted)
                                     Container(
-                                      padding:
-                                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: Colors.red.shade100,
-                                        borderRadius: BorderRadius.circular(12),
+                                        color: cs.error.withValues(alpha: 0.1),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                        border: Border.all(
+                                            color: cs.error
+                                                .withValues(alpha: 0.3)),
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(
-                                            Icons.lock,
-                                            size: 14,
-                                            color: Colors.red.shade700,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Restricted',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.red.shade700,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
+                                          Icon(Icons.lock_rounded,
+                                              size: 11, color: cs.error),
+                                          const SizedBox(width: 3),
+                                          Text('Locked',
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: cs.error,
+                                                  fontWeight:
+                                                      FontWeight.w600)),
                                         ],
                                       ),
-                                    ),
-                                  ],
+                                    )
+                                  else
+                                    Icon(Icons.chevron_right_rounded,
+                                        color: cs.onSurfaceVariant),
                                 ],
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.badge,
-                                          size: 14, color: Theme.of(context).colorScheme.outline),
-                                      const SizedBox(width: 4),
-                                      Text('ID: ${student.studentId}'),
-                                    ],
-                                  ),
-                                  if (student.email != null && student.email!.isNotEmpty) ...[
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.email,
-                                            size: 14, color: Theme.of(context).colorScheme.outline),
-                                        const SizedBox(width: 4),
-                                        Expanded(
-                                            child: Text(student.email!,
-                                                overflow: TextOverflow.ellipsis)),
-                                      ],
-                                    ),
-                                  ],
-                                  Consumer<ClassesProvider>(
-                                    builder: (context, classesProvider, child) {
-                                      final classObj = classesProvider.classes.firstWhere(
-                                        (c) => c.id == student.classId,
-                                        orElse: () =>
-                                            class_model.Class(id: '', name: '', teacherId: ''),
-                                      );
-                                      if (classObj.id.isNotEmpty) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(top: 2),
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.class_,
-                                                  size: 14,
-                                                  color: Theme.of(context).colorScheme.outline),
-                                              const SizedBox(width: 4),
-                                              Text('Class: ${classObj.name}'),
-                                            ],
-                                          ),
-                                        );
-                                      }
-                                      return const SizedBox.shrink();
-                                    },
-                                  ),
-                                ],
-                              ),
-                              trailing: Icon(
-                                Icons.chevron_right,
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
-                              onTap: () {
-                                // Navigate to student details
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => StudentDetailsScreen(student: student),
-                                  ),
-                                );
-                              },
                             ),
                           ),
-                        );
-                      },
-                    );
-                  },
-                ),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
-            ],
-          ),
-        ));
+            ),
+          ],
+        ),
+      ),
+    );
   }
-}
 
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
+  // ── Bottom Sheet Form ──────────────────────────────────────────────────────
+  void _showAddStudentSheet(BuildContext context) {
+    final sheetFormKey = GlobalKey<FormState>();
+    _studentIdController.text = _generateStudentId();
+    setState(() => _isExisting = false);
 
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+            final cs = Theme.of(ctx).colorScheme;
+            return Padding(
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom),
+              child: DraggableScrollableSheet(
+                initialChildSize: 0.85,
+                minChildSize: 0.5,
+                maxChildSize: 0.96,
+                expand: false,
+                builder: (_, scrollController) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      color:
+                          isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                      borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(28)),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 30,
+                            offset: const Offset(0, -4))
+                      ],
+                    ),
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                      children: [
+                        // Handle
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            margin: const EdgeInsets.only(bottom: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                        // Header row
+                        Row(
+                          children: [
+                            Container(
+                              width: 46,
+                              height: 46,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF4F46E5),
+                                    Color(0xFF7C3AED)
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(13),
+                                boxShadow: [
+                                  BoxShadow(
+                                      color: const Color(0xFF4F46E5)
+                                          .withValues(alpha: 0.35),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4))
+                                ],
+                              ),
+                              child: const Icon(Icons.person_add_rounded,
+                                  color: Colors.white, size: 22),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Add Student',
+                                      style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 18,
+                                          color: cs.onSurface)),
+                                  Text('Fill in the student details',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: cs.onSurfaceVariant)),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              icon: Icon(Icons.close_rounded,
+                                  color: cs.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        // Toggle: New vs Existing
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.06)
+                                : const Color(0xFFF1F0FF),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setSheetState(() {
+                                    _isExisting = false;
+                                    _studentIdController.text =
+                                        _generateStudentId();
+                                  }),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 11),
+                                    decoration: BoxDecoration(
+                                      gradient: !_isExisting
+                                          ? const LinearGradient(colors: [
+                                              Color(0xFF4F46E5),
+                                              Color(0xFF7C3AED)
+                                            ])
+                                          : null,
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'New Student',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                          color: !_isExisting
+                                              ? Colors.white
+                                              : cs.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setSheetState(() {
+                                    _isExisting = true;
+                                    _studentIdController.clear();
+                                  }),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 11),
+                                    decoration: BoxDecoration(
+                                      gradient: _isExisting
+                                          ? const LinearGradient(colors: [
+                                              Color(0xFF4F46E5),
+                                              Color(0xFF7C3AED)
+                                            ])
+                                          : null,
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'Link Existing',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                          color: _isExisting
+                                              ? Colors.white
+                                              : cs.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Form
+                        Form(
+                          key: sheetFormKey,
+                          child: Column(
+                            children: [
+                              if (!_isExisting) ...[
+                                TextFormField(
+                                  controller: _nameController,
+                                  style: TextStyle(color: cs.onSurface),
+                                  decoration: const InputDecoration(
+                                    labelText: 'Full Name',
+                                    prefixIcon:
+                                        Icon(Icons.person_rounded),
+                                  ),
+                                  validator: (v) =>
+                                      (v == null || v.isEmpty)
+                                          ? 'Please enter a name'
+                                          : null,
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _emailController,
+                                  style: TextStyle(color: cs.onSurface),
+                                  keyboardType: TextInputType.emailAddress,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Email (optional)',
+                                    prefixIcon: Icon(Icons.email_rounded),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: _phoneController,
+                                  style: TextStyle(color: cs.onSurface),
+                                  keyboardType: TextInputType.phone,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Mobile Number',
+                                    prefixIcon: Icon(Icons.phone_rounded),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                              ],
+                              TextFormField(
+                                controller: _studentIdController,
+                                style: TextStyle(color: cs.onSurface),
+                                enabled: _isExisting,
+                                validator: (v) => (_isExisting &&
+                                        (v == null || v.isEmpty))
+                                    ? 'Please enter Student ID'
+                                    : null,
+                                decoration: InputDecoration(
+                                  labelText: _isExisting
+                                      ? 'Existing Student ID'
+                                      : 'Student ID (Auto-generated)',
+                                  prefixIcon:
+                                      const Icon(Icons.badge_rounded),
+                                  helperText: _isExisting
+                                      ? 'Enter the ID of the student to link'
+                                      : 'Auto-generated',
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Consumer<ClassesProvider>(
+                                builder: (ctx2, cp, _) =>
+                                    DropdownButtonFormField<String>(
+                                  initialValue: _selectedClassId,
+                                  style: TextStyle(color: cs.onSurface),
+                                  dropdownColor: isDark
+                                      ? cs.surfaceContainerHigh
+                                      : cs.surface,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Class (optional)',
+                                    prefixIcon:
+                                        Icon(Icons.class_rounded),
+                                  ),
+                                  items: [
+                                    DropdownMenuItem<String>(
+                                      value: null,
+                                      child: Text('No class assigned',
+                                          style: TextStyle(
+                                              color: cs.onSurface)),
+                                    ),
+                                    ...cp.classes.map((c) =>
+                                        DropdownMenuItem<String>(
+                                          value: c.id,
+                                          child: Text(c.name,
+                                              style: TextStyle(
+                                                  color: cs.onSurface)),
+                                        )),
+                                  ],
+                                  onChanged: (v) =>
+                                      setState(() => _selectedClassId = v),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              GestureDetector(
+                                onTap: () => _addStudent(sheetFormKey),
+                                child: Container(
+                                  height: 54,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF4F46E5),
+                                        Color(0xFF7C3AED)
+                                      ],
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                    ),
+                                    borderRadius:
+                                        BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF4F46E5)
+                                            .withValues(alpha: 0.4),
+                                        blurRadius: 14,
+                                        offset: const Offset(0, 5),
+                                      )
+                                    ],
+                                  ),
+                                  child: const Center(
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.save_rounded,
+                                            color: Colors.white, size: 20),
+                                        SizedBox(width: 10),
+                                        Text('Save Student',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 15,
+                                            )),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _statPill(String label, int value, Color bgColor) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$value',
+            style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 15),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style:
+                TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12),
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 32),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+    );
+  }
+
+  Widget _filterChip(
+      BuildContext context, String label, String type, bool isDark) {
+    final isSelected = _filterType == type;
+    return GestureDetector(
+      onTap: () => setState(() => _filterType = type),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)])
+              : null,
+          color: isSelected
+              ? null
+              : isDark
+                  ? const Color(0xFF1E1B2E)
+                  : Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                      color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3))
+                ]
+              : [
+                  BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0 : 0.05),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2))
+                ],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected
+                ? Colors.white
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+            fontWeight:
+                isSelected ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 13,
           ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                ),
-          ),
-        ],
+        ),
       ),
     );
   }

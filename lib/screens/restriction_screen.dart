@@ -76,7 +76,6 @@ class _RestrictionScreenState extends State<RestrictionScreen> with WidgetsBindi
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Your account has been unrestricted. Please log in again.'),
-              backgroundColor: Colors.green,
               duration: Duration(seconds: 3),
             ),
           );
@@ -109,175 +108,173 @@ class _RestrictionScreenState extends State<RestrictionScreen> with WidgetsBindi
     return WillPopScope(
       onWillPop: () async => false, // Prevent back button
       child: Scaffold(
-        backgroundColor: Colors.red.shade50,
         body: SafeArea(
           child: Center(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Restriction Icon
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade100,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.block,
-                      size: 60,
-                      color: Colors.red.shade700,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  // Title
-                  Text(
-                    'Account Restricted',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red.shade900,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Message
-                  Text(
-                    'Your account has been temporarily restricted by the administrator.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.red.shade700,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Reason Card
-                  if (_restrictionReason != null)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.red.shade200,
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+              child: Builder(
+                builder: (bCtx) {
+                  final cs = Theme.of(bCtx).colorScheme;
+                  final isDark = Theme.of(bCtx).brightness == Brightness.dark;
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Restriction Icon
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: cs.errorContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.block,
+                          size: 60,
+                          color: cs.onErrorContainer,
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                      const SizedBox(height: 32),
+
+                      // Title
+                      Text(
+                        'Account Restricted',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: cs.error,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Message
+                      Text(
+                        'Your account has been temporarily restricted by the administrator.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Reason Card
+                      if (_restrictionReason != null)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(12),
+                            border: isDark
+                                ? null
+                                : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.info_outline, 
-                                color: Colors.red.shade700, 
-                                size: 20
+                              Row(
+                                children: [
+                                  Icon(Icons.info_outline,
+                                      color: cs.error, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Reason:',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: cs.onSurface,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(height: 8),
                               Text(
-                                'Reason:',
+                                _restrictionReason!,
                                 style: TextStyle(
                                   fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red.shade900,
+                                  color: cs.onSurfaceVariant,
                                 ),
                               ),
+                              if (_restrictedAt != null) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Restricted on: ${_formatDateTime(_restrictedAt!)}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: cs.onSurfaceVariant,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _restrictionReason!,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade700,
+                        ),
+                      const SizedBox(height: 32),
+
+                      // Contact Info
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: cs.tertiaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.contact_support,
+                              color: cs.onTertiaryContainer,
+                              size: 32,
                             ),
-                          ),
-                          if (_restrictedAt != null) ...[
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
                             Text(
-                              'Restricted on: ${_formatDateTime(_restrictedAt!)}',
+                              'Need Help?',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: cs.onTertiaryContainer,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Please contact your administrator for more information.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: cs.onTertiaryContainer,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Loading indicator during polling
+                      if (_isLoading)
+                        CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+                        )
+                      else
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.sync,
+                              size: 16,
+                              color: cs.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Checking status...',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
-                                fontStyle: FontStyle.italic,
+                                color: cs.onSurfaceVariant,
                               ),
                             ),
                           ],
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 32),
-                  
-                  // Contact Info
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.orange.shade200),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.contact_support,
-                          color: Colors.orange.shade700,
-                          size: 32,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Need Help?',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.orange.shade900,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Please contact your administrator for more information.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.orange.shade800,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Loading indicator during polling
-                  if (_isLoading)
-                    CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.red.shade700),
-                    )
-                  else
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.sync,
-                          size: 16,
-                          color: Colors.grey.shade600,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Checking status...',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
           ),

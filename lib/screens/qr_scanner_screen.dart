@@ -231,7 +231,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).dialogBackgroundColor,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -268,10 +267,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         builder: (context) => WillPopScope(
           onWillPop: () async => false, // Prevent back button from dismissing
           child: AlertDialog(
-            backgroundColor: Theme.of(context).dialogBackgroundColor,
             title: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.green, size: 32),
+                const Icon(Icons.check_circle, color: Color(0xFF22C55E), size: 32),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -331,7 +329,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           backgroundColor: Theme.of(context).dialogBackgroundColor,
           title: Row(
             children: [
-              const Icon(Icons.error, color: Colors.red, size: 32),
+              Icon(Icons.error, color: Theme.of(context).colorScheme.error, size: 32),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -388,6 +386,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   @override
   Widget build(BuildContext context) {
     final bool isConnected = _isConnected;
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -405,7 +405,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               height: 8,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isConnected ? Colors.green : Colors.red,
+                color: isConnected ? const Color(0xFF22C55E) : cs.error,
               ),
             ),
             const SizedBox(width: 4),
@@ -418,7 +418,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             ),
           ],
         ),
-        backgroundColor: const Color(0xFF6366F1),
         actions: [
           IconButton(
             icon: Icon(cameraController.torchEnabled
@@ -490,18 +489,14 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(24),
                   topRight: Radius.circular(24),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
+                border: isDark ? null : Border(
+                  top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -532,24 +527,27 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: const Color(0xFF6366F1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Text(
-                number,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+          Builder(builder: (context) {
+            final cs = Theme.of(context).colorScheme;
+            return Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: cs.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(
+                  number,
+                  style: TextStyle(
+                    color: cs.onPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          }),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

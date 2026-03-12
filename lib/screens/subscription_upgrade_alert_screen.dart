@@ -7,12 +7,9 @@ class SubscriptionUpgradeAlertScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Subscription Required'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        automaticallyImplyLeading: false, // Remove back button
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
         child: Padding(
@@ -24,13 +21,13 @@ class SubscriptionUpgradeAlertScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.tertiaryContainer,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.info_rounded,
                   size: 64,
-                  color: Colors.orange,
+                  color: Theme.of(context).colorScheme.onTertiaryContainer,
                 ),
               ),
 
@@ -63,14 +60,14 @@ class SubscriptionUpgradeAlertScreen extends StatelessWidget {
               // Action Button
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: FilledButton(
                   onPressed: () {
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
                       (route) => false,
                     );
                   },
-                  style: ElevatedButton.styleFrom(
+                  style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

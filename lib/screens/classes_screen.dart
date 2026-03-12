@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/classes_provider.dart';
 import '../providers/auth_provider.dart';
 import 'class_details_screen.dart';
@@ -16,7 +16,6 @@ class ClassesScreen extends StatefulWidget {
 class _ClassesScreenState extends State<ClassesScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  bool _showForm = false;
 
   @override
   void initState() {
@@ -66,9 +65,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
         }
         await provider.addClass(_nameController.text, teacherId);
         _nameController.clear();
-        setState(() {
-          _showForm = false;
-        });
+        if (mounted) Navigator.of(context).pop();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -130,284 +127,423 @@ class _ClassesScreenState extends State<ClassesScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Classes'),
-        elevation: 0,
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-        actions: [
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Header with stats
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-              child: Consumer<ClassesProvider>(
-                builder: (context, provider, child) {
-                  return Column(
+  void _showAddClassSheet(BuildContext context) {
+    _nameController.clear();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(sheetCtx).brightness == Brightness.dark
+                  ? const Color(0xFF1E1B2E)
+                  : Colors.white,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(28)),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 30,
+                    offset: const Offset(0, -4))
+              ],
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+            child: Builder(builder: (ctx) {
+              final cs = Theme.of(ctx).colorScheme;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  // Header
+                  Row(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Expanded(
-                            child: _StatCard(
-                              title: 'Total Classes',
-                              value: '${provider.classes.length}',
-                              icon: Icons.class_,
-                              color: Theme.of(context).colorScheme.primary,
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF4F46E5),
+                              Color(0xFF7C3AED)
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(13),
+                          boxShadow: [
+                            BoxShadow(
+                                color: const Color(0xFF4F46E5)
+                                    .withValues(alpha: 0.35),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4))
+                          ],
+                        ),
+                        child: const Icon(Icons.class_rounded,
+                            color: Colors.white, size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Create New Class',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 18,
+                                color: cs.onSurface,
+                              ),
+                            ),
+                            Text(
+                              'Give your class a descriptive name',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: cs.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(sheetCtx),
+                        icon: Icon(Icons.close_rounded,
+                            color: cs.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  // Form
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _nameController,
+                          style: TextStyle(color: cs.onSurface),
+                          autofocus: true,
+                          textCapitalization:
+                              TextCapitalization.words,
+                          decoration: InputDecoration(
+                            labelText: 'Class Name',
+                            hintText: 'e.g. Grade 10 - Section A',
+                            labelStyle: TextStyle(
+                                color: cs.onSurfaceVariant),
+                            prefixIcon:
+                                const Icon(Icons.class_rounded),
+                          ),
+                          validator: (v) => (v == null || v.isEmpty)
+                              ? 'Please enter a class name'
+                              : null,
+                        ),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: _addClass,
+                          child: Container(
+                            height: 54,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF4F46E5),
+                                  Color(0xFF7C3AED)
+                                ],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF4F46E5)
+                                      .withValues(alpha: 0.4),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 5),
+                                )
+                              ],
+                            ),
+                            child: const Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.save_rounded,
+                                      color: Colors.white, size: 20),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'Create Class',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor:
+          isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddClassSheet(context),
+        backgroundColor: const Color(0xFF4F46E5),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_rounded),
+        label: Text('New Class',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Pinned Gradient Header ──────────────────────────────
+            Consumer<ClassesProvider>(
+              builder: (context, provider, _) {
+                final count = provider.classes.length;
+                return Container(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 8, 20),
+                  decoration: BoxDecoration(
+                    gradient: isDark
+                        ? const LinearGradient(
+                            colors: [Color(0xFF1E1A2E), Color(0xFF2D2660)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : const LinearGradient(
+                            colors: [
+                              Color(0xFF3730A3),
+                              Color(0xFF4F46E5),
+                              Color(0xFF7C3AED)
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.arrow_back_rounded,
+                                  color: Colors.white, size: 20),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
                           Expanded(
-                            child: _StatCard(
-                              title: 'Active',
-                              value: '${provider.classes.length}',
-                              icon: Icons.check_circle,
-                              color: Colors.green,
+                            child: Text(
+                              'Classes',
+                              style: GoogleFonts.poppins(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _loadClasses,
+                            icon: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.refresh_rounded,
+                                  color: Colors.white, size: 20),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '$count',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  count == 1 ? 'Class' : 'Classes',
+                                  style: TextStyle(
+                                      color: Colors.white
+                                          .withValues(alpha: 0.85),
+                                      fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF22C55E)
+                                  .withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '$count',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  'Active',
+                                  style: TextStyle(
+                                      color: Colors.white
+                                          .withValues(alpha: 0.85),
+                                      fontSize: 12),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ],
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
 
-            // Add Class Button
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                child: !_showForm
-                    ? ElevatedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _showForm = true;
-                          });
-                        },
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add New Class'),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                        ),
-                      )
-                    : Card(
-                        elevation: 4,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Add New Class',
-                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.close),
-                                      onPressed: () {
-                                        setState(() {
-                                          _showForm = false;
-                                        });
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                TextFormField(
-                                  controller: _nameController,
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                  decoration: const InputDecoration(
-                                    labelText: 'Class Name',
-                                    prefixIcon: Icon(Icons.class_),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter a class name';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton.icon(
-                                  onPressed: _addClass,
-                                  icon: const Icon(Icons.save),
-                                  label: const Text('Save Class'),
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size(double.infinity, 50),
-                                    backgroundColor: Theme.of(context).colorScheme.primary,
-                                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+            // ── Grid of Classes ─────────────────────────────────────
+            Expanded(
+              child: Consumer<ClassesProvider>(
+                builder: (context, provider, _) {
+                  if (provider.isLoading) {
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 14,
+                        mainAxisSpacing: 14,
+                        childAspectRatio: 0.85,
                       ),
-              ),
-            ),
+                      itemCount: 4,
+                      itemBuilder: (_, __) => const ClassCardSkeleton(),
+                    );
+                  }
 
-            // Classes List
-            Consumer<ClassesProvider>(
-              builder: (context, provider, child) {
-                if (provider.isLoading) {
-                  return ListSkeleton(
-                    itemCount: 5,
-                    itemBuilder: (context) => const ClassCardSkeleton(),
-                  );
-                }
-
-                if (provider.classes.isEmpty) {
-                  return SizedBox(
-                    height: 200,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.class_outlined,
-                            size: 80,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No classes yet',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Add your first class to get started',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                          ),
-                        ],
+                  if (provider.classes.isEmpty) {
+                    return EmptyState(
+                      icon: Icons.class_outlined,
+                      title: 'No Classes Yet',
+                      message: 'Tap + New Class to create your first class',
+                      action: FilledButton.icon(
+                        onPressed: () => _showAddClassSheet(context),
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('New Class'),
                       ),
+                    );
+                  }
+
+                  return GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 14,
+                      childAspectRatio: 0.85,
                     ),
-                  );
-                }
-
-                return SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.5, // Fixed height for scrollable area
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: provider.classes.length,
                     itemBuilder: (context, index) {
                       final classObj = provider.classes[index];
-                      return Slidable(
-                        endActionPane: ActionPane(
-                          motion: const ScrollMotion(),
-                          children: [
-                            SlidableAction(
-                              onPressed: (context) {
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return AlertDialog(
-                                      title: Text('Delete Class', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-                                      content: Text('Are you sure you want to delete "${classObj.name}"?', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.of(context).pop(),
-                                          child: const Text('Cancel'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.of(context).pop();
-                                            _deleteClass(classObj.id);
-                                          },
-                                          style: TextButton.styleFrom(foregroundColor: Colors.red),
-                                          child: const Text('Delete'),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              icon: Icons.delete,
-                              label: 'Delete',
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ],
+                      return _ClassGridCard(
+                        classObj: classObj,
+                        isDark: isDark,
+                        cs: cs,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ClassDetailsScreen(classObj: classObj),
+                          ),
                         ),
-                        child: Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.all(16),
-                            leading: CircleAvatar(
-                              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                              radius: 28,
-                              child: Icon(
-                                Icons.class_,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                size: 28,
+                        onDelete: () => showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            title: Text('Delete Class',
+                                style: TextStyle(color: cs.onSurface)),
+                            content: Text(
+                                'Delete "${classObj.name}"? This cannot be undone.',
+                                style: TextStyle(color: cs.onSurface)),
+                            actions: [
+                              TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Cancel')),
+                              FilledButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _deleteClass(classObj.id);
+                                },
+                                style: FilledButton.styleFrom(
+                                    backgroundColor: cs.error),
+                                child: const Text('Delete'),
                               ),
-                            ),
-                            title: Text(
-                              classObj.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
-                            subtitle: Consumer<AuthProvider>(
-                              builder: (context, auth, child) {
-                                return Text(
-                                  'Teacher ID: ${auth.teacherId ?? classObj.teacherId}',
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.outline,
-                                  ),
-                                );
-                              },
-                            ),
-                            trailing: Icon(
-                              Icons.chevron_right,
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ClassDetailsScreen(classObj: classObj),
-                                ),
-                              );
-                            },
+                            ],
                           ),
                         ),
                       );
                     },
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -416,54 +552,147 @@ class _ClassesScreenState extends State<ClassesScreen> {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
+// ── Class Grid Card ───────────────────────────────────────────────────────────
+class _ClassGridCard extends StatelessWidget {
+  final dynamic classObj;
+  final bool isDark;
+  final ColorScheme cs;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
 
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
+  const _ClassGridCard({
+    required this.classObj,
+    required this.isDark,
+    required this.cs,
+    required this.onTap,
+    required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 32),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
+    return GestureDetector(
+      onTap: onTap,
+      onLongPress: onDelete,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+          border: isDark
+              ? Border.all(color: Colors.white.withValues(alpha: 0.07))
+              : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          child: InkWell(
+            onTap: onTap,
+            onLongPress: onDelete,
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icon container
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              const Color(0xFF4F46E5).withValues(alpha: 0.4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
+                    ),
+                    child: const Icon(Icons.class_rounded,
+                        color: Colors.white, size: 26),
+                  ),
+                  const Spacer(),
+                  // Class name
+                  Text(
+                    classObj.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: cs.onSurface,
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  // Footer: students + arrow
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : const Color(0xFF4F46E5).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.people_rounded,
+                                size: 11,
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.7)
+                                    : const Color(0xFF4F46E5)),
+                            const SizedBox(width: 4),
+                            Text(
+                              'View',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.7)
+                                    : const Color(0xFF4F46E5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.arrow_forward_rounded,
+                            color: Colors.white, size: 16),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

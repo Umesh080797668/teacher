@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
@@ -508,40 +509,116 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Mark Attendance'),
-        elevation: 0,
-        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-        foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.face),
-            tooltip: 'Scan Face',
-            onPressed: _openFaceScanner,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
+      backgroundColor:
+          isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Gradient Header ───────────────────────────────────
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 20),
+              decoration: BoxDecoration(
+                gradient: isDark
+                    ? const LinearGradient(
+                        colors: [Color(0xFF1E1A2E), Color(0xFF2D2660)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : const LinearGradient(
+                        colors: [
+                          Color(0xFF3730A3),
+                          Color(0xFF4F46E5),
+                          Color(0xFF7C3AED)
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+              ),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.arrow_back_rounded,
+                          color: Colors.white, size: 20),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Mark Attendance',
+                          style: GoogleFonts.poppins(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        Text(
+                          DateFormat('EEEE, MMMM d, y')
+                              .format(_selectedDate),
+                          style: TextStyle(
+                              color:
+                                  Colors.white.withValues(alpha: 0.75),
+                              fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _openFaceScanner,
+                    tooltip: 'Scan Face',
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.face_rounded,
+                          color: Colors.white, size: 20),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           // Date and Session Selector
-          Container(
+          Builder(builder: (context) {
+            final cs = Theme.of(context).colorScheme;
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
+              color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+              border: Border(
+                bottom: BorderSide(
+                  color: cs.outlineVariant.withValues(alpha: isDark ? 0.3 : 0.5),
+                ),
               ),
             ),
             child: Column(
               children: [
                 // Date Picker
-                Card(
-                  elevation: 2,
-                  color: Theme.of(context).colorScheme.surface,
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).colorScheme.surfaceContainer
+                        : Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
                   child: InkWell(
                     onTap: () async {
                       final picked = await showDatePicker(
@@ -582,7 +659,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                               Text(
                                 'Date',
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -603,9 +680,16 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                 const SizedBox(height: 12),
                 
                 // Class Selector
-                Card(
-                  elevation: 2,
-                  color: Theme.of(context).colorScheme.surface,
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).colorScheme.surfaceContainer
+                        : Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Consumer<ClassesProvider>(
@@ -619,7 +703,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                           decoration: InputDecoration(
                             labelText: 'Select Class',
                             labelStyle: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                             prefixIcon: Icon(
                               Icons.class_,
@@ -672,7 +756,8 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                 ),
               ],
             ),
-          ),
+          );
+          }),
           
           // Search Bar
           Padding(
@@ -690,17 +775,17 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
               decoration: InputDecoration(
                 hintText: 'Search students by name...',
                 hintStyle: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 prefixIcon: Icon(
                   Icons.search,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 suffixIcon: _searchText.isNotEmpty
                     ? IconButton(
                         icon: Icon(
                           Icons.clear,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                         onPressed: () {
                           _searchController.clear();
@@ -714,7 +799,9 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
+                fillColor: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).colorScheme.surfaceContainerHigh
+                    : Theme.of(context).colorScheme.surfaceContainerLow,
               ),
             ),
           ),
@@ -723,9 +810,15 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
           if (_attendanceStatus.isNotEmpty)
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Card(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: Padding(
+              child: Builder(builder: (context) {
+                final cs = Theme.of(context).colorScheme;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(12),
+                    border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                  ),
                   padding: const EdgeInsets.all(12.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -733,12 +826,12 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                       _buildSummaryItem(
                         'Present',
                         _attendanceStatus.values.where((s) => s == 'present').length,
-                        Colors.green,
+                        const Color(0xFF22C55E),
                       ),
                       _buildSummaryItem(
                         'Absent',
                         _attendanceStatus.values.where((s) => s == 'absent').length,
-                        Colors.red,
+                        cs.error,
                       ),
                       _buildSummaryItem(
                         'Late',
@@ -747,8 +840,8 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                       ),
                     ],
                   ),
-                ),
-              ),
+                );
+              }),
             ),
           
           // Students List
@@ -771,38 +864,16 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                       ).toList();
 
                 if (filteredStudents.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.people_outline,
-                          size: 80,
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchText.isNotEmpty 
-                              ? 'No students found matching "$_searchText"'
-                              : (_selectedClassId == null ? 'No students found' : 'No students in selected class'),
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _searchText.isNotEmpty
-                              ? 'Try a different search term'
-                              : (_selectedClassId == null
-                                  ? 'Add students first to mark attendance'
-                                  : 'Select a different class or add students to this class'),
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                      ],
-                    ),
+                  return EmptyState(
+                    icon: _searchText.isNotEmpty ? Icons.search_off_rounded : Icons.people_outline,
+                    title: _searchText.isNotEmpty
+                        ? 'No Students Found'
+                        : (_selectedClassId == null ? 'No Students' : 'Class is Empty'),
+                    message: _searchText.isNotEmpty
+                        ? 'No students match "$_searchText"'
+                        : (_selectedClassId == null
+                            ? 'Add students first to mark attendance'
+                            : 'Select a different class or add students'),
                   );
                 }
 
@@ -833,6 +904,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
             ),
           ),
         ],
+      ),
       ),
       floatingActionButton: _hasNewlyMarkedAttendance()
           ? FloatingActionButton.extended(
@@ -866,8 +938,6 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                       }
                       return 'Save Changes ($changeCount)';
                     }()),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             )
           : null,
     );
@@ -933,113 +1003,192 @@ class _AttendanceStudentCardState extends State<AttendanceStudentCard> {
     }
   }
 
+  // Returns the accent color for the current status
+  Color _statusColor() {
+    switch (_status) {
+      case 'present':
+        return Colors.green;
+      case 'absent':
+        return Colors.red;
+      case 'late':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      color: Theme.of(context).colorScheme.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Avatar on the left
-            CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              radius: 28,
-              child: Text(
-                widget.student.name.isNotEmpty ? widget.student.name[0].toUpperCase() : '?',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                ),
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Strip color on the left edge
+    final stripColor = _statusColor();
+    // Subtle tinted background when a status is selected
+    final cardBg = _status != null
+        ? stripColor.withValues(alpha: isDark ? 0.12 : 0.07)
+        : (isDark ? const Color(0xFF1E1B2E) : Colors.white);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _status != null
+              ? stripColor.withValues(alpha: 0.5)
+              : (isDark ? Colors.white12 : cs.outlineVariant.withValues(alpha: 0.4)),
+          width: _status != null ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.07),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Colored status strip on the left ──
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: 5,
+                color: stripColor,
               ),
-            ),
-            const SizedBox(width: 16),
-            // Three rows: name, ID, status buttons
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Row 1: Student Name
-                  Text(
-                    widget.student.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  // Row 2: Student ID
-                  Text(
-                    'ID: ${widget.student.studentId}',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Row 3: Attendance Status Buttons
-                  Wrap(
-                    spacing: 8,
+              // ── Card body ──
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _StatusChip(
-                        label: 'P',
-                        icon: Icons.check_circle,
-                        color: Colors.green,
-                        isSelected: _status == 'present',
-                        onTap: () {
-                          setState(() {
-                            if (_status == 'present') {
-                              _status = null;
-                            } else {
-                              _status = 'present';
-                            }
-                          });
-                          widget.onStatusChanged(_status ?? '');
-                        },
+                      // Top row: Avatar + Name/ID + Status badge
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Avatar
+                          CircleAvatar(
+                            backgroundColor: cs.primaryContainer,
+                            radius: 22,
+                            child: Text(
+                              widget.student.name.isNotEmpty
+                                  ? widget.student.name[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: cs.onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Name + ID
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.student.name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                    color: cs.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  'ID: ${widget.student.studentId}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: cs.onSurface.withValues(alpha: 0.55),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Status badge (top-right)
+                          if (_status != null)
+                            AnimatedScale(
+                              scale: _status != null ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 200),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: stripColor.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: stripColor, width: 1.2),
+                                ),
+                                child: Text(
+                                  _status!.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: stripColor,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                      _StatusChip(
-                        label: 'A',
-                        icon: Icons.cancel,
-                        color: Colors.red,
-                        isSelected: _status == 'absent',
-                        onTap: () {
-                          setState(() {
-                            if (_status == 'absent') {
-                              _status = null;
-                            } else {
-                              _status = 'absent';
-                            }
-                          });
-                          widget.onStatusChanged(_status ?? '');
-                        },
-                      ),
-                      _StatusChip(
-                        label: 'L',
-                        icon: Icons.access_time,
-                        color: Colors.orange,
-                        isSelected: _status == 'late',
-                        onTap: () {
-                          setState(() {
-                            if (_status == 'late') {
-                              _status = null;
-                            } else {
-                              _status = 'late';
-                            }
-                          });
-                          widget.onStatusChanged(_status ?? '');
-                        },
+                      const SizedBox(height: 12),
+                      // Bottom row: Full-width P / A / L buttons
+                      Row(
+                        children: [
+                          _StatusChip(
+                            label: 'Present',
+                            icon: Icons.check_circle_outline,
+                            color: Colors.green,
+                            isSelected: _status == 'present',
+                            onTap: () {
+                              setState(() {
+                                _status = _status == 'present' ? null : 'present';
+                              });
+                              widget.onStatusChanged(_status ?? '');
+                            },
+                          ),
+                          const SizedBox(width: 6),
+                          _StatusChip(
+                            label: 'Absent',
+                            icon: Icons.cancel_outlined,
+                            color: Colors.red,
+                            isSelected: _status == 'absent',
+                            onTap: () {
+                              setState(() {
+                                _status = _status == 'absent' ? null : 'absent';
+                              });
+                              widget.onStatusChanged(_status ?? '');
+                            },
+                          ),
+                          const SizedBox(width: 6),
+                          _StatusChip(
+                            label: 'Late',
+                            icon: Icons.schedule_outlined,
+                            color: Colors.orange,
+                            isSelected: _status == 'late',
+                            onTap: () {
+                              setState(() {
+                                _status = _status == 'late' ? null : 'late';
+                              });
+                              widget.onStatusChanged(_status ?? '');
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1063,24 +1212,41 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? color : color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: color,
-            width: isSelected ? 2 : 1,
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? color : color.withValues(alpha: 0.09),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? color : color.withValues(alpha: 0.4),
+              width: isSelected ? 1.8 : 1,
+            ),
           ),
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: isSelected ? Colors.white : color,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isSelected ? Colors.white : color,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? Colors.white : color,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

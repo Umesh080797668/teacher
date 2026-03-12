@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
+import '../widgets/custom_widgets.dart';
 import '../services/api_service.dart';
 
 class LinkedDevicesScreen extends StatefulWidget {
@@ -101,7 +103,6 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
         title: Row(
           children: [
             Icon(
@@ -186,12 +187,11 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
             SnackBar(
               content: const Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.white),
+                  Icon(Icons.check_circle),
                   SizedBox(width: 12),
                   Text('Device disconnected successfully'),
                 ],
               ),
-              backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -212,12 +212,12 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.error, color: Colors.white),
+                const Icon(Icons.error),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Failed to disconnect: $e')),
               ],
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -267,21 +267,93 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Linked Devices'),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadSessions,
-            tooltip: 'Refresh',
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+      backgroundColor:
+          isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Gradient Header ───────────────────────────────────
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 20),
+              decoration: BoxDecoration(
+                gradient: isDark
+                    ? const LinearGradient(
+                        colors: [Color(0xFF1E1A2E), Color(0xFF2D2660)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : const LinearGradient(
+                        colors: [
+                          Color(0xFF3730A3),
+                          Color(0xFF4F46E5),
+                          Color(0xFF7C3AED)
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+              ),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.arrow_back_rounded,
+                          color: Colors.white, size: 20),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Linked Devices',
+                          style: GoogleFonts.poppins(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        Text(
+                          'Manage your active web sessions',
+                          style: TextStyle(
+                              color:
+                                  Colors.white.withValues(alpha: 0.75),
+                              fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _loadSessions,
+                    tooltip: 'Refresh',
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.refresh_rounded,
+                          color: Colors.white, size: 20),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // ── Body ────────────────────────────────────────
+            Expanded(
+              child: _isLoading
+          ? ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: 4,
+              itemBuilder: (_, __) => const LinkedDeviceSkeleton(),
+            )
           : _error != null
               ? Center(
                   child: Column(
@@ -308,7 +380,7 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(isDark ? 0.7 : 0.6),
+                              .withValues(alpha: isDark ? 0.7 : 0.6),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -332,7 +404,7 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withOpacity(isDark ? 0.5 : 0.3),
+                                .withValues(alpha: isDark ? 0.5 : 0.3),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -350,7 +422,7 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(isDark ? 0.7 : 0.6),
+                                  .withValues(alpha: isDark ? 0.7 : 0.6),
                             ),
                           ),
                         ],
@@ -358,8 +430,6 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                     )
                   : RefreshIndicator(
                       onRefresh: _loadSessions,
-                      backgroundColor: Theme.of(context).colorScheme.surface,
-                      color: Theme.of(context).colorScheme.primary,
                       child: ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: _sessions.length,
@@ -370,11 +440,13 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                           final createdAt = _formatDate(session['createdAt']);
                           final lastActive = _formatDate(session['lastActivity']);
 
-                          return Card(
-                            elevation: 2,
+                          final cs = Theme.of(context).colorScheme;
+                          return Container(
                             margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(
+                            decoration: BoxDecoration(
+                              color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
                               borderRadius: BorderRadius.circular(12),
+                              border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
@@ -417,8 +489,8 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                                                   ),
                                                   decoration: BoxDecoration(
                                                     color: isActive
-                                                        ? Colors.green
-                                                        : Colors.grey,
+                                                        ? const Color(0xFF22C55E)
+                                                        : cs.surfaceContainerHigh,
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             12),
@@ -427,9 +499,11 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                                                     isActive
                                                         ? 'Active'
                                                         : 'Inactive',
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                       fontSize: 10,
-                                                      color: Colors.white,
+                                                      color: isActive
+                                                          ? Colors.white
+                                                          : cs.onSurfaceVariant,
                                                       fontWeight:
                                                           FontWeight.bold,
                                                     ),
@@ -445,7 +519,7 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                                                 color: Theme.of(context)
                                                     .colorScheme
                                                     .onSurface
-                                                    .withOpacity(
+                                                    .withValues(alpha: 
                                                         isDark ? 0.7 : 0.6),
                                               ),
                                             ),
@@ -473,7 +547,7 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onSurface
-                                        .withOpacity(isDark ? 0.2 : 0.1),
+                                        .withValues(alpha: isDark ? 0.2 : 0.1),
                                   ),
                                   const SizedBox(height: 12),
                                   Row(
@@ -484,7 +558,7 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withOpacity(isDark ? 0.7 : 0.6),
+                                            .withValues(alpha: isDark ? 0.7 : 0.6),
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
@@ -494,7 +568,7 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                                           color: Theme.of(context)
                                               .colorScheme
                                               .onSurface
-                                              .withOpacity(isDark ? 0.7 : 0.6),
+                                              .withValues(alpha: isDark ? 0.7 : 0.6),
                                         ),
                                       ),
                                     ],
@@ -508,7 +582,7 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withOpacity(isDark ? 0.7 : 0.6),
+                                            .withValues(alpha: isDark ? 0.7 : 0.6),
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
@@ -518,7 +592,7 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                                           color: Theme.of(context)
                                               .colorScheme
                                               .onSurface
-                                              .withOpacity(isDark ? 0.7 : 0.6),
+                                              .withValues(alpha: isDark ? 0.7 : 0.6),
                                         ),
                                       ),
                                     ],
@@ -535,7 +609,7 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                                           color: Theme.of(context)
                                               .colorScheme
                                               .onSurface
-                                              .withOpacity(isDark ? 0.7 : 0.6),
+                                              .withValues(alpha: isDark ? 0.7 : 0.6),
                                         ),
                                         const SizedBox(width: 6),
                                         Expanded(
@@ -546,7 +620,7 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                                               color: Theme.of(context)
                                                   .colorScheme
                                                   .onSurface
-                                                  .withOpacity(
+                                                  .withValues(alpha: 
                                                       isDark ? 0.5 : 0.4),
                                             ),
                                             maxLines: 2,
@@ -563,6 +637,10 @@ class _LinkedDevicesScreenState extends State<LinkedDevicesScreen> {
                         },
                       ),
                     ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
