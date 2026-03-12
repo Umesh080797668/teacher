@@ -150,8 +150,6 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
   // ─── mark-as-paid bottom sheet ─────────────────────────────────────────────
 
   void _showMarkAsPaidSheet(Student student) {
-    final classesProvider =
-        Provider.of<ClassesProvider>(context, listen: false);
     final paymentProvider =
         Provider.of<PaymentProvider>(context, listen: false);
 
@@ -184,13 +182,6 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
     // Pre-fill amount based on type
     amountCtrl.text = '5000.00';
 
-    final className = classesProvider.classes
-        .firstWhere(
-          (c) => c.id == classId,
-          orElse: () => class_model.Class(id: '', name: 'Unknown', teacherId: ''),
-        )
-        .name;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -198,6 +189,17 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final cs = Theme.of(context).colorScheme;
+            // Re-read on every builder call so it shows once classes load
+            final sheetClasses = Provider.of<ClassesProvider>(context, listen: false);
+            final className = sheetClasses.classes
+                .firstWhere(
+                  (c) => c.id == classId,
+                  orElse: () => class_model.Class(
+                      id: '', name: sheetClasses.isLoading ? 'Loading…' : 'Unknown', teacherId: ''),
+                )
+                .name;
             void updateAmount(String type) {
               switch (type) {
                 case 'full':
@@ -267,22 +269,18 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                                   children: [
                                     Text(
                                       student.name,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: isDark ? Colors.white : const Color(0xFF1E1B2E),
+                                      ),
                                     ),
                                     Text(
                                       '$className · ID: ${student.studentId}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withValues(alpha: 0.6),
-                                          ),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -455,16 +453,26 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                             controller: amountCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                                 decimal: true),
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontSize: 15,
+                            ),
                             decoration: InputDecoration(
                               labelText: 'Amount (LKR)',
+                              labelStyle: TextStyle(
+                                color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+                              ),
                               border: const OutlineInputBorder(),
-                              prefixIcon: const Icon(Icons.attach_money),
-                              fillColor: paymentType == 'free'
-                                  ? Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest
-                                  : null,
-                              filled: paymentType == 'free',
+                              prefixIcon: Icon(Icons.attach_money,
+                                  color: isDark ? Colors.white70 : cs.primary),
+                              filled: true,
+                              fillColor: isDark
+                                  ? (paymentType == 'free'
+                                      ? const Color(0xFF16133A)
+                                      : const Color(0xFF2A2740))
+                                  : (paymentType == 'free'
+                                      ? cs.surfaceContainerHighest
+                                      : Colors.white),
                             ),
                             enabled: paymentType != 'free',
                           ),
@@ -1032,7 +1040,9 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E1B2E)
+              : Colors.white,
           borderRadius:
               const BorderRadius.vertical(top: Radius.circular(24)),
         ),

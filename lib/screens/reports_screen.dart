@@ -628,64 +628,179 @@ class _StudentReportsTabState extends State<_StudentReportsTab> {
                         final report = filteredReports[index];
                         final cs = Theme.of(context).colorScheme;
                         final isDark = Theme.of(context).brightness == Brightness.dark;
+                        final rate = (report['attendanceRate'] ?? 0.0).toDouble();
+                        final stripColor = rate >= 75
+                            ? const Color(0xFF22C55E)
+                            : rate >= 50
+                                ? Colors.orange
+                                : cs.error;
+                        final studentName =
+                            (report['studentName'] ?? 'Unknown Student') as String;
                         return Container(
                           key: ValueKey('report-${report['studentId'] ?? index}'),
                           margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: isDark ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+                            color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            border: isDark ? null : Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+                            border: Border.all(
+                              color: stripColor.withValues(alpha: 0.3),
+                              width: 1.2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black
+                                    .withValues(alpha: isDark ? 0.2 : 0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                report['studentName'] ?? 'Unknown Student',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: cs.onSurface,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                report['className'] ?? '',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: cs.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: IntrinsicHeight(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  _StatChip(
-                                    label: 'Present: ${report['presentCount'] ?? 0}',
-                                    color: const Color(0xFF22C55E),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _StatChip(
-                                    label: 'Absent: ${report['absentCount'] ?? 0}',
-                                    color: cs.error,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _StatChip(
-                                    label: 'Late: ${report['lateCount'] ?? 0}',
-                                    color: Colors.orange,
+                                  // Colored left strip
+                                  Container(width: 5, color: stripColor),
+                                  // Card body
+                                  Expanded(
+                                    child: Padding(
+                                      padding:
+                                          const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          // Gradient avatar
+                                          Container(
+                                            width: 46,
+                                            height: 46,
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  stripColor,
+                                                  stripColor.withValues(alpha: 0.55),
+                                                ],
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(13),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                studentName.isNotEmpty
+                                                    ? studentName[0].toUpperCase()
+                                                    : '?',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          // Info column
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  studentName,
+                                                  style: TextStyle(
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: cs.onSurface,
+                                                  ),
+                                                  overflow: TextOverflow.ellipsis,
+                                                  maxLines: 1,
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  report['className'] ?? '',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: cs.onSurface
+                                                        .withValues(alpha: 0.55),
+                                                  ),
+                                                  overflow: TextOverflow.ellipsis,
+                                                  maxLines: 1,
+                                                ),
+                                                const SizedBox(height: 8),
+                                                // Compact stat chips
+                                                Row(
+                                                  children: [
+                                                    _StatChip(
+                                                      label:
+                                                          '${report['presentCount'] ?? 0}P',
+                                                      color:
+                                                          const Color(0xFF22C55E),
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    _StatChip(
+                                                      label:
+                                                          '${report['absentCount'] ?? 0}A',
+                                                      color: cs.error,
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    _StatChip(
+                                                      label:
+                                                          '${report['lateCount'] ?? 0}L',
+                                                      color: Colors.orange,
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 8),
+                                                // Attendance rate progress bar
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                                4),
+                                                        child:
+                                                            LinearProgressIndicator(
+                                                          value: (rate / 100)
+                                                              .clamp(0.0, 1.0),
+                                                          backgroundColor: cs
+                                                              .onSurface
+                                                              .withValues(
+                                                                  alpha: 0.1),
+                                                          valueColor:
+                                                              AlwaysStoppedAnimation<
+                                                                  Color>(
+                                                                  stripColor),
+                                                          minHeight: 6,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      '${rate.toStringAsFixed(1)}%',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color: stripColor,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Attendance Rate: ${report['attendanceRate']?.toStringAsFixed(1) ?? '0.0'}%',
-                                style: TextStyle(
-                                  color: (report['attendanceRate'] ?? 0) >= 75
-                                      ? const Color(0xFF22C55E)
-                                      : cs.error,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         );
                       },

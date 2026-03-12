@@ -615,8 +615,8 @@ class _HomeScreenState extends State<HomeScreen> {
       try {
         // Fetch both API calls in parallel for faster loading
         final results = await Future.wait([
-          ApiService.getHomeStats(teacherId: teacherId).timeout(const Duration(seconds: 5)),
-          ApiService.getRecentActivities(teacherId: teacherId).timeout(const Duration(seconds: 5)),
+          ApiService.getHomeStats(teacherId: teacherId).timeout(const Duration(seconds: 20)),
+          ApiService.getRecentActivities(teacherId: teacherId).timeout(const Duration(seconds: 20)),
         ]);
         
         final stats = results[0] as HomeStats;
@@ -672,11 +672,14 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
         
-        if (!silent) {
+        // Only show error if we have no data to display at all
+        if (!silent && _stats == null) {
           setState(() {
             _error = 'Connection timeout. Please check your internet.';
             _isLoading = false;
           });
+        } else if (!silent) {
+          setState(() => _isLoading = false);
         }
       }
     } catch (e) {
@@ -716,11 +719,14 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
       
-      if (!silent) {
+      // Only show error if we have no data to display
+      if (!silent && _stats == null) {
         setState(() {
           _error = e.toString();
           _isLoading = false;
         });
+      } else if (!silent) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -1317,23 +1323,33 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         }
 
-                        if (_error != null) {
+                        if (_error != null && _stats == null) {
                           return Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24.0,
                             ),
                             child: Column(
                               children: [
+                                const Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey),
+                                const SizedBox(height: 12),
                                 Text(
-                                  'Failed to load data',
+                                  'Could not load data',
                                   style: Theme.of(
                                     context,
                                   ).textTheme.titleMedium,
                                 ),
-                                const SizedBox(height: 8),
-                                ElevatedButton(
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Check your internet connection',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                                      ),
+                                ),
+                                const SizedBox(height: 12),
+                                FilledButton.icon(
                                   onPressed: _loadData,
-                                  child: const Text('Retry'),
+                                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                                  label: const Text('Retry'),
                                 ),
                               ],
                             ),

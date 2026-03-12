@@ -7,8 +7,6 @@ import '../providers/students_provider.dart';
 import '../providers/classes_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart'; // Added for WhatsApp Integration
-import '../models/student.dart';
-import '../models/class.dart' as class_model;
 import '../widgets/custom_widgets.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -949,7 +947,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             // Payments List
             Consumer3<PaymentProvider, StudentsProvider, ClassesProvider>(
               builder: (context, paymentProvider, studentsProvider, classesProvider, child) {
-                if (paymentProvider.isLoading) {
+                if (paymentProvider.isLoading || studentsProvider.isLoading || classesProvider.isLoading) {
                   return ListSkeleton(
                     itemCount: 5,
                     itemBuilder: (context) => const PaymentCardSkeleton(),
@@ -959,16 +957,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 debugPrint('PaymentScreen: PaymentProvider has ${paymentProvider.payments.length} payments');
                 debugPrint('PaymentScreen: Search text: "$_searchText"');
 
+                // Pre-compute lookup maps for instant, zero-flicker name resolution
+                final studentMap = {for (final s in studentsProvider.students) s.id: s};
+                final classMap = {for (final c in classesProvider.classes) c.id: c};
+
                 // Filter payments by search text
                 final filteredPayments = _searchText.isEmpty
                     ? paymentProvider.payments
                     : paymentProvider.payments.where((payment) {
-                        final student = studentsProvider.students.firstWhere(
-                          (s) => s.id == payment.studentId,
-                          orElse: () => Student(id: '', name: '', studentId: ''),
-                        );
-                        return student.name.toLowerCase().contains(_searchText) ||
-                               student.studentId.toLowerCase().contains(_searchText);
+                        final student = studentMap[payment.studentId];
+                        return (student?.name.toLowerCase().contains(_searchText) ?? false) ||
+                               (student?.studentId.toLowerCase().contains(_searchText) ?? false);
                       }).toList();
 
                 if (filteredPayments.isEmpty) {
@@ -1054,27 +1053,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   ),
                                   const SizedBox(width: 14),
                                   Expanded(
-                                    child: Consumer2<StudentsProvider, ClassesProvider>(
-                                      builder: (context, sp, cp, _) {
-                                        final student = sp.students.firstWhere(
-                                          (s) => s.id == payment.studentId,
-                                          orElse: () => Student(id: '', name: '', studentId: ''),
-                                        );
-                                        final classObj = cp.classes.firstWhere(
-                                          (c) => c.id == payment.classId,
-                                          orElse: () => class_model.Class(id: '', name: '', teacherId: ''),
-                                        );
-                                        return Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(student.name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: cs.onSurface)),
-                                            const SizedBox(height: 2),
-                                            Text('${classObj.name} • ${_getPaymentTypeLabel(payment.type)}', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
-                                            const SizedBox(height: 1),
-                                            Text(_formatMonthYear(payment.month ?? payment.date.month, payment.year ?? payment.date.year), style: TextStyle(color: cs.primary, fontSize: 11, fontWeight: FontWeight.w500)),
-                                          ],
-                                        );
-                                      },
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(studentMap[payment.studentId]?.name ?? '',
+                                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: cs.onSurface)),
+                                        const SizedBox(height: 2),
+                                        Text('${classMap[payment.classId]?.name ?? ''} • ${_getPaymentTypeLabel(payment.type)}',
+                                            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                                        const SizedBox(height: 1),
+                                        Text(_formatMonthYear(payment.month ?? payment.date.month, payment.year ?? payment.date.year),
+                                            style: TextStyle(color: cs.primary, fontSize: 11, fontWeight: FontWeight.w500)),
+                                      ],
                                     ),
                                   ),
                                   Text(

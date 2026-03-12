@@ -1176,39 +1176,16 @@ const verifyToken = (req, res, next) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
     
-    console.log('=== Token Verification (server.js) ===');
-    console.log('Endpoint:', req.method, req.path);
-    console.log('Token present:', !!token);
-    console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
-    console.log('JWT_SECRET length:', jwtSecret.length);
-    console.log('JWT_SECRET (first 10 chars):', jwtSecret.substring(0, 10) + '...');
-    
     if (!token) {
-      console.log('❌ No token provided');
       return res.status(401).json({ error: 'No token provided' });
     }
 
     const decoded = jwt.verify(token, jwtSecret);
-    console.log('✓ Token verified successfully');
-    console.log('Decoded token:', {
-      userId: decoded.userId,
-      teacherId: decoded.teacherId,
-      email: decoded.email,
-      iat: new Date(decoded.iat * 1000).toISOString(),
-      exp: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : 'No expiration'
-    });
-    
     req.user = decoded;
     next();
   } catch (error) {
-    console.error('❌ Token verification error:', error.message);
     if (error.name === 'TokenExpiredError') {
-      console.log('Token expired at:', error.expiredAt);
       return res.status(401).json({ error: 'Token expired', expired: true });
-    }
-    if (error.name === 'JsonWebTokenError') {
-      console.log('Invalid token signature or format');
-      return res.status(401).json({ error: 'Invalid token' });
     }
     res.status(401).json({ error: 'Invalid token' });
   }
@@ -1226,7 +1203,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Debug endpoint to check environment variables (safe - no sensitive data)
-app.get('/api/debug/env', (req, res) => {
+app.get('/api/debug/env', verifyToken, (req, res) => {
   res.json({
     hasMongoUri: !!process.env.MONGODB_URI,
     hasEmailUser: !!process.env.EMAIL_USER,
@@ -1241,7 +1218,7 @@ app.get('/api/debug/env', (req, res) => {
 });
 
 // Debug endpoint for MongoDB connection details
-app.get('/api/debug/mongodb', (req, res) => {
+app.get('/api/debug/mongodb', verifyToken, (req, res) => {
   res.json({
     readyState: mongoose.connection.readyState,
     readyStateText: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown',
@@ -3987,23 +3964,52 @@ app.get('/api/home/stats', verifyToken, async (req, res) => {
     if (studentIds) {
       todayAttendanceQuery.studentId = { $in: studentIds };
     }
-    const todayAttendance = await Attendance.find(todayAttendanceQuery);
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    // Build yesterday query
+    const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+    const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() + 1);
+    let yesterdayAttendanceQuery = { date: { $gte: startOfYesterday, $lt: endOfYesterday } };
+    if (studentIds) yesterdayAttendanceQuery.studentId = { $in: studentIds };
+
+    // Build payment queries
+    let monthPaymentsQuery = { date: { $gte: new Date(currentYear, currentMonth, 1), $lt: new Date(currentYear, currentMonth + 1, 1) } };
+    let lastMonthPaymentsQuery = { date: { $gte: new Date(lastMonthYear, lastMonth, 1), $lt: new Date(lastMonthYear, lastMonth + 1, 1) } };
+    if (classIds) {
+      monthPaymentsQuery.classId = { $in: classIds };
+      lastMonthPaymentsQuery.classId = { $in: classIds };
+    }
+
+    // Build trend queries
+    const monthRange = { $gte: new Date(currentYear, currentMonth, 1), $lt: new Date(currentYear, currentMonth + 1, 1) };
+    let studentsThisMonthQuery = { createdAt: monthRange };
+    let classesThisMonthQuery = { createdAt: monthRange };
+    if (classIds) studentsThisMonthQuery.classId = { $in: classIds };
+    if (teacherDoc) classesThisMonthQuery.teacherId = teacherDoc._id;
+
+    // Run all 6 independent queries in parallel
+    const [
+      todayAttendance,
+      yesterdayAttendance,
+      monthPayments,
+      lastMonthPayments,
+      newStudentsCount,
+      newClassesCount,
+    ] = await Promise.all([
+      Attendance.find(todayAttendanceQuery, 'status').lean(),
+      Attendance.find(yesterdayAttendanceQuery, 'status').lean(),
+      Payment.find(monthPaymentsQuery, 'studentId').lean(),
+      Payment.find(lastMonthPaymentsQuery, 'studentId').lean(),
+      Student.countDocuments(studentsThisMonthQuery),
+      Class.countDocuments(classesThisMonthQuery),
+    ]);
+
     const presentCount = todayAttendance.filter(a => a.status.toLowerCase() === 'present').length;
     const todayAttendancePercentage = todayAttendance.length > 0 ? (presentCount / todayAttendance.length * 100) : 0.0;
 
-    // Calculate yesterday's attendance for trend - Use local dates
-    const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-    const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() + 1);
-    let yesterdayAttendanceQuery = {
-      date: {
-        $gte: startOfYesterday,
-        $lt: endOfYesterday
-      }
-    };
-    if (studentIds) {
-      yesterdayAttendanceQuery.studentId = { $in: studentIds };
-    }
-    const yesterdayAttendance = await Attendance.find(yesterdayAttendanceQuery);
     const yesterdayPresentCount = yesterdayAttendance.filter(a => a.status.toLowerCase() === 'present').length;
     const yesterdayAttendancePercentage = yesterdayAttendance.length > 0 ? (yesterdayPresentCount / yesterdayAttendance.length * 100) : 0.0;
 
@@ -4011,35 +4017,9 @@ app.get('/api/home/stats', verifyToken, async (req, res) => {
     const attendanceTrend = `${attendanceDiff >= 0 ? '+' : ''}${attendanceDiff.toFixed(1)}%`;
     const attendancePositive = attendanceDiff >= 0;
 
-    // Calculate payment status (students who have paid this month)
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    let monthPaymentsQuery = {
-      date: {
-        $gte: new Date(currentYear, currentMonth, 1),
-        $lt: new Date(currentYear, currentMonth + 1, 1)
-      }
-    };
-    if (classIds) {
-      monthPaymentsQuery.classId = { $in: classIds };
-    }
-    const monthPayments = await Payment.find(monthPaymentsQuery);
     const uniquePayingStudents = new Set(monthPayments.map(p => p.studentId.toString())).size;
     const paymentStatusPercentage = totalStudents > 0 ? (uniquePayingStudents / totalStudents * 100) : 0.0;
 
-    // Calculate last month's payment for trend
-    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-    let lastMonthPaymentsQuery = {
-      date: {
-        $gte: new Date(lastMonthYear, lastMonth, 1),
-        $lt: new Date(lastMonthYear, lastMonth + 1, 1)
-      }
-    };
-    if (classIds) {
-      lastMonthPaymentsQuery.classId = { $in: classIds };
-    }
-    const lastMonthPayments = await Payment.find(lastMonthPaymentsQuery);
     const lastMonthPayingStudents = new Set(lastMonthPayments.map(p => p.studentId.toString())).size;
     const lastMonthPaymentPercentage = totalStudents > 0 ? (lastMonthPayingStudents / totalStudents * 100) : 0.0;
 
@@ -4047,31 +4027,8 @@ app.get('/api/home/stats', verifyToken, async (req, res) => {
     const paymentTrend = `${paymentDiff >= 0 ? '+' : ''}${paymentDiff.toFixed(1)}%`;
     const paymentPositive = paymentDiff >= 0;
 
-    // Calculate student trend (New students this month)
-    const studentsThisMonthQuery = {
-      createdAt: {
-        $gte: new Date(currentYear, currentMonth, 1),
-        $lt: new Date(currentYear, currentMonth + 1, 1)
-      }
-    };
-    if (classIds) {
-      studentsThisMonthQuery.classId = { $in: classIds };
-    }
-    const newStudentsCount = await Student.countDocuments(studentsThisMonthQuery);
     const studentsTrend = `+${newStudentsCount}`;
     const studentsPositive = newStudentsCount > 0;
-
-    // Calculate classes trend (New classes this month)
-    const classesThisMonthQuery = {
-      createdAt: {
-        $gte: new Date(currentYear, currentMonth, 1), 
-        $lt: new Date(currentYear, currentMonth + 1, 1)
-      }
-    };
-    if (teacherDoc) {
-      classesThisMonthQuery.teacherId = teacherDoc._id;
-    }
-    const newClassesCount = await Class.countDocuments(classesThisMonthQuery);
     const classesTrend = `+${newClassesCount}`;
     const classesPositive = newClassesCount > 0;
 
