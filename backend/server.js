@@ -1610,15 +1610,21 @@ app.post('/api/attendance/batch', verifyToken, async (req, res) => {
     const month = attendanceDate.getMonth() + 1;
     const day = attendanceDate.getDate();
     
-    console.log('Batch attendance request for', studentIds.length, 'students on', date);
+    // Filter out any empty or malformed IDs before casting to prevent CastError
+    const validStudentIds = studentIds.filter(
+      id => typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id)
+    );
+
+    if (validStudentIds.length === 0) {
+      console.log('Batch attendance: no valid studentIds after filtering, returning empty map');
+      return res.json({});
+    }
+
+    console.log('Batch attendance request for', validStudentIds.length, 'students on', date,
+      `(${studentIds.length - validStudentIds.length} invalid IDs filtered out)`);
     
-    // Convert studentIds to ObjectIds
-    const objectIds = studentIds.map(id => {
-      if (typeof id === 'string' && id.match(/^[0-9a-fA-F]{24}$/)) {
-        return new mongoose.Types.ObjectId(id);
-      }
-      return id;
-    });
+    // Convert valid studentIds to ObjectIds
+    const objectIds = validStudentIds.map(id => new mongoose.Types.ObjectId(id));
     
     // Find all attendance records for these students on this date
     const attendance = await Attendance.find({
@@ -3456,7 +3462,10 @@ app.get('/api/reports/student-reports', verifyToken, async (req, res) => {
     classObjects.forEach(c => { classNameMap[c._id.toString()] = c.name; });
 
     // Fetch all relevant attendance in one query
-    const studentObjectIds = students.map(s => s._id);
+    // Filter out any students without a valid _id to prevent CastError
+    const studentObjectIds = students
+      .map(s => s._id)
+      .filter(id => id && id.toString().match(/^[0-9a-fA-F]{24}$/));
     let batchAttendanceQuery = { studentId: { $in: studentObjectIds } };
     if (month) batchAttendanceQuery.month = parseInt(month);
     if (year) batchAttendanceQuery.year = parseInt(year);

@@ -165,7 +165,11 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       }
       
       // Use batch endpoint for faster loading instead of loading each student individually
-      final studentIds = students.map((s) => s.id).toList();
+      // Filter out empty IDs to prevent backend CastError
+      final studentIds = students
+          .map((s) => s.id)
+          .where((id) => id.isNotEmpty)
+          .toList();
       
       try {
         final attendanceMap = await ApiService.getBatchAttendance(studentIds, date);
