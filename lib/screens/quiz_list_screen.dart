@@ -5,6 +5,9 @@ import '../services/api_service.dart';
 import '../widgets/custom_widgets.dart';
 import 'create_quiz_screen.dart';
 import 'quiz_results_screen.dart';
+import 'screen_tutorial.dart';
+import 'tutorial_keys.dart';
+import 'tutorial_screen.dart';
 
 class QuizListScreen extends StatefulWidget {
   static const routeName = '/quizzes';
@@ -18,10 +21,47 @@ class QuizListScreen extends StatefulWidget {
 class _QuizListScreenState extends State<QuizListScreen> {
   late Future<List<Quiz>> _quizzesFuture;
 
+  static const _tutKey = 'tutorial_quiz_v1';
+  List<STStep> get _tutSteps => [
+    const STStep(
+      targetKey: null,
+      shape: STShape.none,
+      title: 'Quizzes',
+      body: 'Manage your quizzes, see current status, and view detailed results.',
+      icon: Icons.quiz_rounded,
+      accent: Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeyQuizFab,
+      shape: STShape.circle,
+      title: 'Create Quiz',
+      body: 'Tap here to create a new quiz for your students.',
+      icon: Icons.add_rounded,
+      accent: const Color(0xFFDB2777),
+    ),
+  ];
+
+  Future<void> _maybeShowTutorial() async {
+    if (TutorialScreen.isRunning) return;
+    final done = await isSTDone(_tutKey);
+    if (!done && mounted) {
+      showSTTutorial(
+        context: context,
+        steps: _tutSteps,
+        prefKey: _tutKey,
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _refreshQuizzes();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (mounted) _maybeShowTutorial();
+      });
+    });
   }
 
   void _refreshQuizzes() {
@@ -104,6 +144,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
+                    key: tutorialKeyQuizFab,
                     onTap: () async {
                       final result = await Navigator.push<bool>(
                         context,

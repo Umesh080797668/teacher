@@ -198,7 +198,30 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   Column(
                     children: [
                       const OfflineBanner(),
-                      Expanded(child: child ?? const SizedBox()),
+                      Expanded(
+                        child: Container(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.black
+                              : Colors.grey.shade200,
+                          alignment: Alignment.center,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 800),
+                            child: Container(
+                              clipBehavior: Clip.antiAlias,
+                              decoration: BoxDecoration(
+                                boxShadow: [
+                                  if (kIsWeb)
+                                    const BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 16,
+                                    ),
+                                ],
+                              ),
+                              child: child ?? const SizedBox(),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   TutorialScreen.buildOverlayLayer(),

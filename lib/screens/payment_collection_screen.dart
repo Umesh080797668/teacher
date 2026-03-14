@@ -8,6 +8,9 @@ import '../providers/auth_provider.dart';
 import '../models/student.dart';
 import '../models/payment.dart';
 import '../models/class.dart' as class_model;
+import 'screen_tutorial.dart';
+import 'tutorial_keys.dart';
+import 'tutorial_screen.dart';
 
 class PaymentCollectionScreen extends StatefulWidget {
   const PaymentCollectionScreen({super.key});
@@ -24,12 +27,63 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
 
+  static const _tutKey = 'tutorial_collect_payments_v1';
+  List<STStep> get _tutSteps => [
+    const STStep(
+      targetKey: null,
+      shape: STShape.none,
+      title: 'Collect Payments',
+      body: 'Quickly mark payments during class time for any student.',
+      icon: Icons.point_of_sale_rounded,
+      accent: Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeyColClass,
+      title: 'Filter by Class',
+      body: 'Select a class to easily find the relevant students.',
+      icon: Icons.filter_list_rounded,
+      accent: const Color(0xFF7C3AED),
+    ),
+    STStep(
+      targetKey: tutorialKeyColSearch,
+      title: 'Fast Search',
+      body: 'Looking for a specific student? Use this to instantly filter the list.',
+      icon: Icons.search_rounded,
+      accent: const Color(0xFF0891B2),
+    ),
+    STStep(
+      targetKey: tutorialKeyColScanner, // if we add a qr scanner, otherwise ignore
+      shape: STShape.circle,
+      title: 'QR / Barcode',
+      body: 'If you use IDs, you can scan QR codes to mark payments instantly.',
+      icon: Icons.qr_code_scanner_rounded,
+      accent: const Color(0xFFDB2777),
+    ),
+  ];
+
+  Future<void> _maybeShowTutorial() async {
+    if (TutorialScreen.isRunning) return;
+    final done = await isSTDone(_tutKey);
+    if (!done && mounted) {
+      showSTTutorial(
+        context: context,
+        steps: _tutSteps.where((s) => s.targetKey != tutorialKeyColScanner).toList(), // removing scanner if not used here
+        prefKey: _tutKey,
+      );
+    }
+  }
+
   // ─── lifecycle ─────────────────────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (mounted) _maybeShowTutorial();
+      });
+    });
   }
 
   @override
@@ -786,6 +840,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                         Expanded(
                           flex: 3,
                           child: DropdownButtonFormField<String?>(
+                            key: tutorialKeyColClass,
                             value: _selectedClassId,
                             style: TextStyle(
                               color: dark ? Colors.white : const Color(0xFF1E1B2E),
@@ -902,6 +957,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
 
                     // Search
                     TextField(
+                      key: tutorialKeyColSearch,
                       controller: _searchController,
                       onChanged: (v) =>
                           setState(() => _searchText = v.toLowerCase()),

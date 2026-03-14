@@ -8,6 +8,9 @@ import '../providers/classes_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart'; // Added for WhatsApp Integration
 import '../widgets/custom_widgets.dart';
+import 'screen_tutorial.dart';
+import 'tutorial_keys.dart';
+import 'tutorial_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -29,11 +32,54 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
 
+  static const _tutKey = 'tutorial_payments_v1';
+
+  List<STStep> get _tutSteps => [
+    const STStep(
+      targetKey: null,
+      shape: STShape.none,
+      title: 'Payments',
+      body: 'Manage your students\' monthly fees and track total revenue easily.',
+      icon: Icons.payments_rounded,
+      accent: Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeyPayRemind,
+      shape: STShape.circle,
+      title: 'Send Reminders',
+      body: 'Tap here to send payment reminders via WhatsApp to students with pending fees.',
+      icon: Icons.notifications_active,
+      accent: const Color(0xFF7C3AED),
+    ),
+    STStep(
+      targetKey: tutorialKeyPaySearch,
+      title: 'Search Students',
+      body: 'Search for a specific student name to view or add a payment record.',
+      icon: Icons.search_rounded,
+      accent: const Color(0xFF0891B2),
+    ),
+  ];
+
+  Future<void> _maybeShowTutorial() async {
+    if (TutorialScreen.isRunning) return;
+    final done = await isSTDone(_tutKey);
+    if (!done && mounted) {
+      showSTTutorial(
+        context: context,
+        steps: _tutSteps,
+        prefKey: _tutKey,
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (mounted) _maybeShowTutorial();
+      });
     });
   }
 
@@ -409,6 +455,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: IconButton(
+                      key: tutorialKeyPayRemind,
                       icon: const Icon(Icons.notifications_active, color: Colors.white, size: 20),
                       tooltip: 'Send Payment Reminders',
                       onPressed: _showReminderDialog,
@@ -901,6 +948,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: TextField(
+                key: tutorialKeyPaySearch,
                 controller: _searchController,
                 onChanged: (value) {
                   setState(() {

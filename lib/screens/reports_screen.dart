@@ -47,6 +47,34 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       accent: const Color(0xFF0891B2),
     ),
     STStep(
+      targetKey: tutorialKeyRepTabAtt,
+      title: 'Attendance Reports',
+      body: 'View monthly and daily attendance summaries.',
+      icon: Icons.calendar_month_rounded,
+      accent: const Color(0xFF6366F1), // Indigo
+    ),
+    STStep(
+      targetKey: tutorialKeyRepTabStud,
+      title: 'Student Stats',
+      body: 'Get insights into individual student performance and attendance rates.',
+      icon: Icons.people_outline_rounded,
+      accent: const Color(0xFF8B5CF6), // Purple
+    ),
+    STStep(
+      targetKey: tutorialKeyRepTabPay,
+      title: 'Payments Overview',
+      body: 'Check monthly revenue, pending payments, and transaction history.',
+      icon: Icons.payments_outlined,
+      accent: const Color(0xFF10B981), // Violet
+    ),
+    STStep(
+      targetKey: tutorialKeyRepTabEarn,
+      title: 'Earnings Analysis',
+      body: 'Analyze your earnings over time with detailed charts.',
+      icon: Icons.trending_up_rounded,
+      accent: const Color(0xFF14B8A6), // Emerald
+    ),
+    STStep(
       targetKey: tutorialKeyRepPdf,
       shape: STShape.circle,
       title: 'Export as PDF',
@@ -362,11 +390,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     dividerColor: Colors.transparent,
                     isScrollable: true,
                     tabAlignment: TabAlignment.start,
-                    tabs: const [
-                      Tab(text: 'Attendance'),
-                      Tab(text: 'Students'),
-                      Tab(text: 'Payments'),
-                      Tab(text: 'Earnings'),
+                    tabs: [
+                      Tab(key: tutorialKeyRepTabAtt, text: 'Attendance'),
+                      Tab(key: tutorialKeyRepTabStud, text: 'Students'),
+                      Tab(key: tutorialKeyRepTabPay, text: 'Payments'),
+                      Tab(key: tutorialKeyRepTabEarn, text: 'Earnings'),
                     ],
                   ),
                 ],
