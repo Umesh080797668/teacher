@@ -33,6 +33,7 @@ Future<void> resetTutorial() async {
 Future<void> _resetAllTutorials() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove(_kTutorialDoneKey);
+  await prefs.remove('all_tutorials_skipped');
   await prefs.remove('tutorial_classes_v1');
   await prefs.remove('tutorial_students_v1');
   await prefs.remove('tutorial_attendance_v1');
@@ -602,6 +603,8 @@ class _TutOverlayState extends State<_TutOverlay> with TickerProviderStateMixin 
   Future<void> _skip() async {
     await _popTutorialScreens();
     await markTutorialCompleted();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool("all_tutorials_skipped", true);
     widget.onDone();
   }
 

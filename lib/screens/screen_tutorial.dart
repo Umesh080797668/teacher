@@ -35,6 +35,7 @@ class STStep {
 // ─────────────────────────────────────────────────────────────────────────────
 Future<bool> isSTDone(String key) async {
   final p = await SharedPreferences.getInstance();
+  if (p.getBool('all_tutorials_skipped') == true) return true;
   return p.getBool(key) ?? false;
 }
 
