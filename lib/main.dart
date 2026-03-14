@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/tutorial_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/students_screen.dart';
 import 'screens/classes_screen.dart';
@@ -189,10 +190,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 ? ThemeMode.dark
                 : ThemeMode.light,
             builder: (context, child) {
-              return Column(
+              // Stack ensures the tutorial overlay is always rendered ABOVE
+              // all navigator routes, regardless of what gets pushed/replaced.
+              return Stack(
+                fit: StackFit.expand,
                 children: [
-                  const OfflineBanner(),
-                  Expanded(child: child ?? const SizedBox()),
+                  Column(
+                    children: [
+                      const OfflineBanner(),
+                      Expanded(child: child ?? const SizedBox()),
+                    ],
+                  ),
+                  TutorialScreen.buildOverlayLayer(),
                 ],
               );
             },

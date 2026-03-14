@@ -14,6 +14,9 @@ import '../services/data_export_service.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_widgets.dart';
 import '../models/class.dart';
+import 'screen_tutorial.dart';
+import 'tutorial_keys.dart';
+import 'tutorial_screen.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -25,6 +28,46 @@ class ReportsScreen extends StatefulWidget {
 class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  static const _tutKey = 'tutorial_reports_v1';
+
+  List<STStep> get _tutSteps => [
+    const STStep(
+      targetKey: null,
+      shape: STShape.none,
+      title: 'Reports & Analytics',
+      body: 'Get a detailed view of attendance, student stats, payments and monthly earnings all in one place.',
+      icon: Icons.bar_chart_rounded,
+      accent: Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeyRepTabBar,
+      title: '4 Report Tabs',
+      body: 'Switch between Attendance, Students, Payments and Earnings. Each tab shows different insights and charts.',
+      icon: Icons.tab_rounded,
+      accent: const Color(0xFF0891B2),
+    ),
+    STStep(
+      targetKey: tutorialKeyRepPdf,
+      shape: STShape.circle,
+      title: 'Export as PDF',
+      body: 'Tap here to download a monthly attendance report as a shareable PDF file.',
+      icon: Icons.picture_as_pdf_rounded,
+      accent: const Color(0xFFDB2777),
+    ),
+  ];
+
+  Future<void> _maybeShowTutorial() async {
+    if (TutorialScreen.isRunning) return; // main tutorial is active
+    final done = await isSTDone(_tutKey);
+    if (!done && mounted) {
+      showSTTutorial(
+        context: context,
+        steps: _tutSteps,
+        prefKey: _tutKey,
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +75,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       context.read<ReportsProvider>().loadReports(teacherId: auth.teacherId);
+    });
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) _maybeShowTutorial();
     });
   }
 
@@ -280,6 +326,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                         ),
                         const Spacer(),
                         Container(
+                          key: tutorialKeyRepPdf,
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.18),
                             borderRadius: BorderRadius.circular(10),
@@ -306,6 +353,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     ),
                   ),
                   TabBar(
+                    key: tutorialKeyRepTabBar,
                     controller: _tabController,
                     labelColor: Colors.white,
                     unselectedLabelColor: Colors.white60,

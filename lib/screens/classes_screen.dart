@@ -5,6 +5,9 @@ import '../providers/classes_provider.dart';
 import '../providers/auth_provider.dart';
 import 'class_details_screen.dart';
 import '../widgets/custom_widgets.dart';
+import 'screen_tutorial.dart';
+import 'tutorial_keys.dart';
+import 'tutorial_screen.dart';
 
 class ClassesScreen extends StatefulWidget {
   const ClassesScreen({super.key});
@@ -17,11 +20,54 @@ class _ClassesScreenState extends State<ClassesScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
 
+  static const _tutKey = 'tutorial_classes_v1';
+
+  List<STStep> get _tutSteps => [
+    const STStep(
+      targetKey: null,
+      shape: STShape.none,
+      title: 'Your Classes',
+      body: 'Here you manage all your classes. Each card represents one class with its students.',
+      icon: Icons.class_rounded,
+      accent: Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeyClassGrid,
+      title: 'Class Cards',
+      body: 'Tap a card to open its details — see students, attendance history, and payment records. Long-press to delete.',
+      icon: Icons.grid_view_rounded,
+      accent: const Color(0xFF7C3AED),
+    ),
+    STStep(
+      targetKey: tutorialKeyClassFab,
+      shape: STShape.circle,
+      title: 'Create a Class',
+      body: 'Tap here to add a new class. Give it a name — e.g. "Grade 10 Science" or "Piano Batch A".',
+      icon: Icons.add_circle_rounded,
+      accent: const Color(0xFFDB2777),
+    ),
+  ];
+
+  Future<void> _maybeShowTutorial() async {
+    if (TutorialScreen.isRunning) return; // main tutorial is active
+    final done = await isSTDone(_tutKey);
+    if (!done && mounted) {
+      showSTTutorial(
+        context: context,
+        steps: _tutSteps,
+        prefKey: _tutKey,
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadClasses();
+    });
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) _maybeShowTutorial();
     });
   }
 
@@ -315,6 +361,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
       backgroundColor:
           isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
       floatingActionButton: FloatingActionButton.extended(
+        key: tutorialKeyClassFab,
         onPressed: () => _showAddClassSheet(context),
         backgroundColor: const Color(0xFF4F46E5),
         foregroundColor: Colors.white,
@@ -462,11 +509,40 @@ class _ClassesScreenState extends State<ClassesScreen> {
 
             // ── Grid of Classes ─────────────────────────────────────
             Expanded(
-              child: Consumer<ClassesProvider>(
-                builder: (context, provider, _) {
-                  if (provider.isLoading) {
+              child: SizedBox.expand(
+                key: tutorialKeyClassGrid,
+                child: Consumer<ClassesProvider>(
+                  builder: (context, provider, _) {
+                    if (provider.isLoading) {
+                      return GridView.builder(
+                        padding: const EdgeInsets.all(16),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          childAspectRatio: 0.85,
+                        ),
+                        itemCount: 4,
+                        itemBuilder: (_, __) => const ClassCardSkeleton(),
+                      );
+                    }
+
+                    if (provider.classes.isEmpty) {
+                      return EmptyState(
+                        icon: Icons.class_outlined,
+                        title: 'No Classes Yet',
+                        message: 'Tap + New Class to create your first class',
+                        action: FilledButton.icon(
+                          onPressed: () => _showAddClassSheet(context),
+                          icon: const Icon(Icons.add_rounded),
+                          label: const Text('New Class'),
+                        ),
+                      );
+                    }
+
                     return GridView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
@@ -474,75 +550,49 @@ class _ClassesScreenState extends State<ClassesScreen> {
                         mainAxisSpacing: 14,
                         childAspectRatio: 0.85,
                       ),
-                      itemCount: 4,
-                      itemBuilder: (_, __) => const ClassCardSkeleton(),
-                    );
-                  }
-
-                  if (provider.classes.isEmpty) {
-                    return EmptyState(
-                      icon: Icons.class_outlined,
-                      title: 'No Classes Yet',
-                      message: 'Tap + New Class to create your first class',
-                      action: FilledButton.icon(
-                        onPressed: () => _showAddClassSheet(context),
-                        icon: const Icon(Icons.add_rounded),
-                        label: const Text('New Class'),
-                      ),
-                    );
-                  }
-
-                  return GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
-                      childAspectRatio: 0.85,
-                    ),
-                    itemCount: provider.classes.length,
-                    itemBuilder: (context, index) {
-                      final classObj = provider.classes[index];
-                      return _ClassGridCard(
-                        classObj: classObj,
-                        isDark: isDark,
-                        cs: cs,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                ClassDetailsScreen(classObj: classObj),
+                      itemCount: provider.classes.length,
+                      itemBuilder: (context, index) {
+                        final classObj = provider.classes[index];
+                        return _ClassGridCard(
+                          classObj: classObj,
+                          isDark: isDark,
+                          cs: cs,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ClassDetailsScreen(classObj: classObj),
+                            ),
                           ),
-                        ),
-                        onDelete: () => showDialog(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: Text('Delete Class',
-                                style: TextStyle(color: cs.onSurface)),
-                            content: Text(
-                                'Delete "${classObj.name}"? This cannot be undone.',
-                                style: TextStyle(color: cs.onSurface)),
-                            actions: [
-                              TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Cancel')),
-                              FilledButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  _deleteClass(classObj.id);
-                                },
-                                style: FilledButton.styleFrom(
-                                    backgroundColor: cs.error),
-                                child: const Text('Delete'),
-                              ),
-                            ],
+                          onDelete: () => showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: Text('Delete Class',
+                                  style: TextStyle(color: cs.onSurface)),
+                              content: Text(
+                                  'Delete "${classObj.name}"? This cannot be undone.',
+                                  style: TextStyle(color: cs.onSurface)),
+                              actions: [
+                                TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Cancel')),
+                                FilledButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    _deleteClass(classObj.id);
+                                  },
+                                  style: FilledButton.styleFrom(
+                                      backgroundColor: cs.error),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  );
-                },
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
             ),
           ],

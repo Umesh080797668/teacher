@@ -7,6 +7,9 @@ import '../providers/classes_provider.dart';
 import '../providers/auth_provider.dart';
 import 'student_details_screen.dart';
 import '../widgets/custom_widgets.dart';
+import 'screen_tutorial.dart';
+import 'tutorial_keys.dart';
+import 'tutorial_screen.dart';
 
 class StudentsScreen extends StatefulWidget {
   const StudentsScreen({super.key});
@@ -28,11 +31,68 @@ class _StudentsScreenState extends State<StudentsScreen> {
   String _filterType = 'all';
   final TextEditingController _searchController = TextEditingController();
 
+  static const _tutKey = 'tutorial_students_v1';
+
+  List<STStep> get _tutSteps => [
+    const STStep(
+      targetKey: null,
+      shape: STShape.none,
+      title: 'Students',
+      body: 'Manage all your students here — add new ones, search, filter, and view detailed profiles.',
+      icon: Icons.people_rounded,
+      accent: Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeyStudSearch,
+      title: 'Search Students',
+      body: 'Type a name, email or student ID to quickly find anyone in your roster.',
+      icon: Icons.search_rounded,
+      accent: const Color(0xFF0891B2),
+    ),
+    STStep(
+      targetKey: tutorialKeyStudFilter,
+      title: 'Filter by Status',
+      body: 'Switch between All, Active and Restricted to focus on the students you need.',
+      icon: Icons.filter_list_rounded,
+      accent: const Color(0xFF7C3AED),
+    ),
+    STStep(
+      targetKey: tutorialKeyStudList,
+      title: 'Student Cards',
+      body: 'Tap a card to view full details. Swipe left on a card to restrict access or delete a student.',
+      icon: Icons.person_rounded,
+      accent: const Color(0xFF059669),
+    ),
+    STStep(
+      targetKey: tutorialKeyStudFab,
+      shape: STShape.circle,
+      title: 'Add a Student',
+      body: 'Tap here to enrol a new student — fill in their name, ID, class and contact info.',
+      icon: Icons.person_add_rounded,
+      accent: const Color(0xFFDB2777),
+    ),
+  ];
+
+  Future<void> _maybeShowTutorial() async {
+    if (TutorialScreen.isRunning) return; // main tutorial is active
+    final done = await isSTDone(_tutKey);
+    if (!done && mounted) {
+      showSTTutorial(
+        context: context,
+        steps: _tutSteps,
+        prefKey: _tutKey,
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadStudents();
+    });
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) _maybeShowTutorial();
     });
   }
 
@@ -129,6 +189,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
       backgroundColor:
           isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
       floatingActionButton: FloatingActionButton.extended(
+        key: tutorialKeyStudFab,
         onPressed: () => _showAddStudentSheet(context),
         backgroundColor: const Color(0xFF4F46E5),
         foregroundColor: Colors.white,
@@ -237,6 +298,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
+                    key: tutorialKeyStudSearch,
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
                       borderRadius: BorderRadius.circular(14),
@@ -277,6 +339,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   ),
                   const SizedBox(height: 10),
                   Row(
+                    key: tutorialKeyStudFilter,
                     children: [
                       _filterChip(context, 'All', 'all', isDark),
                       const SizedBox(width: 8),
@@ -292,6 +355,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
             // ── Students List ─────────────────────────────────────
             Expanded(
+              key: tutorialKeyStudList,
               child: Consumer<StudentsProvider>(
                 builder: (context, provider, _) {
                   if (provider.isLoading) {

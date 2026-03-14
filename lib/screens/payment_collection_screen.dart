@@ -40,7 +40,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
 
   // ─── helpers ───────────────────────────────────────────────────────────────
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool silent = false}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final paymentProvider =
         Provider.of<PaymentProvider>(context, listen: false);
@@ -48,6 +48,24 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
         Provider.of<StudentsProvider>(context, listen: false);
     final classesProvider =
         Provider.of<ClassesProvider>(context, listen: false);
+
+    // If providers already have cached data, auto-select class and refresh in background
+    final hasCache = studentsProvider.students.isNotEmpty &&
+        classesProvider.classes.isNotEmpty;
+
+    if (hasCache) {
+      if (mounted && _selectedClassId == null && classesProvider.classes.isNotEmpty) {
+        setState(() => _selectedClassId = classesProvider.classes.first.id);
+      }
+      // Refresh data silently in background (no spinner)
+      paymentProvider.loadPayments(teacherId: auth.teacherId, silent: true)
+          .catchError((_) {});
+      studentsProvider.loadStudents(teacherId: auth.teacherId, silent: true)
+          .catchError((_) {});
+      classesProvider.loadClasses(teacherId: auth.teacherId, silent: true)
+          .catchError((_) {});
+      return;
+    }
 
     try {
       await Future.wait([
@@ -122,9 +140,10 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
     List<Student> result = _selectedClassId == null
         ? all
         : all.where((s) {
-            if (s.classId == _selectedClassId) return true;
+            final sel = _selectedClassId!.toString();
+            if (s.classId?.toString() == sel) return true;
             if (s.classIds != null &&
-                s.classIds!.contains(_selectedClassId)) return true;
+                s.classIds!.any((id) => id.toString() == sel)) return true;
             return false;
           }).toList();
 
@@ -680,9 +699,10 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
           final classStudentsForStats = _selectedClassId == null
               ? allStudents
               : allStudents.where((s) {
-                  if (s.classId == _selectedClassId) return true;
+                  final sel = _selectedClassId!.toString();
+                  if (s.classId?.toString() == sel) return true;
                   if (s.classIds != null &&
-                      s.classIds!.contains(_selectedClassId)) return true;
+                      s.classIds!.any((id) => id.toString() == sel)) return true;
                   return false;
                 }).toList();
 
@@ -885,12 +905,25 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                       controller: _searchController,
                       onChanged: (v) =>
                           setState(() => _searchText = v.toLowerCase()),
+                      style: TextStyle(
+                        color: dark ? Colors.white : const Color(0xFF1E1B2E),
+                        fontSize: 14,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Search students by name or ID…',
-                        prefixIcon: const Icon(Icons.search),
+                        hintStyle: TextStyle(
+                          color: dark ? Colors.white38 : const Color(0xFF9CA3AF),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: dark ? Colors.white54 : const Color(0xFF6B7280),
+                        ),
                         suffixIcon: _searchText.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear),
+                                icon: Icon(
+                                  Icons.clear,
+                                  color: dark ? Colors.white54 : const Color(0xFF6B7280),
+                                ),
                                 onPressed: () {
                                   _searchController.clear();
                                   setState(() => _searchText = '');
@@ -901,7 +934,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                             borderRadius: BorderRadius.circular(12)),
                         isDense: true,
                         filled: true,
-                        fillColor: Theme.of(context).colorScheme.surface,
+                        fillColor: dark ? const Color(0xFF2A2740) : Colors.white,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
                       ),
@@ -949,7 +982,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
 
               // ── Student list ────────────────────────────────────────────
               Expanded(
-                child: paymentProvider.isLoading || studentsProvider.isLoading
+                child: studentsProvider.isLoading && studentsProvider.students.isEmpty
                     ? const Center(child: CircularProgressIndicator())
                     : displayStudents.isEmpty
                         ? _EmptyState(searchText: _searchText)
@@ -1093,7 +1126,10 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
               style: Theme.of(context)
                   .textTheme
                   .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
+                  ?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
             ),
             Text(
               'Student ID: ${student.studentId}',
@@ -1193,12 +1229,14 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
   }
 
   String _formatDate(DateTime dt) {
+    // Convert UTC → device-local (GMT+5:30) for display
+    final local = dt.isUtc ? dt.toLocal() : dt;
     final months = [
       '',
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
-    return '${dt.day} ${months[dt.month]} ${dt.year}  ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    return '${local.day} ${months[local.month]} ${local.year}  ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 }
 
@@ -1573,7 +1611,10 @@ class _DetailRow extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w500),
+                  ?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
             ),
           ),
         ],

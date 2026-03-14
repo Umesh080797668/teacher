@@ -12,6 +12,9 @@ import '../providers/auth_provider.dart';
 import '../widgets/custom_widgets.dart';
 import 'face_attendance_scanner_screen.dart';
 import 'login_screen.dart';
+import 'screen_tutorial.dart';
+import 'tutorial_keys.dart';
+import 'tutorial_screen.dart';
 
 class AttendanceMarkScreen extends StatefulWidget {
   const AttendanceMarkScreen({super.key});
@@ -26,15 +29,90 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
   final Map<String, String> _attendanceStatus = {};
   final Map<String, String> _preExistingAttendance = {}; // Track pre-existing attendance
   bool _isSaving = false;
+  bool _userHasTapped = false; // Guard: prevents polling from wiping unsaved taps
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
   Timer? _pollingTimer;
+
+  static const _tutKey = 'tutorial_attendance_v1';
+
+  static const List<STStep> _tutSteps = [
+    STStep(
+      targetKey: null,
+      shape: STShape.none,
+      title: 'Mark Attendance',
+      body: 'This screen lets you record attendance for your students. Let\'s walk through the key parts.',
+      icon: Icons.how_to_reg_rounded,
+      accent: Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: null, // set at runtime via tutorialKeyAttDate
+      title: 'Pick a Date',
+      body: 'Tap here to change the attendance date. Attendance records are saved independently per day.',
+      icon: Icons.calendar_today_rounded,
+      accent: Color(0xFF0891B2),
+    ),
+    STStep(
+      targetKey: null, // set at runtime via tutorialKeyAttClass
+      title: 'Filter by Class',
+      body: 'Select a specific class to see only those students, or keep All Classes for everyone.',
+      icon: Icons.class_rounded,
+      accent: Color(0xFF7C3AED),
+    ),
+    STStep(
+      targetKey: null, // set at runtime via tutorialKeyAttList
+      title: 'Mark Each Student',
+      body: 'Tap P (Present), A (Absent) or L (Leave) for each student. A Save button appears automatically once you\'ve made changes.',
+      icon: Icons.people_rounded,
+      accent: Color(0xFF059669),
+    ),
+  ];
+
+  List<STStep> get _runtimeTutSteps => [
+    _tutSteps[0],
+    STStep(
+      targetKey: tutorialKeyAttDate,
+      title: _tutSteps[1].title,
+      body: _tutSteps[1].body,
+      icon: _tutSteps[1].icon,
+      accent: _tutSteps[1].accent,
+    ),
+    STStep(
+      targetKey: tutorialKeyAttClass,
+      title: _tutSteps[2].title,
+      body: _tutSteps[2].body,
+      icon: _tutSteps[2].icon,
+      accent: _tutSteps[2].accent,
+    ),
+    STStep(
+      targetKey: tutorialKeyAttList,
+      title: _tutSteps[3].title,
+      body: _tutSteps[3].body,
+      icon: _tutSteps[3].icon,
+      accent: _tutSteps[3].accent,
+    ),
+  ];
+
+  Future<void> _maybeShowTutorial() async {
+    if (TutorialScreen.isRunning) return; // main tutorial is active
+    final done = await isSTDone(_tutKey);
+    if (!done && mounted) {
+      showSTTutorial(
+        context: context,
+        steps: _runtimeTutSteps,
+        prefKey: _tutKey,
+      );
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
+    });
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) _maybeShowTutorial();
     });
   }
 
@@ -134,7 +212,12 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
     }
   }
 
-  Future<void> _loadAttendanceForDate(DateTime date, String? teacherId, List<Student> students) async {
+  Future<void> _loadAttendanceForDate(DateTime date, String? teacherId, List<Student> students, {bool force = false}) async {
+    // Don't overwrite user's unsaved taps unless explicitly forced (date/class change)
+    if (!force && _userHasTapped) {
+      debugPrint('DEBUG: Skipping reload — user has unsaved taps');
+      return;
+    }
     try {
       debugPrint('DEBUG: Loading attendance for ${students.length} students on ${date.toString().split(' ')[0]}');
       
@@ -466,6 +549,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         setState(() {
           _isSaving = false;
         });
+        _userHasTapped = false; // Re-enable polling after save
         // Restart polling after save operation completes
         _startPolling();
       }
@@ -614,6 +698,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
               children: [
                 // Date Picker
                 Container(
+                  key: tutorialKeyAttDate,
                   decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.dark
                         ? Theme.of(context).colorScheme.surfaceContainer
@@ -636,12 +721,13 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                         debugPrint('DEBUG: Date changed to ${picked.toString().split(' ')[0]}');
                         setState(() {
                           _selectedDate = picked;
+                          _userHasTapped = false; // New date = fresh slate
                         });
                         // Reload students for current class filter
                         await _loadStudentsForClass(_selectedClassId);
                         // Load attendance for the new date with current students
                         final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
-                        await _loadAttendanceForDate(picked, auth.teacherId, studentsProvider.students);
+                        await _loadAttendanceForDate(picked, auth.teacherId, studentsProvider.students, force: true);
                         
                         // Restart polling for the new date
                         _startPolling();
@@ -685,6 +771,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                 
                 // Class Selector
                 Container(
+                  key: tutorialKeyAttClass,
                   decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.dark
                         ? Theme.of(context).colorScheme.surfaceContainer
@@ -741,6 +828,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                             debugPrint('DEBUG: Class changed from $_selectedClassId to $value');
                             setState(() {
                               _selectedClassId = value;
+                              _userHasTapped = false; // New class = fresh slate
                             });
                             // Reload students for the selected class
                             await _loadStudentsForClass(value);
@@ -748,7 +836,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                             // Load attendance for current students and date
                             final auth = Provider.of<AuthProvider>(context, listen: false);
                             final studentsProvider = Provider.of<StudentsProvider>(context, listen: false);
-                            await _loadAttendanceForDate(_selectedDate, auth.teacherId, studentsProvider.students);
+                            await _loadAttendanceForDate(_selectedDate, auth.teacherId, studentsProvider.students, force: true);
                             
                             // Restart polling for the new class
                             _startPolling();
@@ -850,6 +938,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
           
           // Students List
           Expanded(
+            key: tutorialKeyAttList,
             child: Consumer2<StudentsProvider, ClassesProvider>(
               builder: (context, studentsProvider, classesProvider, child) {
                 if (studentsProvider.isLoading || classesProvider.isLoading) {
@@ -892,6 +981,7 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
                       date: _selectedDate,
                       session: 'daily', // Changed from _selectedSession to 'daily'
                       onStatusChanged: (status) {
+                        _userHasTapped = true; // Stop polling from wiping changes
                         setState(() {
                           if (status.isEmpty) {
                             _attendanceStatus.remove(student.id);
@@ -960,7 +1050,9 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
         ),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
+          ),
         ),
       ],
     );

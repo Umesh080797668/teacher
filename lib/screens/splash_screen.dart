@@ -121,7 +121,7 @@ class _SplashScreenState extends State<SplashScreen>
     // Check auth state and navigate accordingly
     Widget target;
     if (auth.isGuest) {
-       target = const HomeScreen();
+       target = const HomeScreen(); // tutorial (if needed) is pushed on top after navigation
     } else if (!auth.isAuthenticated) {
       target = const LoginScreen();
     } else if (!auth.isActivated) {
@@ -159,11 +159,11 @@ class _SplashScreenState extends State<SplashScreen>
           showHomeButton: false,
         );
       } else {
-        target = const HomeScreen();
+        target = const HomeScreen(); // tutorial (if needed) is pushed on top after navigation
       }
     }
 
-    Navigator.of(context).pushReplacement(
+    await Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => target,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -172,6 +172,7 @@ class _SplashScreenState extends State<SplashScreen>
         transitionDuration: const Duration(milliseconds: 800),
       ),
     );
+    // Tutorial is now started by HomeScreen itself (works in both debug & release mode).
   }
 
   @override

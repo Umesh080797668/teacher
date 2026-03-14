@@ -30,6 +30,8 @@ import 'subscription_warning_screen.dart';
 import 'subscription_screen.dart';
 import 'pending_activation_screen.dart';
 import 'quiz_list_screen.dart';
+import 'tutorial_keys.dart';
+import 'tutorial_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -62,6 +64,36 @@ class _HomeScreenState extends State<HomeScreen> {
   // Safe references saved in didChangeDependencies
   AuthProvider? _authProvider;
   AdminChangesProvider? _adminChangesProvider;
+
+  bool get _isTutorialBlockingNavigation => TutorialScreen.isRunning;
+
+  /// Check if the tutorial should run and start it if needed.
+  /// Called from initState → postFrameCallback so GlobalKeys are attached.
+  Future<void> _maybeStartTutorial() async {
+    final done = await hasTutorialBeenCompleted();
+    if (!done && mounted) {
+      // Wait for the initial data load (which includes auth/subscription checks)
+      // to finish before launching the tutorial.  This prevents races where
+      // e.g. a subscription-expired navigation fires right after the tutorial
+      // starts and hides it behind the new screen.
+      int waited = 0;
+      while (_isLoading && mounted && waited < 15) {
+        await Future.delayed(const Duration(milliseconds: 200));
+        waited++;
+      }
+      if (!mounted) return;
+
+      // Extra settling delay so any auth-triggered route push can complete.
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+
+      // Only start when HomeScreen is still the topmost route.
+      // If a subscription / activation screen was pushed on top, skip.
+      if (ModalRoute.of(context)?.isCurrent != true) return;
+
+      TutorialScreen.start(context);
+    }
+  }
 
   /// Load activation notification flag from SharedPreferences
   Future<void> _loadActivationNotificationFlag() async {
@@ -121,6 +153,9 @@ class _HomeScreenState extends State<HomeScreen> {
       
       _searchFocusNode.unfocus();
       _loadData();
+
+      // ── Auto-start tutorial on first launch (works in both debug & release) ──
+      _maybeStartTutorial();
       
       // Start admin changes polling (covers restrictions and other admin actions)
       // Do not poll for guest users
@@ -131,6 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
           userType: 'teacher',
           pollIntervalSeconds: 5,
           onUserNotFound: () async {
+            if (_isTutorialBlockingNavigation) return;
             if (_authProvider != null) {
               await _authProvider!.logout();
             }
@@ -172,6 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onAuthChanged() {
     if (!mounted || _authProvider == null) return;
+    if (_isTutorialBlockingNavigation) return;
     
     final auth = _authProvider!;
 
@@ -181,6 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Schedule navigation for next frame to avoid state changes during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !context.mounted) return;
+      if (_isTutorialBlockingNavigation) return;
       
       if (!auth.isAuthenticated) {
         // User logged out, navigate to account selection
@@ -211,6 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Handle admin changes detected (restrictions, etc.)
   void _onAdminChangesDetected() {
     if (!mounted || _adminChangesProvider == null) return;
+    if (_isTutorialBlockingNavigation) return;
     
     final adminChanges = _adminChangesProvider!;
     
@@ -219,6 +258,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Teacher has been restricted - force logout and show restriction screen
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted || !context.mounted) return;
+        if (_isTutorialBlockingNavigation) return;
         
         debugPrint('Teacher restricted detected - logging out');
         
@@ -251,6 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
   
   void _handleSubscriptionChange(Map<String, dynamic> status) {
     if (!mounted) return;
+    if (_isTutorialBlockingNavigation) return;
     
     // Check if this is a subscription upgrade from free to paid
     final showSubscriptionScreen = status['_showSubscriptionScreen'] as bool? ?? false;
@@ -316,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
       
       // Navigate to subscription screen
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
+        if (mounted && !_isTutorialBlockingNavigation) {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
             (route) => false, // Remove all previous routes
@@ -340,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
       
       // Navigate to subscription screen or login
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
+        if (mounted && !_isTutorialBlockingNavigation) {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
             (route) => false,
@@ -532,9 +573,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
             // Navigate to login screen
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-            );
+            if (!_isTutorialBlockingNavigation) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            }
           }
           return;
         }
@@ -910,6 +953,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Main FAB (toggle)
         FloatingActionButton(
+          key: tutorialKeyFab,
           heroTag: 'fab_main',
           onPressed: () =>
               setState(() => _fabExpanded = !_fabExpanded),
@@ -974,6 +1018,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Expanded(
                               child: Column(
+                                key: tutorialKeyGreeting,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Consumer<AuthProvider>(
@@ -1028,6 +1073,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 final initial = name.isNotEmpty ? name[0].toUpperCase() : 'T';
                                 return PopupMenuButton<String>(
                                   child: Container(
+                                    key: tutorialKeyAvatar,
                                     width: 52,
                                     height: 52,
                                     decoration: BoxDecoration(
@@ -1139,6 +1185,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 20),
                         // Search Bar inside header
                         Container(
+                          key: tutorialKeySearch,
                           height: 50,
                           decoration: BoxDecoration(
                             color: isDark
@@ -1387,6 +1434,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(height: 14),
                               // Gradient stat cards row
                               SizedBox(
+                                key: tutorialKeyStatsRow,
                                 height: 120,
                                 child: ListView(
                                   scrollDirection: Axis.horizontal,
@@ -1657,6 +1705,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                       child: Row(
+                        key: tutorialKeyQuickAccess,
                         children: [
                           Container(
                             width: 4,

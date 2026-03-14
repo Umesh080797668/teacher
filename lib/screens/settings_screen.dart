@@ -14,6 +14,7 @@ import '../services/api_service.dart';
 import 'profile_screen.dart';
 import 'backup_restore_screen.dart';
 import 'linked_devices_screen.dart';
+import 'tutorial_screen.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 
@@ -677,6 +678,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // About Section
             _buildSectionHeader('About'),
             _buildSection(context, [
+              _buildNavTile(
+                context,
+                icon: Icons.school_rounded,
+                iconColor: const Color(0xFF4F46E5),
+                title: 'App Tutorial',
+                subtitle: 'Replay the full app walkthrough',
+                onTap: () async {
+                  // Capture overlay & navigator BEFORE popping (context becomes invalid after pop)
+                  final ov  = Overlay.of(context, rootOverlay: true);
+                  final nav = Navigator.of(context, rootNavigator: true);
+                  // Pop back to HomeScreen
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                  await Future.delayed(const Duration(milliseconds: 350));
+                  // Reset all tutorial prefs so the flow starts fresh
+                  await resetTutorial();
+                  TutorialScreen.startWithOverlay(ov, nav);
+                },
+              ),
               _buildNavTile(
                 context,
                 icon: Icons.info_rounded,
