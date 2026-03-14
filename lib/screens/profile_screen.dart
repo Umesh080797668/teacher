@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:teacher_attendance/screens/screen_tutorial.dart';
+import 'package:teacher_attendance/screens/tutorial_keys.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -23,6 +27,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   bool _isEditing = false;
+
+  // Tutorial Steps
+  final List<STStep> _tutSteps = [
+    STStep(
+      targetKey: tutorialKeyProfEdit,
+      title: 'Edit Profile',
+      body: 'Update your name, photo, and other details by tapping here.',
+      icon: Icons.edit_rounded,
+      accent: const Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeyProfLogout,
+      title: 'Logout',
+      body: 'Sign out of your account securely from here.',
+      icon: Icons.logout_rounded,
+      accent: const Color(0xFFE11D48),
+    ),
+  ];
+
+  Future<void> _maybeShowTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final allSkipped = prefs.getBool('all_tutorials_skipped') ?? false;
+    if (allSkipped) return;
+    
+    final hasSeen = prefs.getBool('tutorial_prof_v1') ?? false;
+    if (!hasSeen) {
+      if (!mounted) return;
+      await prefs.setBool('tutorial_prof_v1', true);
+      showSTTutorial(context: context, steps: _tutSteps, prefKey: 'tutorial_prof_v1');
+    }
+  }
+
   bool _isLoading = false;
   Teacher? _teacher;
   final ImagePicker _imagePicker = ImagePicker();
@@ -32,6 +68,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) { _maybeShowTutorial(); });
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.teacherData != null) {
       _teacher = Teacher.fromJson(auth.teacherData!);

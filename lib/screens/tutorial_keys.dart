@@ -48,3 +48,33 @@ final GlobalKey tutorialKeyRepTabStud = GlobalKey(debugLabel: 'tut_rep_tab_stud'
 final GlobalKey tutorialKeyRepTabPay = GlobalKey(debugLabel: 'tut_rep_tab_pay');
 final GlobalKey tutorialKeyRepTabEarn = GlobalKey(debugLabel: 'tut_rep_tab_earn');
 final GlobalKey tutorialKeyColScanner = GlobalKey(debugLabel: 'tut_col_scan');
+
+// ── Class Details Screen ──────────────────────────────────────────────────
+final GlobalKey tutorialKeyCdSummary = GlobalKey(debugLabel: 'tut_cd_summary');
+final GlobalKey tutorialKeyCdTabs    = GlobalKey(debugLabel: 'tut_cd_tabs');
+final GlobalKey tutorialKeyCdFab     = GlobalKey(debugLabel: 'tut_cd_fab');
+final GlobalKey tutorialKeyCdExport  = GlobalKey(debugLabel: 'tut_cd_export');
+
+// ── Student Details Screen ────────────────────────────────────────────────
+final GlobalKey tutorialKeySdProfile = GlobalKey(debugLabel: 'tut_sd_profile');
+final GlobalKey tutorialKeySdActions = GlobalKey(debugLabel: 'tut_sd_actions');
+final GlobalKey tutorialKeySdTabs    = GlobalKey(debugLabel: 'tut_sd_tabs');
+
+// ── Settings Screen ────────────────────────────────────────────────────────
+final GlobalKey tutorialKeySetTheme  = GlobalKey(debugLabel: 'tut_set_theme');
+final GlobalKey tutorialKeySetLock   = GlobalKey(debugLabel: 'tut_set_lock');
+final GlobalKey tutorialKeySetBackup = GlobalKey(debugLabel: 'tut_set_backup');
+
+// ── Profile Screen ─────────────────────────────────────────────────────────
+final GlobalKey tutorialKeyProfEdit   = GlobalKey(debugLabel: 'tut_prof_edit');
+final GlobalKey tutorialKeyProfInst   = GlobalKey(debugLabel: 'tut_prof_inst');
+final GlobalKey tutorialKeyProfLogout = GlobalKey(debugLabel: 'tut_prof_logout');
+
+// ── Web QR Login Screen ──────────────────────────────────────────────────
+final GlobalKey tutorialKeyQrScanner = GlobalKey(debugLabel: 'tut_qr_scanner');
+final GlobalKey tutorialKeyQrHelp    = GlobalKey(debugLabel: 'tut_qr_help');
+
+// ── Extra Extensions ───────────────────────────────────────────────────────
+final GlobalKey tutorialKeyAttSubmit = GlobalKey(debugLabel: 'tut_att_submit');
+final GlobalKey tutorialKeyColPayBtn = GlobalKey(debugLabel: 'tut_col_paybtn');
+

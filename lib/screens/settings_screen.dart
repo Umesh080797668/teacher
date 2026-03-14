@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:teacher_attendance/screens/screen_tutorial.dart';
+import 'package:teacher_attendance/screens/tutorial_keys.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
@@ -26,6 +29,45 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+
+  // Tutorial Steps
+  final List<STStep> _tutSteps = [
+    STStep(
+      targetKey: tutorialKeySetTheme,
+      title: 'App Theme',
+      body: 'Switch between light and dark mode according to your preference.',
+      icon: Icons.brightness_medium_rounded,
+      accent: const Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeySetLock,
+      title: 'App Lock',
+      body: 'Secure your app using your device\'s biometric lock (Fingerprint/Face ID).',
+      icon: Icons.lock_outline_rounded,
+      accent: const Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeySetBackup,
+      title: 'Cloud Backup',
+      body: 'Manually trigger a sync or restore your data securely.',
+      icon: Icons.cloud_upload_rounded,
+      accent: const Color(0xFF4F46E5),
+    ),
+  ];
+
+  Future<void> _maybeShowTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final allSkipped = prefs.getBool('all_tutorials_skipped') ?? false;
+    if (allSkipped) return;
+    
+    final hasSeen = prefs.getBool('tutorial_set_v1') ?? false;
+    if (!hasSeen) {
+      if (!mounted) return;
+      await prefs.setBool('tutorial_set_v1', true);
+      showSTTutorial(context: context, steps: _tutSteps, prefKey: 'tutorial_set_v1');
+    }
+  }
+
   bool _notificationsEnabled = true;
   bool _darkMode = false;
   bool _autoBackup = true;
@@ -39,6 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) { _maybeShowTutorial(); });
     _loadSettings();
     _initializeServices();
     _loadVersionInfo();

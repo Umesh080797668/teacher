@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:teacher_attendance/screens/screen_tutorial.dart';
+import 'package:teacher_attendance/screens/tutorial_keys.dart';
+
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
 import 'package:http/http.dart' as http;
@@ -22,9 +25,42 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   String? _deviceId;
   Timer? _pollingTimer;
 
+  // Tutorial Steps
+  final List<STStep> _tutSteps = [
+    STStep(
+      targetKey: tutorialKeyQrScanner,
+      title: 'Scan QR Code',
+      body: 'Point your camera directly at the QR code displayed on the web portal to log in.',
+      icon: Icons.qr_code_scanner,
+      accent: const Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeyQrHelp,
+      title: 'Need Help?',
+      body: 'Follow these quick steps if you\'re unsure how to connect your mobile device.',
+      icon: Icons.help_outline_rounded,
+      accent: const Color(0xFF0891B2),
+    ),
+  ];
+
+  Future<void> _maybeShowTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final allSkipped = prefs.getBool('all_tutorials_skipped') ?? false;
+    if (allSkipped) return;
+    
+    final hasSeen = prefs.getBool('tutorial_qr_v1') ?? false;
+    if (!hasSeen) {
+      if (!mounted) return;
+      await prefs.setBool('tutorial_qr_v1', true);
+      showSTTutorial(context: context, steps: _tutSteps, prefKey: 'tutorial_qr_v1');
+    }
+  }
+
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) { _maybeShowTutorial(); });
     _loadTeacherData();
   }
 
@@ -471,6 +507,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
           // Scanning frame
           Center(
+            key: tutorialKeyQrScanner,
             child: Container(
               width: 250,
               height: 250,
@@ -483,6 +520,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
           // Bottom instructions
           Positioned(
+            key: tutorialKeyQrHelp,
             bottom: 0,
             left: 0,
             right: 0,

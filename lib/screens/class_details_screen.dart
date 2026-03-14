@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:teacher_attendance/screens/screen_tutorial.dart';
+import 'package:teacher_attendance/screens/tutorial_keys.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -28,9 +32,56 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
+  // Tutorial Steps
+  final List<STStep> _tutSteps = [
+    STStep(
+      targetKey: tutorialKeyCdSummary,
+      title: 'Class Overview',
+      body: 'View the total number of students and other high-level details of this class here.',
+      icon: Icons.pie_chart_rounded,
+      accent: const Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeyCdTabs,
+      title: 'Class Tabs',
+      body: 'Quickly switch between Students, Attendance, and Payments specifically for this class.',
+      icon: Icons.tab_rounded,
+      accent: const Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeyCdExport,
+      title: 'Export Options',
+      body: 'Export attendance or student reports as PDF/Excel for your records.',
+      icon: Icons.file_download_rounded,
+      accent: const Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeyCdFab,
+      title: 'Add Student',
+      body: 'Quickly enroll new students into this class using this button.',
+      icon: Icons.person_add_rounded,
+      accent: const Color(0xFF4F46E5),
+    ),
+  ];
+
+  Future<void> _maybeShowTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final allSkipped = prefs.getBool('all_tutorials_skipped') ?? false;
+    if (allSkipped) return;
+    
+    final hasSeen = prefs.getBool('tutorial_cd_v1') ?? false;
+    if (!hasSeen) {
+      if (!mounted) return;
+      await prefs.setBool('tutorial_cd_v1', true);
+      showSTTutorial(context: context, steps: _tutSteps, prefKey: 'tutorial_cd_v1');
+    }
+  }
+
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) { _maybeShowTutorial(); });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:teacher_attendance/screens/screen_tutorial.dart';
+import 'package:teacher_attendance/screens/tutorial_keys.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart'; // Added for contact actions
@@ -29,9 +33,49 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
   Map<String, int> _attendanceStats = {};
   late TabController _tabController;
 
+  // Tutorial Steps
+  final List<STStep> _tutSteps = [
+    STStep(
+      targetKey: tutorialKeySdProfile,
+      title: 'Student Profile',
+      body: 'View the student\'s details, parent contact, and validation status here.',
+      icon: Icons.person_rounded,
+      accent: const Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeySdActions,
+      title: 'Quick Actions',
+      body: 'Edit student details, reset linked devices, or delete the student from this menu.',
+      icon: Icons.more_vert_rounded,
+      accent: const Color(0xFF4F46E5),
+    ),
+    STStep(
+      targetKey: tutorialKeySdTabs,
+      title: 'Student Records',
+      body: 'Switch between the student\'s Attendance history, Payments, and Quiz grades.',
+      icon: Icons.tab_rounded,
+      accent: const Color(0xFF4F46E5),
+    ),
+  ];
+
+  Future<void> _maybeShowTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final allSkipped = prefs.getBool('all_tutorials_skipped') ?? false;
+    if (allSkipped) return;
+    
+    final hasSeen = prefs.getBool('tutorial_sd_v1') ?? false;
+    if (!hasSeen) {
+      if (!mounted) return;
+      await prefs.setBool('tutorial_sd_v1', true);
+      showSTTutorial(context: context, steps: _tutSteps, prefKey: 'tutorial_sd_v1');
+    }
+  }
+
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) { _maybeShowTutorial(); });
     _currentStudent = widget.student; // Initialize with widget data
     _tabController = TabController(length: 2, vsync: this);
     _loadStudentAttendance();
@@ -343,6 +387,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
           children: [
             // ── Gradient Hero Header ─────────────────────────────────────
             Container(
+              key: tutorialKeySdProfile,
               decoration: BoxDecoration(
                 gradient: isDark
                     ? const LinearGradient(

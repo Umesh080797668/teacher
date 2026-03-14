@@ -41,6 +41,11 @@ Future<void> _resetAllTutorials() async {
   await prefs.remove('tutorial_payments_v1');
   await prefs.remove('tutorial_collect_payments_v1');
   await prefs.remove('tutorial_quiz_v1');
+    await prefs.remove('tutorial_cd_v1');
+    await prefs.remove('tutorial_sd_v1');
+    await prefs.remove('tutorial_set_v1');
+    await prefs.remove('tutorial_prof_v1');
+    await prefs.remove('tutorial_qr_v1');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
