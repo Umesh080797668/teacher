@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:teacher_attendance/screens/screen_tutorial.dart';
 import 'package:teacher_attendance/screens/tutorial_keys.dart';
+import 'package:teacher_attendance/screens/tutorial_screen.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,7 +18,6 @@ import '../services/api_service.dart';
 import 'profile_screen.dart';
 import 'backup_restore_screen.dart';
 import 'linked_devices_screen.dart';
-import 'tutorial_screen.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 
@@ -57,6 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _maybeShowTutorial() async {
     final prefs = await SharedPreferences.getInstance();
+    if (TutorialScreen.isRunning) return;
     final allSkipped = prefs.getBool('all_tutorials_skipped') ?? false;
     if (allSkipped) return;
     

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:teacher_attendance/screens/screen_tutorial.dart';
 import 'package:teacher_attendance/screens/tutorial_keys.dart';
+import 'package:teacher_attendance/screens/tutorial_screen.dart';
 
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:convert';
@@ -45,6 +46,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
   Future<void> _maybeShowTutorial() async {
     final prefs = await SharedPreferences.getInstance();
+    if (TutorialScreen.isRunning) return;
     final allSkipped = prefs.getBool('all_tutorials_skipped') ?? false;
     if (allSkipped) return;
     

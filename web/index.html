@@ -80,6 +80,19 @@
   </script>
 </head>
 <body>
+  
+  <script>
+    // Listen for service worker updates and force reload when a new version activates
+    if ('serviceWorker' in navigator) {
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (refreshing) return;
+        refreshing = true;
+        console.log("New version activated! Reloading...");
+        window.location.reload();
+      });
+    }
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

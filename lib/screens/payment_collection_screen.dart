@@ -841,6 +841,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                           flex: 3,
                           child: DropdownButtonFormField<String?>(
                             key: tutorialKeyColClass,
+                            isExpanded: true,
                             value: _selectedClassId,
                             style: TextStyle(
                               color: dark ? Colors.white : const Color(0xFF1E1B2E),

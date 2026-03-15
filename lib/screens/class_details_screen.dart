@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:teacher_attendance/screens/screen_tutorial.dart';
 import 'package:teacher_attendance/screens/tutorial_keys.dart';
+import 'package:teacher_attendance/screens/tutorial_screen.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -66,6 +67,7 @@ class _ClassDetailsScreenState extends State<ClassDetailsScreen> {
 
   Future<void> _maybeShowTutorial() async {
     final prefs = await SharedPreferences.getInstance();
+    if (TutorialScreen.isRunning) return;
     final allSkipped = prefs.getBool('all_tutorials_skipped') ?? false;
     if (allSkipped) return;
     
