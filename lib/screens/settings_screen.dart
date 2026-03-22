@@ -20,6 +20,7 @@ import 'backup_restore_screen.dart';
 import 'linked_devices_screen.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import "../widgets/custom_widgets.dart";
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -503,8 +504,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor:
           isDarkMode ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
-      appBar: AppBar(
-        title: const Text('Settings'),
+      appBar: const CustomAppBar(
+        title: 'Settings',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

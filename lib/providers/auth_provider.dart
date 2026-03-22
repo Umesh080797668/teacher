@@ -101,6 +101,13 @@ class AuthProvider extends ChangeNotifier {
   bool get isWarningScreenShown => _isWarningScreenShown;
   bool get isLoading => _isLoading;
   bool get hasCompletedSubscriptionSetup => _hasCompletedSubscriptionSetup;
+  bool hasFeature(String featureCode) {
+    if (_teacherData == null) return true;
+    final bool isCustomPlan = _teacherData!['isCustomPlan'] ?? false;
+    if (!isCustomPlan) return true;
+    final List<dynamic> allowed = _teacherData!['allowedFeatures'] ?? [];
+    return allowed.contains(featureCode);
+  }
   bool get hasSelectedSubscriptionPlan => _hasSelectedSubscriptionPlan;
   String? get selectedSubscriptionPlan => _selectedSubscriptionPlan;
   bool get hasSubmittedPaymentProof => _hasSubmittedPaymentProof;

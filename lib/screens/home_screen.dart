@@ -30,6 +30,7 @@ import 'subscription_warning_screen.dart';
 import 'subscription_screen.dart';
 import 'pending_activation_screen.dart';
 import 'quiz_list_screen.dart';
+import 'lms_manager_screen.dart';
 import 'tutorial_keys.dart';
 import 'tutorial_screen.dart';
 
@@ -971,6 +972,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -986,6 +988,7 @@ class _HomeScreenState extends State<HomeScreen> {
             color: isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
           ),
           child: SafeArea(
+            top: false,
             child: CustomScrollView(
               slivers: [
                 // ── Premium Gradient Header ────────────────────────────
@@ -1009,7 +1012,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         bottomRight: Radius.circular(32),
                       ),
                     ),
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                    padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 20, 24, 32),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1870,7 +1873,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-                        Consumer<AuthProvider>(
+                        if (auth.hasFeature("reports")) Consumer<AuthProvider>(
                           builder: (context, auth, child) {
                             return _FeatureCard(
                               title: 'Reports',
@@ -1892,7 +1895,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-                        Consumer<AuthProvider>(
+                        if (auth.hasFeature("lms")) Consumer<AuthProvider>(
                           builder: (context, auth, child) {
                             return _FeatureCard(
                               title: 'Quizzes',
@@ -1905,6 +1908,25 @@ class _HomeScreenState extends State<HomeScreen> {
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         QuizListScreen(),
+                                  ),
+                                );
+                              },
+                              isDisabled: false,
+                            );
+                          },
+                        ),
+                        Consumer<AuthProvider>(
+                          builder: (context, auth, child) {
+                            return _FeatureCard(
+                              title: 'LMS Manager',
+                              subtitle: 'Manage Study Materials',
+                              icon: Icons.library_books_rounded,
+                              color: Colors.deepPurple,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const LmsManagerScreen(),
                                   ),
                                 );
                               },

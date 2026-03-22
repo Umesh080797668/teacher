@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import "../widgets/custom_widgets.dart";
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'registration_screen.dart';
@@ -10,9 +11,8 @@ class AccountSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Choose Account'),
-        centerTitle: true,
+      appBar: const CustomAppBar(
+        title: 'Choose Account',
       ),
       body: Consumer<AuthProvider>(
         builder: (context, auth, child) {

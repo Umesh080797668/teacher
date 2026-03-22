@@ -236,8 +236,8 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Backup & Restore'),
+      appBar: CustomAppBar(
+        title: 'Backup & Restore',
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

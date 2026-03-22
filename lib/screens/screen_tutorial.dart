@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'tutorial_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shape + Step model
@@ -35,6 +36,7 @@ class STStep {
 // ─────────────────────────────────────────────────────────────────────────────
 Future<bool> isSTDone(String key) async {
   final p = await SharedPreferences.getInstance();
+  if (TutorialScreen.isRunning) return true;
   if (p.getBool('all_tutorials_skipped') == true) return true;
   return p.getBool(key) ?? false;
 }
@@ -59,12 +61,14 @@ void showSTTutorial({
   required List<STStep> steps,
   required String prefKey,
 }) {
+  if (TutorialScreen.isRunning) return;
   _activeSTEntry?.remove();
   _activeSTEntry = OverlayEntry(
     builder: (_) => _STWidget(
       steps: steps,
       prefKey: prefKey,
       onDone: () {
+  if (TutorialScreen.isRunning) return;
         _activeSTEntry?.remove();
         _activeSTEntry = null;
       },
@@ -545,15 +549,15 @@ class _STCard extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 5),
-                              Row(
+                              Wrap(
+                                spacing: 4,
+                                runSpacing: 4,
                                 children:
                                     List.generate(totalSteps, (i) {
                                   final active = i == stepIndex;
                                   return AnimatedContainer(
                                     duration: const Duration(
                                         milliseconds: 280),
-                                    margin:
-                                        const EdgeInsets.only(right: 4),
                                     width: active ? 16 : 5,
                                     height: 5,
                                     decoration: BoxDecoration(

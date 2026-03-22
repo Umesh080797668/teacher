@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import "../widgets/custom_widgets.dart";
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/subscription_polling_service.dart';
@@ -123,8 +124,8 @@ class _PendingActivationScreenState extends State<PendingActivationScreen> {
     final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Account Pending Activation'),
+      appBar: CustomAppBar(
+        title: 'Account Pending Activation',
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {

@@ -23,12 +23,14 @@ const _kTutorialDoneKey = 'tutorial_completed_v1';
 
 Future<bool> hasTutorialBeenCompleted() async {
   final prefs = await SharedPreferences.getInstance();
+  if (prefs.getBool('all_tutorials_skipped') == true) return true;
   return prefs.getBool(_kTutorialDoneKey) ?? false;
 }
 
 Future<void> markTutorialCompleted() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool(_kTutorialDoneKey, true);
+  await prefs.setBool('all_tutorials_skipped', true);
 }
 
 Future<void> resetTutorial() async {
@@ -711,6 +713,8 @@ class _TutOverlayState extends State<_TutOverlay> with TickerProviderStateMixin 
   Future<void> _finish() async {
     await _popTutorialScreens();
     await markTutorialCompleted();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool("all_tutorials_skipped", true); // Ensure completion also skips individual tutorials
     widget.onDone();
   }
 
@@ -1112,12 +1116,13 @@ class _TooltipCardState extends State<_TooltipCard>
                               ),
                               const SizedBox(height: 2),
                               // Step counter dots
-                              Row(
+                              Wrap(
+                                spacing: 3,
+                                runSpacing: 3,
                                 children: List.generate(widget.totalSteps, (i) {
                                   final active = i == widget.stepIndex;
                                   return AnimatedContainer(
                                     duration: const Duration(milliseconds: 280),
-                                    margin: const EdgeInsets.only(right: 3),
                                     width: active ? 16 : 5,
                                     height: 5,
                                     decoration: BoxDecoration(

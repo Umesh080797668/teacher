@@ -602,11 +602,12 @@ class _AttendanceMarkScreenState extends State<AttendanceMarkScreen> {
       backgroundColor:
           isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             // ── Gradient Header ───────────────────────────────────
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 16, 8, 20),
+              padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 8, 20),
               decoration: BoxDecoration(
                 gradient: isDark
                     ? const LinearGradient(

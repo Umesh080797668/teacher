@@ -385,6 +385,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
       backgroundColor:
           isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             // ── Gradient Hero Header ─────────────────────────────────────
@@ -409,7 +410,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
                 children: [
                   // Action bar
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 8, 12),
+                    padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 8, 12),
                     child: Row(
                       children: [
                         GestureDetector(

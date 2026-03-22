@@ -424,28 +424,67 @@ class LoadingOverlay extends StatelessWidget {
 //  CustomAppBar — Delegates to theme; kept for backward compat
 // ─────────────────────────────────────────────────────────────────────────────
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final String title;
+  final dynamic title; // Can be String or Widget
   final List<Widget>? actions;
+  final Widget? leading;
+  final PreferredSizeWidget? bottom;
   final Color? backgroundColor;
+  final bool automaticallyImplyLeading;
 
   const CustomAppBar({
     super.key,
     required this.title,
     this.actions,
+    this.leading,
+    this.bottom,
     this.backgroundColor,
+    this.automaticallyImplyLeading = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    Widget titleWidget;
+    if (title is Widget) {
+      titleWidget = title as Widget;
+    } else {
+      titleWidget = Text(
+        title.toString(),
+        style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+      );
+    }
+
     return AppBar(
-      title: Text(title),
-      backgroundColor: backgroundColor,
+      title: titleWidget,
+      centerTitle: true,
+      automaticallyImplyLeading: automaticallyImplyLeading,
+      iconTheme: const IconThemeData(color: Colors.white),
       actions: actions,
+      leading: leading,
+      bottom: bottom,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: isDark
+              ? const LinearGradient(
+                  colors: [Color(0xFF1E1A2E), Color(0xFF2D2660)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : const LinearGradient(
+                  colors: [Color(0xFF3730A3), Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+        ),
+      ),
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0.0));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

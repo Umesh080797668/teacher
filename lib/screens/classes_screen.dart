@@ -370,6 +370,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
             style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
       ),
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             // ── Pinned Gradient Header ──────────────────────────────
@@ -377,7 +378,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
               builder: (context, provider, _) {
                 final count = provider.classes.length;
                 return Container(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 8, 20),
+                  padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 8, 20),
                   decoration: BoxDecoration(
                     gradient: isDark
                         ? const LinearGradient(

@@ -12,6 +12,8 @@ class Teacher {
   final bool? isFirstLogin;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final bool isCustomPlan;
+  final List<String> allowedFeatures;
 
   Teacher({
     required this.id,
@@ -27,6 +29,8 @@ class Teacher {
     this.isFirstLogin,
     this.createdAt,
     this.updatedAt,
+    this.isCustomPlan = false,
+    this.allowedFeatures = const [],
   });
 
   factory Teacher.fromJson(Map<String, dynamic> json) {
@@ -46,6 +50,8 @@ class Teacher {
       isFirstLogin: json['isFirstLogin'] is bool ? json['isFirstLogin'] : null,
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'].toString()) : null,
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'].toString()) : null,
+      isCustomPlan: json['isCustomPlan'] ?? false,
+      allowedFeatures: (json['allowedFeatures'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
 
@@ -61,6 +67,8 @@ class Teacher {
       'subscriptionStatus': subscriptionStatus,
       'subscriptionExpiryDate': subscriptionExpiryDate?.toIso8601String(),
       'isFirstLogin': isFirstLogin,
+      'isCustomPlan': isCustomPlan,
+      'allowedFeatures': allowedFeatures,
     };
   }
 
@@ -75,6 +83,8 @@ class Teacher {
     String? subscriptionStatus,
     DateTime? subscriptionExpiryDate,
     bool? isFirstLogin,
+    bool? isCustomPlan,
+    List<String>? allowedFeatures,
   }) {
     return Teacher(
       id: id,
@@ -88,6 +98,8 @@ class Teacher {
       subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
       subscriptionExpiryDate: subscriptionExpiryDate ?? this.subscriptionExpiryDate,
       isFirstLogin: isFirstLogin ?? this.isFirstLogin,
+      isCustomPlan: isCustomPlan ?? this.isCustomPlan,
+      allowedFeatures: allowedFeatures ?? this.allowedFeatures,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

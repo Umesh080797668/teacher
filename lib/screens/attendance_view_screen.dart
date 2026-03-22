@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import "../widgets/custom_widgets.dart";
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/reports_provider.dart';
-import '../widgets/custom_widgets.dart';
+
 
 class AttendanceViewScreen extends StatefulWidget {
   const AttendanceViewScreen({super.key});
@@ -44,9 +45,9 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> with Single
     final reportsProvider = Provider.of<ReportsProvider>(context, listen: false);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('View Attendance'),
-        actions: [
+      appBar: CustomAppBar(
+        title: 'View Attendance',
+        actions: const [
         ],
         bottom: TabBar(
           controller: _tabController,

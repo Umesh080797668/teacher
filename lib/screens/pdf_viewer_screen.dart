@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import "../widgets/custom_widgets.dart";
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -25,8 +26,8 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
+      appBar: CustomAppBar(
+        title: widget.title,
         actions: [
           IconButton(
             icon: const Icon(Icons.share),

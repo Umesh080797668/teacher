@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import "../widgets/custom_widgets.dart";
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart'; // For Clipboard
@@ -443,8 +444,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
           return true;
         },
         child: Scaffold(
-          appBar: AppBar(
-            title: const Text('Account Activation'),
+          appBar: CustomAppBar(
+            title: 'Account Activation',
           ),
         body: Center(
           child: Column(
@@ -491,8 +492,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-      appBar: AppBar(
-        title: const Text('Account Activation'),
+      appBar: CustomAppBar(
+        title: 'Account Activation',
         leading: widget.selectedPlan != null ? IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () async {

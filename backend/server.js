@@ -458,6 +458,8 @@ const TeacherSchema = new mongoose.Schema({
   restrictedAt: { type: Date },
   restrictionReason: { type: String },
   fcmToken: { type: String }, // Firebase Cloud Messaging token for push notifications
+  isCustomPlan: { type: Boolean, default: false },
+  allowedFeatures: [{ type: String }],
 }, { timestamps: true });
 
 TeacherSchema.set('toJSON', {
@@ -694,6 +696,20 @@ const Resource = mongoose.models.Resource || mongoose.model('Resource', Resource
 const Notice = mongoose.models.Notice || mongoose.model('Notice', NoticeSchema);
 const Quiz = mongoose.models.Quiz || mongoose.model('Quiz', QuizSchema);
 const QuizResult = mongoose.models.QuizResult || mongoose.model('QuizResult', QuizResultSchema);
+
+// LMS Video Schema
+const LmsVideoSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: String,
+  videoUrl: { type: String, required: true },
+  thumbnailUrl: String,
+  classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
+  teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', required: true },
+  duration: Number,
+  sizeBytes: Number,
+  createdAt: { type: Date, default: Date.now }
+});
+const LmsVideo = mongoose.models.LmsVideo || mongoose.model('LmsVideo', LmsVideoSchema);
 
 // Store for pending QR sessions and connected sockets
 const pendingQRSessions = new Map(); // sessionId -> { timestamp, userType }
@@ -4556,7 +4572,9 @@ app.post('/api/auth/login', async (req, res) => {
         ? latestPaymentProof.rejectionReason : null,
       requiresSubscriptionSetup: teacher.isFirstLogin && teacher.subscriptionType !== 'free',
       accountInactive: teacher.status !== 'active',
-      subscriptionExpired: isSubscriptionExpired
+      subscriptionExpired: isSubscriptionExpired,
+      isCustomPlan: teacher.isCustomPlan,
+      allowedFeatures: teacher.allowedFeatures
     };
     
     console.log('Login successful for email:', normalizedEmail);
@@ -6165,7 +6183,7 @@ app.put('/api/admin/change-password', verifyToken, async (req, res) => {
 app.get('/api/super-admin/teachers', verifySuperAdmin, async (req, res) => {
   try {
     const teachers = await Teacher.find({})
-      .select('_id name email teacherId phone status profilePicture companyIds subscriptionType subscriptionStartDate subscriptionExpiryDate isRestricted restrictedAt restrictionReason restrictedBy createdAt updatedAt')
+      .select('_id name email teacherId phone status profilePicture companyIds subscriptionType subscriptionStartDate subscriptionExpiryDate isRestricted restrictedAt restrictionReason restrictedBy createdAt updatedAt isCustomPlan allowedFeatures')
       .populate('companyIds', 'companyName');
     
     // Calculate earnings and student count for each teacher
@@ -6374,6 +6392,49 @@ app.post('/api/super-admin/teachers/:teacherId/set-free-options', verifySuperAdm
   } catch (error) {
     console.error('Error setting teacher subscription free:', error);
     res.status(500).json({ error: 'Failed to set teacher subscription free' });
+  }
+});
+
+// Set custom features for teacher
+app.put("/api/super-admin/teachers/:teacherId/features", verifySuperAdmin, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    const { isCustomPlan, allowedFeatures } = req.body;
+    
+    const teacher = await Teacher.findById(teacherId);
+    if (!teacher) {
+      return res.status(404).json({ error: "Teacher not found" });
+    }
+    
+    teacher.isCustomPlan = isCustomPlan !== undefined ? isCustomPlan : teacher.isCustomPlan;
+    if (allowedFeatures && Array.isArray(allowedFeatures)) {
+      teacher.allowedFeatures = allowedFeatures;
+    }
+    
+    teacher.updatedAt = new Date();
+    await teacher.save();
+    
+    // Optionally send FCM notification here to let teacher app real-time refetch context
+    await sendFCMNotificationToTeacher(
+      teacherId,
+      "Features Updated 🔄",
+      "Your app features have been updated by the administrator.",
+      {
+        type: "features_updated",
+      }
+    ).catch(err => console.log("FCM notification failed:", err));
+    
+    res.json({
+      message: "Teacher features updated successfully",
+      teacher: {
+        _id: teacher._id,
+        isCustomPlan: teacher.isCustomPlan,
+        allowedFeatures: teacher.allowedFeatures
+      }
+    });
+  } catch (error) {
+    console.error("Error setting teacher features:", error);
+    res.status(500).json({ error: "Failed to update teacher features" });
   }
 });
 
