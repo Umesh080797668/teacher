@@ -1072,39 +1072,40 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               ),
                               const SizedBox(height: 24),
                               GestureDetector(
-                                onTap: () => _addStudent(sheetFormKey),
+                                onTap: isFormValid ? () => _addStudent(sheetFormKey) : null,
                                 child: Container(
                                   height: 54,
                                   decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
+                                    gradient: isFormValid ? const LinearGradient(
                                       colors: [
                                         Color(0xFF4F46E5),
                                         Color(0xFF7C3AED)
                                       ],
                                       begin: Alignment.centerLeft,
                                       end: Alignment.centerRight,
-                                    ),
+                                    ) : null,
+                                    color: isFormValid ? null : (isDark ? Colors.grey[800] : Colors.grey[300]),
                                     borderRadius:
                                         BorderRadius.circular(16),
-                                    boxShadow: [
+                                    boxShadow: isFormValid ? [
                                       BoxShadow(
                                         color: const Color(0xFF4F46E5)
                                             .withValues(alpha: 0.4),
                                         blurRadius: 14,
                                         offset: const Offset(0, 5),
                                       )
-                                    ],
+                                    ] : null,
                                   ),
-                                  child: const Center(
+                                  child: Center(
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(Icons.save_rounded,
-                                            color: Colors.white, size: 20),
-                                        SizedBox(width: 10),
+                                            color: isFormValid ? Colors.white : (isDark ? Colors.white30 : Colors.black26), size: 20),
+                                        const SizedBox(width: 10),
                                         Text('Save Student',
                                             style: TextStyle(
-                                              color: Colors.white,
+                                              color: isFormValid ? Colors.white : (isDark ? Colors.white30 : Colors.black26),
                                               fontWeight: FontWeight.w700,
                                               fontSize: 15,
                                             )),
