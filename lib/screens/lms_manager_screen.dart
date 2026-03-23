@@ -37,11 +37,11 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       if (auth.teacherId == null) return;
-        final token = await ApiService.getToken();
-        final res = await http.get(
-            Uri.parse('${ApiService.baseUrl}/api/lms/videos/teacher/${auth.teacherId}'),
-            headers: token != null ? {'Authorization': 'Bearer $token'} : {}
-        );
+      final token = await ApiService.getToken();
+      final res = await http.get(
+          Uri.parse(
+              '${ApiService.baseUrl}/api/lms/videos/teacher/${auth.teacherId}'),
+          headers: token != null ? {'Authorization': 'Bearer $token'} : {});
       if (res.statusCode == 200) {
         setState(() {
           _videos = jsonDecode(res.body);
@@ -66,12 +66,12 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
   Future<void> _openVideo(String urlStr) async {
     if (urlStr.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Link is empty.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Link is empty.')));
       }
       return;
     }
-    
+
     // Simple verification if it's a valid url
     if (!urlStr.startsWith('http') && !urlStr.startsWith('https')) {
       if (urlStr.startsWith('uploads/')) {
@@ -80,7 +80,7 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
         urlStr = 'https://$urlStr';
       }
     }
-    
+
     final uri = Uri.parse(urlStr);
     try {
       if (await canLaunchUrl(uri)) {
@@ -92,12 +92,11 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error opening link: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error opening link: $e')));
       }
     }
   }
-
 
   Future<void> _deleteVideo(String id) async {
     final confirm = await showDialog<bool>(
@@ -106,7 +105,9 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
         title: const Text('Delete Material'),
         content: const Text('Are you sure you want to delete this material?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
@@ -145,7 +146,8 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
     }
   }
 
-  void _showEditMaterialSheet(BuildContext context, Map<String, dynamic> video) {
+  void _showEditMaterialSheet(
+      BuildContext context, Map<String, dynamic> video) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -162,7 +164,8 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
+      backgroundColor:
+          isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
       body: SafeArea(
         child: Column(
           children: [
@@ -234,7 +237,9 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
                       ? Center(
                           child: Text(
                             "No materials uploaded yet.",
-                            style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 16),
+                            style: TextStyle(
+                                color: isDark ? Colors.white70 : Colors.black54,
+                                fontSize: 16),
                           ),
                         )
                       : ListView.builder(
@@ -253,7 +258,8 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
                                     ? []
                                     : [
                                         BoxShadow(
-                                          color: Colors.black.withAlpha(13), // ~0.05
+                                          color: Colors.black
+                                              .withAlpha(13), // ~0.05
                                           blurRadius: 10,
                                           offset: const Offset(0, 4),
                                         ),
@@ -266,7 +272,8 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
                                 leading: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF4F46E5).withAlpha(25), // ~0.1
+                                    color: const Color(0xFF4F46E5)
+                                        .withAlpha(25), // ~0.1
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: const Icon(Icons.video_library,
@@ -277,25 +284,31 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
                                   style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 16,
-                                    color: isDark ? Colors.white : Colors.black87,
+                                    color:
+                                        isDark ? Colors.white : Colors.black87,
                                   ),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const SizedBox(height: 4),
-                                    if (v['description'] != null && v['description'].toString().isNotEmpty)
+                                    if (v['description'] != null &&
+                                        v['description'].toString().isNotEmpty)
                                       Text(
                                         v['description'],
                                         style: TextStyle(
-                                          color: isDark ? Colors.white70 : Colors.black87,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : Colors.black87,
                                           fontSize: 14,
                                         ),
                                       ),
                                     Text(
                                       v['videoUrl'] ?? '',
                                       style: TextStyle(
-                                        color: isDark ? Colors.white60 : Colors.black54,
+                                        color: isDark
+                                            ? Colors.white60
+                                            : Colors.black54,
                                         fontSize: 12,
                                       ),
                                       maxLines: 1,
@@ -306,59 +319,80 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    if (v['relatedQuizUrl'] != null && v['relatedQuizUrl'].toString().isNotEmpty)
+                                    if (v['relatedQuizUrl'] != null &&
+                                        v['relatedQuizUrl']
+                                            .toString()
+                                            .isNotEmpty)
                                       IconButton(
-                                        icon: Icon(Icons.quiz, color: Colors.orange.shade400, size: 22),
-                                        onPressed: () => _openVideo(v['relatedQuizUrl']),
+                                        icon: Icon(Icons.quiz,
+                                            color: Colors.orange.shade400,
+                                            size: 22),
+                                        onPressed: () =>
+                                            _openVideo(v['relatedQuizUrl']),
                                         tooltip: 'Open Quiz',
                                       ),
-                                    if (v['relatedMaterialUrl'] != null && v['relatedMaterialUrl'].toString().isNotEmpty)
+                                    if (v['relatedMaterialUrl'] != null &&
+                                        v['relatedMaterialUrl']
+                                            .toString()
+                                            .isNotEmpty)
                                       IconButton(
-                                        icon: Icon(Icons.assignment, color: Colors.green.shade400, size: 22),
-                                        onPressed: () => _openVideo(v['relatedMaterialUrl']),
+                                        icon: Icon(Icons.assignment,
+                                            color: Colors.green.shade400,
+                                            size: 22),
+                                        onPressed: () =>
+                                            _openVideo(v['relatedMaterialUrl']),
                                         tooltip: 'Open Assignment/Material',
                                       ),
                                     PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_vert),
-                                  onSelected: (val) {
-                                    if (val == 'watch') {
-                                      _openVideo(v['videoUrl'] ?? '');
-                                    } else if (val == 'edit') {
-                                      _showEditMaterialSheet(context, v);
-                                    } else if (val == 'delete') {
-                                      _deleteVideo(v['_id'] ?? '');
-                                    }
-                                  },
-                                  itemBuilder: (ctx) => [
-                                    const PopupMenuItem(
-                                      value: 'watch',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.play_circle_fill_rounded, color: Colors.blue, size: 20),
-                                          SizedBox(width: 8),
-                                          Text('Watch/Open'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.edit, color: Colors.orange, size: 20),
-                                          SizedBox(width: 8),
-                                          Text('Edit'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.delete, color: Colors.red, size: 20),
-                                          SizedBox(width: 8),
-                                          Text('Delete'),
-                                        ],
-                                      ),
+                                      icon: const Icon(Icons.more_vert),
+                                      onSelected: (val) {
+                                        if (val == 'watch') {
+                                          _openVideo(v['videoUrl'] ?? '');
+                                        } else if (val == 'edit') {
+                                          _showEditMaterialSheet(context, v);
+                                        } else if (val == 'delete') {
+                                          _deleteVideo(v['_id'] ?? '');
+                                        }
+                                      },
+                                      itemBuilder: (ctx) => [
+                                        const PopupMenuItem(
+                                          value: 'watch',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                  Icons
+                                                      .play_circle_fill_rounded,
+                                                  color: Colors.blue,
+                                                  size: 20),
+                                              SizedBox(width: 8),
+                                              Text('Watch/Open'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit,
+                                                  color: Colors.orange,
+                                                  size: 20),
+                                              SizedBox(width: 8),
+                                              Text('Edit'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete,
+                                                  color: Colors.red, size: 20),
+                                              SizedBox(width: 8),
+                                              Text('Delete'),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -393,9 +427,12 @@ class _AddMaterialSheet extends StatefulWidget {
 }
 
 class _AddMaterialSheetState extends State<_AddMaterialSheet> {
-final _titleCtrl = TextEditingController();
+  final _titleCtrl = TextEditingController();
   final _urlCtrl = TextEditingController();
   final _descriptionCtrl = TextEditingController();
+  final _relatedQuizUrlCtrl = TextEditingController();
+  final _relatedMaterialUrlCtrl = TextEditingController();
+  bool _allowDownload = false;
   String? _selectedClassId;
   String? _selectedFileName;
   String? _selectedFileExtension;
@@ -412,15 +449,17 @@ final _titleCtrl = TextEditingController();
       _urlCtrl.text = widget.initialData!['videoUrl'] ?? '';
       _descriptionCtrl.text = widget.initialData!['description'] ?? '';
       _relatedQuizUrlCtrl.text = widget.initialData!['relatedQuizUrl'] ?? '';
-      _relatedMaterialUrlCtrl.text = widget.initialData!['relatedMaterialUrl'] ?? '';
+      _relatedMaterialUrlCtrl.text =
+          widget.initialData!['relatedMaterialUrl'] ?? '';
       _allowDownload = widget.initialData!['allowDownload'] ?? false;
       final cIdObj = widget.initialData!['classId'];
       if (cIdObj is Map) {
-         _selectedClassId = cIdObj['_id'];
+        _selectedClassId = cIdObj['_id'];
       } else if (cIdObj is String) {
-         _selectedClassId = cIdObj;
+        _selectedClassId = cIdObj;
       }
-      _isFileUpload = false; // Note: for edits, we default to URL mode right now since we can't easily reverse engineer a file upload.
+      _isFileUpload =
+          false; // Note: for edits, we default to URL mode right now since we can't easily reverse engineer a file upload.
     }
   }
 
@@ -443,15 +482,20 @@ final _titleCtrl = TextEditingController();
 
   IconData _getFileIcon(String? extension) {
     switch (extension?.toLowerCase()) {
-      case 'pdf': return Icons.picture_as_pdf;
+      case 'pdf':
+        return Icons.picture_as_pdf;
       case 'doc':
-      case 'docx': return Icons.description;
+      case 'docx':
+        return Icons.description;
       case 'jpg':
       case 'jpeg':
-      case 'png': return Icons.image;
+      case 'png':
+        return Icons.image;
       case 'mp4':
-      case 'mkv': return Icons.video_file;
-      default: return Icons.insert_drive_file;
+      case 'mkv':
+        return Icons.video_file;
+      default:
+        return Icons.insert_drive_file;
     }
   }
 
@@ -468,23 +512,23 @@ final _titleCtrl = TextEditingController();
 
   Future<void> _submit() async {
     if (_titleCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a title')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please enter a title')));
       return;
     }
     if (_selectedClassId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a class')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please select a class')));
       return;
     }
     if (!_isFileUpload && _urlCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a URL')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please enter a URL')));
       return;
     }
     if (_isFileUpload && _selectedFileName == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a file')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please select a file')));
       return;
     }
 
@@ -504,19 +548,19 @@ final _titleCtrl = TextEditingController();
     }
 
     // Simulate URL generation for uploaded files to fit model requirement
-    String payloadUrl = _isFileUpload ? 'uploads/$_selectedFileName' : _urlCtrl.text;
+    String payloadUrl =
+        _isFileUpload ? 'uploads/$_selectedFileName' : _urlCtrl.text;
 
     try {
       final token = await ApiService.getToken();
-final isEdit = widget.initialData != null;
+      final isEdit = widget.initialData != null;
       final videoId = isEdit ? widget.initialData!['_id'] : '';
-      final url = isEdit 
+      final url = isEdit
           ? '${ApiService.baseUrl}/api/lms/videos/$videoId'
           : '${ApiService.baseUrl}/api/lms/videos';
-          
-      final req = isEdit 
-          ? await http.put(
-              Uri.parse(url),
+
+      final req = isEdit
+          ? await http.put(Uri.parse(url),
               headers: {
                 'Content-Type': 'application/json',
                 if (token != null) 'Authorization': 'Bearer $token'
@@ -532,8 +576,7 @@ final isEdit = widget.initialData != null;
                 'relatedMaterialUrl': _relatedMaterialUrlCtrl.text,
                 'duration': 120,
               }))
-          : await http.post(
-              Uri.parse(url),
+          : await http.post(Uri.parse(url),
               headers: {
                 'Content-Type': 'application/json',
                 if (token != null) 'Authorization': 'Bearer $token'
@@ -623,14 +666,19 @@ final isEdit = widget.initialData != null;
             DropdownButtonFormField<String>(
               initialValue: _selectedClassId,
               dropdownColor: isDark ? const Color(0xFF2D2660) : Colors.white,
-              style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 16),
+              style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black87, fontSize: 16),
               decoration: InputDecoration(
                 labelText: 'Select Class',
-                labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                prefixIcon: Icon(Icons.class_, color: isDark ? Colors.white70 : Colors.black54),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                labelStyle:
+                    TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                prefixIcon: Icon(Icons.class_,
+                    color: isDark ? Colors.white70 : Colors.black54),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
+                  borderSide: BorderSide(
+                      color: isDark ? Colors.white24 : Colors.black12),
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -652,17 +700,21 @@ final isEdit = widget.initialData != null;
               style: TextStyle(color: isDark ? Colors.white : Colors.black87),
               decoration: InputDecoration(
                 labelText: 'Title',
-                labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                prefixIcon: Icon(Icons.title, color: isDark ? Colors.white70 : Colors.black54),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                labelStyle:
+                    TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                prefixIcon: Icon(Icons.title,
+                    color: isDark ? Colors.white70 : Colors.black54),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
+                  borderSide: BorderSide(
+                      color: isDark ? Colors.white24 : Colors.black12),
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Description Field
             TextField(
               controller: _descriptionCtrl,
@@ -670,11 +722,15 @@ final isEdit = widget.initialData != null;
               maxLines: 2,
               decoration: InputDecoration(
                 labelText: 'Description (Optional)',
-                labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                prefixIcon: Icon(Icons.description, color: isDark ? Colors.white70 : Colors.black54),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                labelStyle:
+                    TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                prefixIcon: Icon(Icons.description,
+                    color: isDark ? Colors.white70 : Colors.black54),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
+                  borderSide: BorderSide(
+                      color: isDark ? Colors.white24 : Colors.black12),
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -690,11 +746,15 @@ final isEdit = widget.initialData != null;
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: !_isFileUpload ? const Color(0xFF4F46E5).withAlpha(25) : Colors.transparent,
+                        color: !_isFileUpload
+                            ? const Color(0xFF4F46E5).withAlpha(25)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: !_isFileUpload 
-                              ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5))
+                          color: !_isFileUpload
+                              ? (isDark
+                                  ? const Color(0xFF818CF8)
+                                  : const Color(0xFF4F46E5))
                               : (isDark ? Colors.white24 : Colors.black12),
                         ),
                       ),
@@ -703,8 +763,10 @@ final isEdit = widget.initialData != null;
                           'Link (URL)',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: !_isFileUpload 
-                                ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5))
+                            color: !_isFileUpload
+                                ? (isDark
+                                    ? const Color(0xFF818CF8)
+                                    : const Color(0xFF4F46E5))
                                 : (isDark ? Colors.white54 : Colors.black54),
                           ),
                         ),
@@ -719,11 +781,15 @@ final isEdit = widget.initialData != null;
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: _isFileUpload ? const Color(0xFF4F46E5).withAlpha(25) : Colors.transparent,
+                        color: _isFileUpload
+                            ? const Color(0xFF4F46E5).withAlpha(25)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _isFileUpload 
-                              ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5))
+                          color: _isFileUpload
+                              ? (isDark
+                                  ? const Color(0xFF818CF8)
+                                  : const Color(0xFF4F46E5))
                               : (isDark ? Colors.white24 : Colors.black12),
                         ),
                       ),
@@ -732,8 +798,10 @@ final isEdit = widget.initialData != null;
                           'Upload File',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: _isFileUpload 
-                                ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5))
+                            color: _isFileUpload
+                                ? (isDark
+                                    ? const Color(0xFF818CF8)
+                                    : const Color(0xFF4F46E5))
                                 : (isDark ? Colors.white54 : Colors.black54),
                           ),
                         ),
@@ -752,115 +820,135 @@ final isEdit = widget.initialData != null;
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: 'Material URL (e.g. YouTube, Drive)',
-                  labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                  prefixIcon: Icon(Icons.link, color: isDark ? Colors.white70 : Colors.black54),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  labelStyle: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54),
+                  prefixIcon: Icon(Icons.link,
+                      color: isDark ? Colors.white70 : Colors.black54),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
+                    borderSide: BorderSide(
+                        color: isDark ? Colors.white24 : Colors.black12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              )
+            else if (_selectedFileName == null)
+              OutlinedButton.icon(
+                onPressed: _pickFile,
+                icon: Icon(Icons.upload_file,
+                    color: isDark ? Colors.white : Colors.black87),
+                label: Text(
+                  'Pick File',
+                  style:
+                      TextStyle(color: isDark ? Colors.white : Colors.black87),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: BorderSide(
+                      color: isDark
+                          ? const Color(0xFF818CF8)
+                          : const Color(0xFF4F46E5)),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               )
             else
-              if (_selectedFileName == null)
-                OutlinedButton.icon(
-                  onPressed: _pickFile,
-                  icon: Icon(Icons.upload_file, color: isDark ? Colors.white : Colors.black87),
-                  label: Text(
-                    'Pick File',
-                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: BorderSide(color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color:
+                      isDark ? const Color(0xFF2D2660) : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: isDark ? Colors.white24 : Colors.black12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(_getFileIcon(_selectedFileExtension),
+                            size: 36,
+                            color: isDark
+                                ? const Color(0xFF818CF8)
+                                : const Color(0xFF4F46E5)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _selectedFileName!,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (_selectedFileSize != null)
+                                Text(
+                                  _getFileSizeString(_selectedFileSize!),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? Colors.white60
+                                        : Colors.black54,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (!_isSubmitting)
+                          IconButton(
+                            icon: const Icon(Icons.cancel_outlined,
+                                color: Colors.redAccent),
+                            onPressed: () {
+                              setState(() {
+                                _selectedFileName = null;
+                                _selectedFileExtension = null;
+                                _selectedFileSize = null;
+                              });
+                            },
+                          )
+                      ],
                     ),
-                  ),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF2D2660) : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: isDark ? Colors.white24 : Colors.black12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    if (_isSubmitting) ...[
+                      const SizedBox(height: 16),
                       Row(
                         children: [
-                          Icon(_getFileIcon(_selectedFileExtension), size: 36, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
-                          const SizedBox(width: 12),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _selectedFileName!,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark ? Colors.white : Colors.black87,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                if (_selectedFileSize != null)
-                                  Text(
-                                    _getFileSizeString(_selectedFileSize!),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isDark ? Colors.white60 : Colors.black54,
-                                    ),
-                                  ),
-                              ],
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: _uploadProgress,
+                                backgroundColor:
+                                    isDark ? Colors.white12 : Colors.black12,
+                                valueColor: AlwaysStoppedAnimation<Color>(isDark
+                                    ? const Color(0xFF818CF8)
+                                    : const Color(0xFF4F46E5)),
+                                minHeight: 6,
+                              ),
                             ),
                           ),
-                          if (!_isSubmitting)
-                            IconButton(
-                              icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
-                              onPressed: () {
-                                setState(() {
-                                  _selectedFileName = null;
-                                  _selectedFileExtension = null;
-                                  _selectedFileSize = null;
-                                });
-                              },
-                            )
-                        ],
-                      ),
-                      if (_isSubmitting) ...[
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: LinearProgressIndicator(
-                                  value: _uploadProgress,
-                                  backgroundColor: isDark ? Colors.white12 : Colors.black12,
-                                  valueColor: AlwaysStoppedAnimation<Color>(isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
-                                  minHeight: 6,
-                                ),
-                              ),
+                          const SizedBox(width: 12),
+                          Text(
+                            '${(_uploadProgress * 100).toInt()}%',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.black87,
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              '${(_uploadProgress * 100).toInt()}%',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : Colors.black87,
-                              ),
-                            )
-                          ],
-                        )
-                      ]
-                    ],
-                  ),
+                          )
+                        ],
+                      )
+                    ]
+                  ],
                 ),
-            
+              ),
+
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: (!_isFormValid || _isSubmitting) ? null : _submit,
@@ -876,9 +964,15 @@ final isEdit = widget.initialData != null;
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
                     )
-                  : Text(widget.initialData != null ? 'Update Material' : 'Save Material', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+                  : Text(
+                      widget.initialData != null
+                          ? 'Update Material'
+                          : 'Save Material',
+                      style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600, color: Colors.white)),
             ),
           ],
         ),
