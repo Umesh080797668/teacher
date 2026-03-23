@@ -94,6 +94,65 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
     }
   }
 
+
+  Future<void> _deleteVideo(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Material'),
+        content: const Text('Are you sure you want to delete this material?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final token = await ApiService.getToken();
+      final res = await http.delete(
+        Uri.parse('${ApiService.baseUrl}/api/lms/videos/$id'),
+        headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+      );
+
+      if (res.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Material deleted successfully')),
+          );
+        }
+        _fetchVideos();
+      } else {
+        throw Exception('Failed to delete material');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showEditMaterialSheet(BuildContext context, Map<String, dynamic> video) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => _AddMaterialSheet(
+        onMaterialAdded: _fetchVideos,
+        initialData: video,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -197,7 +256,7 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
                                       ],
                               ),
                               child: ListTile(
-                                onTap: () => _openVideo(v['url'] ?? ''),
+                                onTap: () => _openVideo(v['videoUrl'] ?? ''),
                                 contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 8),
                                 leading: Container(
@@ -217,16 +276,72 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
                                     color: isDark ? Colors.white : Colors.black87,
                                   ),
                                 ),
-                                subtitle: Text(
-                                  v['url'] ?? '',
-                                  style: TextStyle(
-                                    color: isDark ? Colors.white60 : Colors.black54,
-                                    fontSize: 13,
-                                  ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 4),
+                                    if (v['description'] != null && v['description'].toString().isNotEmpty)
+                                      Text(
+                                        v['description'],
+                                        style: TextStyle(
+                                          color: isDark ? Colors.white70 : Colors.black87,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    Text(
+                                      v['videoUrl'] ?? '',
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white60 : Colors.black54,
+                                        fontSize: 12,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
-                                trailing: Icon(
-                                  Icons.play_circle_fill_rounded,
-                                  color: const Color(0xFF4F46E5).withAlpha(150),
+                                trailing: PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert),
+                                  onSelected: (val) {
+                                    if (val == 'watch') {
+                                      _openVideo(v['videoUrl'] ?? '');
+                                    } else if (val == 'edit') {
+                                      _showEditMaterialSheet(context, v);
+                                    } else if (val == 'delete') {
+                                      _deleteVideo(v['_id'] ?? '');
+                                    }
+                                  },
+                                  itemBuilder: (ctx) => [
+                                    const PopupMenuItem(
+                                      value: 'watch',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.play_circle_fill_rounded, color: Colors.blue, size: 20),
+                                          SizedBox(width: 8),
+                                          Text('Watch/Open'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.edit, color: Colors.orange, size: 20),
+                                          SizedBox(width: 8),
+                                          Text('Edit'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete, color: Colors.red, size: 20),
+                                          SizedBox(width: 8),
+                                          Text('Delete'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             );
@@ -250,16 +365,18 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
 
 class _AddMaterialSheet extends StatefulWidget {
   final VoidCallback onMaterialAdded;
+  final Map<String, dynamic>? initialData;
 
-  const _AddMaterialSheet({required this.onMaterialAdded});
+  const _AddMaterialSheet({required this.onMaterialAdded, this.initialData});
 
   @override
   State<_AddMaterialSheet> createState() => _AddMaterialSheetState();
 }
 
 class _AddMaterialSheetState extends State<_AddMaterialSheet> {
-  final _titleCtrl = TextEditingController();
+final _titleCtrl = TextEditingController();
   final _urlCtrl = TextEditingController();
+  final _descriptionCtrl = TextEditingController();
   String? _selectedClassId;
   String? _selectedFileName;
   String? _selectedFileExtension;
@@ -267,6 +384,23 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
   bool _isFileUpload = false;
   bool _isSubmitting = false;
   double _uploadProgress = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialData != null) {
+      _titleCtrl.text = widget.initialData!['title'] ?? '';
+      _urlCtrl.text = widget.initialData!['videoUrl'] ?? '';
+      _descriptionCtrl.text = widget.initialData!['description'] ?? '';
+      final cIdObj = widget.initialData!['classId'];
+      if (cIdObj is Map) {
+         _selectedClassId = cIdObj['_id'];
+      } else if (cIdObj is String) {
+         _selectedClassId = cIdObj;
+      }
+      _isFileUpload = false; // Note: for edits, we default to URL mode right now since we can't easily reverse engineer a file upload.
+    }
+  }
 
   bool get _isFormValid {
     if (_titleCtrl.text.trim().isEmpty) return false;
@@ -352,19 +486,41 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
 
     try {
       final token = await ApiService.getToken();
-      final req = await http.post(
-          Uri.parse('${ApiService.baseUrl}/api/lms/videos'),
-          headers: {
-            'Content-Type': 'application/json',
-            if (token != null) 'Authorization': 'Bearer $token'
-          },
-          body: jsonEncode({
-            'title': _titleCtrl.text,
-            'videoUrl': payloadUrl,
-            'classId': _selectedClassId,
-            'teacherId': auth.teacherId,
-            'duration': 120,
-          }));
+final isEdit = widget.initialData != null;
+      final videoId = isEdit ? widget.initialData!['_id'] : '';
+      final url = isEdit 
+          ? '${ApiService.baseUrl}/api/lms/videos/$videoId'
+          : '${ApiService.baseUrl}/api/lms/videos';
+          
+      final req = isEdit 
+          ? await http.put(
+              Uri.parse(url),
+              headers: {
+                'Content-Type': 'application/json',
+                if (token != null) 'Authorization': 'Bearer $token'
+              },
+              body: jsonEncode({
+                'title': _titleCtrl.text,
+                'description': _descriptionCtrl.text,
+                'videoUrl': payloadUrl,
+                'classId': _selectedClassId,
+                'teacherId': auth.teacherId,
+                'duration': 120,
+              }))
+          : await http.post(
+              Uri.parse(url),
+              headers: {
+                'Content-Type': 'application/json',
+                if (token != null) 'Authorization': 'Bearer $token'
+              },
+              body: jsonEncode({
+                'title': _titleCtrl.text,
+                'description': _descriptionCtrl.text,
+                'videoUrl': payloadUrl,
+                'classId': _selectedClassId,
+                'teacherId': auth.teacherId,
+                'duration': 120,
+              }));
       if (req.statusCode == 201 || req.statusCode == 200) {
         if (mounted) Navigator.pop(context);
         widget.onMaterialAdded();
@@ -426,7 +582,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
               ),
             ),
             Text(
-              'Add Material',
+              widget.initialData != null ? 'Edit Material' : 'Add Material',
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w700,
                 fontSize: 20,
@@ -461,8 +617,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
               },
             ),
             const SizedBox(height: 16),
-
-            // Title Field
+// Title Field
             TextField(
               controller: _titleCtrl,
               onChanged: (_) => setState(() {}),
@@ -471,6 +626,24 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
                 labelText: 'Title',
                 labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                 prefixIcon: Icon(Icons.title, color: isDark ? Colors.white70 : Colors.black54),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Description Field
+            TextField(
+              controller: _descriptionCtrl,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              maxLines: 2,
+              decoration: InputDecoration(
+                labelText: 'Description (Optional)',
+                labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                prefixIcon: Icon(Icons.description, color: isDark ? Colors.white70 : Colors.black54),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
@@ -677,7 +850,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
                       height: 20,
                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                     )
-                  : Text('Save Material', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+                  : Text(widget.initialData != null ? 'Update Material' : 'Save Material', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
             ),
           ],
         ),

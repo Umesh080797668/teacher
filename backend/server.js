@@ -7956,6 +7956,29 @@ app.post('/api/lms/videos', verifyToken, async (req, res) => {
 });
 
 // Delete an LMS video
+
+app.put('/api/lms/videos/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, videoUrl, classId } = req.body;
+    
+    const updatedVideo = await LmsVideo.findByIdAndUpdate(
+      id,
+      { title, description, videoUrl, classId },
+      { new: true }
+    );
+    
+    if (!updatedVideo) {
+      return res.status(404).json({ error: 'LMS material not found' });
+    }
+    
+    res.json(updatedVideo);
+  } catch (error) {
+    console.error('Error updating LMS video:', error);
+    res.status(500).json({ error: 'Failed to update LMS material' });
+  }
+});
+
 app.delete('/api/lms/videos/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
