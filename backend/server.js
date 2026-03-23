@@ -7880,7 +7880,13 @@ app.get('/api/lms/videos/teacher/:teacherId', verifyToken, async (req, res) => {
     const { teacherId } = req.params;
     const { classId } = req.query;
 
-    let query = { teacherId };
+    // Find the teacher's ObjectId
+    const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+    if (!teacher) {
+      return res.json([]);
+    }
+
+    let query = { teacherId: teacher._id };
     
     // If classId is provided, filter by classId as well
     if (classId && classId !== 'all') {
@@ -7889,7 +7895,7 @@ app.get('/api/lms/videos/teacher/:teacherId', verifyToken, async (req, res) => {
 
     const videos = await LmsVideo.find(query)
       .sort({ uploadDate: -1 })
-      .populate('classId', 'className');
+      .populate('classId', 'name');
 
     res.json(videos);
   } catch (error) {
@@ -7917,13 +7923,19 @@ app.post('/api/lms/videos', verifyToken, async (req, res) => {
       });
     }
 
+    // Find the actual teacher ObjectId
+    const teacher = await Teacher.findOne({ teacherId: new RegExp('^' + teacherId + '$', 'i') });
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
     const newVideo = new LmsVideo({
       title,
       description,
       videoUrl,
       thumbnailUrl,
       classId,
-      teacherId,
+      teacherId: teacher._id,
       uploadDate: new Date()
     });
 
@@ -7931,7 +7943,7 @@ app.post('/api/lms/videos', verifyToken, async (req, res) => {
 
     // Populate class info before sending back
     const populatedVideo = await LmsVideo.findById(newVideo._id)
-      .populate('classId', 'className');
+      .populate('classId', 'name');
 
     res.status(201).json({
       message: 'LMS Material uploaded successfully',
