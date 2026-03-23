@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/classes_provider.dart';
@@ -59,9 +60,39 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
     );
   }
 
+  Future<void> _openVideo(String urlStr) async {
+    if (urlStr.isEmpty) return;
+    
+    // Simple verification if it's a valid url
+    if (!urlStr.startsWith('http') && !urlStr.startsWith('https')) {
+      if (urlStr.startsWith('uploads/')) {
+        urlStr = '${ApiService.baseUrl}/$urlStr';
+      } else {
+        urlStr = 'https://$urlStr';
+      }
+    }
+    
+    final uri = Uri.parse(urlStr);
+    try {
+      if (await canLaunchUrl(uri)) {
+        // Run inside the app web view
+        await launchUrl(uri, mode: LaunchMode.inAppWebView);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Cannot open this media.')));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error opening media: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -96,7 +127,7 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
+                        color: Colors.white.withAlpha(45), // ~0.18
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(Icons.arrow_back_rounded,
@@ -119,7 +150,7 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
                         Text(
                           'Manage your course materials',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.75),
+                            color: Colors.white.withAlpha(190), // ~0.75
                             fontSize: 12,
                           ),
                         ),
@@ -134,7 +165,12 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _videos.isEmpty
-                      ? const Center(child: Text("No materials uploaded yet."))
+                      ? Center(
+                          child: Text(
+                            "No materials uploaded yet.",
+                            style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 16),
+                          ),
+                        )
                       : ListView.builder(
                           padding: const EdgeInsets.all(16),
                           itemCount: _videos.length,
@@ -151,19 +187,20 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
                                     ? []
                                     : [
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.05),
+                                          color: Colors.black.withAlpha(13), // ~0.05
                                           blurRadius: 10,
                                           offset: const Offset(0, 4),
                                         ),
                                       ],
                               ),
                               child: ListTile(
+                                onTap: () => _openVideo(v['url'] ?? ''),
                                 contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 8),
                                 leading: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                                    color: const Color(0xFF4F46E5).withAlpha(25), // ~0.1
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: const Icon(Icons.video_library,
@@ -174,14 +211,19 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
                                   style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 16,
+                                    color: isDark ? Colors.white : Colors.black87,
                                   ),
                                 ),
                                 subtitle: Text(
                                   v['url'] ?? '',
                                   style: TextStyle(
-                                    color: cs.onSurfaceVariant,
+                                    color: isDark ? Colors.white60 : Colors.black54,
                                     fontSize: 13,
                                   ),
+                                ),
+                                trailing: Icon(
+                                  Icons.play_circle_fill_rounded,
+                                  color: const Color(0xFF4F46E5).withAlpha(150),
                                 ),
                               ),
                             );
@@ -225,8 +267,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
     if (result != null && result.files.isNotEmpty) {
       setState(() {
         _selectedFileName = result.files.first.name;
-        // In a real scenario, you'd handle the file object. 
-        // For UI demo, we'll put the file name in the URL box or keep it separated.
+        // In a real scenario, handle actual file upload.
       });
     }
   }
@@ -257,8 +298,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
     
-    // In a full implementation with multipart/form-data, you'd use http.MultipartRequest
-    // For this UI requirement, we simulate URL generation for uploaded files if no backend upload route is provided
+    // Simulate URL generation for uploaded files to fit model requirement
     String payloadUrl = _isFileUpload ? 'uploads/$_selectedFileName' : _urlCtrl.text;
 
     try {
@@ -298,7 +338,6 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
     final classesProvider = context.watch<ClassesProvider>();
 
     return Padding(
@@ -311,7 +350,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
+              color: Colors.black.withAlpha(64), // ~0.25
               blurRadius: 30,
               offset: const Offset(0, -4),
             )
@@ -328,7 +367,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.35),
+                  color: Colors.grey.withAlpha(90), // ~0.35
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -338,7 +377,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w700,
                 fontSize: 20,
-                color: cs.onSurface,
+                color: isDark ? Colors.white : Colors.black87,
               ),
             ),
             const SizedBox(height: 20),
@@ -347,10 +386,16 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
             DropdownButtonFormField<String>(
               value: _selectedClassId,
               dropdownColor: isDark ? const Color(0xFF2D2660) : Colors.white,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 16),
               decoration: InputDecoration(
                 labelText: 'Select Class',
-                prefixIcon: const Icon(Icons.class_),
+                labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                prefixIcon: Icon(Icons.class_, color: isDark ? Colors.white70 : Colors.black54),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               items: classesProvider.classes.map((c) {
                 return DropdownMenuItem(
@@ -367,10 +412,16 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
             // Title Field
             TextField(
               controller: _titleCtrl,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
               decoration: InputDecoration(
                 labelText: 'Title',
-                prefixIcon: const Icon(Icons.title),
+                labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                prefixIcon: Icon(Icons.title, color: isDark ? Colors.white70 : Colors.black54),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -384,10 +435,12 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: !_isFileUpload ? const Color(0xFF4F46E5).withValues(alpha: 0.1) : Colors.transparent,
+                        color: !_isFileUpload ? const Color(0xFF4F46E5).withAlpha(25) : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: !_isFileUpload ? const Color(0xFF4F46E5) : cs.outlineVariant,
+                          color: !_isFileUpload 
+                              ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5))
+                              : (isDark ? Colors.white24 : Colors.black12),
                         ),
                       ),
                       child: Center(
@@ -395,7 +448,9 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
                           'Link (URL)',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: !_isFileUpload ? const Color(0xFF4F46E5) : cs.onSurfaceVariant,
+                            color: !_isFileUpload 
+                                ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5))
+                                : (isDark ? Colors.white54 : Colors.black54),
                           ),
                         ),
                       ),
@@ -409,10 +464,12 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: _isFileUpload ? const Color(0xFF4F46E5).withValues(alpha: 0.1) : Colors.transparent,
+                        color: _isFileUpload ? const Color(0xFF4F46E5).withAlpha(25) : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _isFileUpload ? const Color(0xFF4F46E5) : cs.outlineVariant,
+                          color: _isFileUpload 
+                              ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5))
+                              : (isDark ? Colors.white24 : Colors.black12),
                         ),
                       ),
                       child: Center(
@@ -420,7 +477,9 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
                           'Upload File',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: _isFileUpload ? const Color(0xFF4F46E5) : cs.onSurfaceVariant,
+                            color: _isFileUpload 
+                                ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5))
+                                : (isDark ? Colors.white54 : Colors.black54),
                           ),
                         ),
                       ),
@@ -434,10 +493,16 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
             if (!_isFileUpload)
               TextField(
                 controller: _urlCtrl,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: 'Material URL (e.g. YouTube, Drive)',
-                  prefixIcon: const Icon(Icons.link),
+                  labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                  prefixIcon: Icon(Icons.link, color: isDark ? Colors.white70 : Colors.black54),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               )
             else
@@ -446,11 +511,14 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
                 children: [
                   OutlinedButton.icon(
                     onPressed: _pickFile,
-                    icon: const Icon(Icons.upload_file),
-                    label: const Text('Pick File'),
+                    icon: Icon(Icons.upload_file, color: isDark ? Colors.white : Colors.black87),
+                    label: Text(
+                      'Pick File',
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                    ),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: Color(0xFF4F46E5)),
+                      side: BorderSide(color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -460,7 +528,10 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
                     const SizedBox(height: 8),
                     Text(
                       'Selected: $_selectedFileName',
-                      style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5), 
+                        fontWeight: FontWeight.bold
+                      ),
                       textAlign: TextAlign.center,
                     )
                   ]
@@ -484,7 +555,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
                       height: 20,
                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                     )
-                  : Text('Save Material', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                  : Text('Save Material', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
             ),
           ],
         ),
