@@ -21,6 +21,15 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   final List<String> _selectedClassIds = [];
   bool _isLoading = false;
 
+  bool get _isFormValid {
+    if (_titleController.text.trim().isEmpty) return false;
+    if (_durationController.text.trim().isEmpty || int.tryParse(_durationController.text) == null) return false;
+    if (_attemptsController.text.trim().isEmpty || int.tryParse(_attemptsController.text) == null) return false;
+    if (_selectedClassIds.isEmpty) return false;
+    if (_questions.isEmpty) return false;
+    return true;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -164,6 +173,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                   const SizedBox(height: 10),
                   TextFormField(
                     controller: _titleController,
+                    onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       labelText: 'Quiz Title',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -180,6 +190,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                       Expanded(
                         child: TextFormField(
                           controller: _durationController,
+                          onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(
                             labelText: 'Duration (min)',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -196,6 +207,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                       Expanded(
                         child: TextFormField(
                           controller: _attemptsController,
+                          onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(
                             labelText: 'Max Attempts',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -327,27 +339,28 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                   // Submit button
                   Container(
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                      gradient: _isFormValid ? const LinearGradient(
                         colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
-                      ),
+                      ) : null,
+                      color: _isFormValid ? null : (isDark ? Colors.white12 : Colors.black12),
                       borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
+                      boxShadow: _isFormValid ? [
                         BoxShadow(
                           color: const Color(0xFF4F46E5).withValues(alpha: 0.35),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
-                      ],
+                      ] : [],
                     ),
                     child: ElevatedButton.icon(
-                      onPressed: _submit,
-                      icon: const Icon(Icons.check_rounded, color: Colors.white),
+                      onPressed: _isFormValid ? _submit : null,
+                      icon: Icon(Icons.check_rounded, color: _isFormValid ? Colors.white : Colors.grey),
                       label: Text(
                         'Create Quiz',
                         style: GoogleFonts.poppins(
-                          color: Colors.white,
+                          color: _isFormValid ? Colors.white : Colors.grey,
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
@@ -355,6 +368,8 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
+                        disabledBackgroundColor: Colors.transparent,
+                        disabledForegroundColor: Colors.grey,
                         minimumSize: const Size(double.infinity, 52),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import "../widgets/custom_widgets.dart";
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -43,26 +44,98 @@ class _AttendanceViewScreenState extends State<AttendanceViewScreen> with Single
   @override
   Widget build(BuildContext context) {
     final reportsProvider = Provider.of<ReportsProvider>(context, listen: false);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: CustomAppBar(
-        title: 'View Attendance',
-        actions: const [
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Daily View'),
-            Tab(text: 'Monthly Stats'),
+      backgroundColor: isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Gradient Header with TabBar
+            Container(
+              decoration: BoxDecoration(
+                gradient: isDark
+                    ? const LinearGradient(
+                        colors: [Color(0xFF1E1A2E), Color(0xFF2D2660)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : const LinearGradient(
+                        colors: [Color(0xFF3730A3), Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'View Attendance',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                'Daily and monthly records',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.75),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white60,
+                    indicatorColor: Colors.white,
+                    indicatorWeight: 3,
+                    dividerColor: Colors.transparent,
+                    tabs: const [
+                      Tab(text: 'Daily View'),
+                      Tab(text: 'Monthly Stats'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Tab content
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _DailyViewTab(reportsProvider: reportsProvider),
+                  _MonthlyStatsTab(reportsProvider: reportsProvider),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _DailyViewTab(reportsProvider: reportsProvider),
-          _MonthlyStatsTab(reportsProvider: reportsProvider),
-        ],
       ),
     );
   }

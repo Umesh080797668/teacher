@@ -798,6 +798,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
           builder: (ctx, setSheetState) {
             final isDark = Theme.of(ctx).brightness == Brightness.dark;
             final cs = Theme.of(ctx).colorScheme;
+              bool isFormValid = _isExisting 
+                  ? _studentIdController.text.trim().isNotEmpty
+                  : _nameController.text.trim().isNotEmpty;
             return Padding(
               padding: EdgeInsets.only(
                   bottom: MediaQuery.of(ctx).viewInsets.bottom),
@@ -980,6 +983,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               if (!_isExisting) ...[
                                 TextFormField(
                                   controller: _nameController,
+                                    onChanged: (_) => setSheetState((){}),
                                   style: TextStyle(color: cs.onSurface),
                                   decoration: const InputDecoration(
                                     labelText: 'Full Name',
@@ -1017,6 +1021,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                 controller: _studentIdController,
                                 style: TextStyle(color: cs.onSurface),
                                 enabled: _isExisting,
+                                  onChanged: (_) => setSheetState((){}),
                                 validator: (v) => (_isExisting &&
                                         (v == null || v.isEmpty))
                                     ? 'Please enter Student ID'

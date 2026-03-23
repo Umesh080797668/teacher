@@ -976,7 +976,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () {
+        if (_fabExpanded) {
+          setState(() => _fabExpanded = false);
+        }
+      },
+      child: Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F0E17) : const Color(0xFFF5F5FA),
       floatingActionButton: _buildSpeedDial(context),
       body: RefreshIndicator(
@@ -1949,9 +1955,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+      ),
     );
   }
 }
+
 
 class _GradientStatCard extends StatelessWidget {
   final String title;

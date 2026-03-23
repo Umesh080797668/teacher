@@ -265,6 +265,17 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
   bool _isSubmitting = false;
   double _uploadProgress = 0.0;
 
+  bool get _isFormValid {
+    if (_titleCtrl.text.trim().isEmpty) return false;
+    if (_selectedClassId == null) return false;
+    if (_isFileUpload) {
+      if (_selectedFileName == null) return false;
+    } else {
+      if (_urlCtrl.text.trim().isEmpty) return false;
+    }
+    return true;
+  }
+
   String _getFileSizeString(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
@@ -447,6 +458,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
             // Title Field
             TextField(
               controller: _titleCtrl,
+              onChanged: (_) => setState(() {}),
               style: TextStyle(color: isDark ? Colors.white : Colors.black87),
               decoration: InputDecoration(
                 labelText: 'Title',
@@ -528,6 +540,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
             if (!_isFileUpload)
               TextField(
                 controller: _urlCtrl,
+                onChanged: (_) => setState(() {}),
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: 'Material URL (e.g. YouTube, Drive)',
@@ -642,7 +655,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
             
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _isSubmitting ? null : _submit,
+              onPressed: (!_isFormValid || _isSubmitting) ? null : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4F46E5),
                 foregroundColor: Colors.white,

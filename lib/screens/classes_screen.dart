@@ -180,173 +180,171 @@ class _ClassesScreenState extends State<ClassesScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) {
-        return Padding(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(sheetCtx).brightness == Brightness.dark
-                  ? const Color(0xFF1E1B2E)
-                  : Colors.white,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(28)),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 30,
-                    offset: const Offset(0, -4))
-              ],
-            ),
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-            child: Builder(builder: (ctx) {
-              final cs = Theme.of(ctx).colorScheme;
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Handle
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.35),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  // Header
-                  Row(
+        return StatefulBuilder(
+          builder: (stCtx, setSheetState) {
+            final isDark = Theme.of(sheetCtx).brightness == Brightness.dark;
+            bool isFormValid = _nameController.text.trim().isNotEmpty;
+            return Padding(
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E1B2E) : Colors.white,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 30,
+                        offset: const Offset(0, -4))
+                  ],
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                child: Builder(builder: (ctx) {
+                  final cs = Theme.of(ctx).colorScheme;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFF4F46E5),
-                              Color(0xFF7C3AED)
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                      // Handle
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(2),
                           ),
-                          borderRadius: BorderRadius.circular(13),
-                          boxShadow: [
-                            BoxShadow(
-                                color: const Color(0xFF4F46E5)
-                                    .withValues(alpha: 0.35),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4))
-                          ],
-                        ),
-                        child: const Icon(Icons.class_rounded,
-                            color: Colors.white, size: 22),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Create New Class',
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 18,
-                                color: cs.onSurface,
-                              ),
-                            ),
-                            Text(
-                              'Give your class a descriptive name',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: cs.onSurfaceVariant),
-                            ),
-                          ],
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(sheetCtx),
-                        icon: Icon(Icons.close_rounded,
-                            color: cs.onSurfaceVariant),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  // Form
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        TextFormField(
-                          controller: _nameController,
-                          style: TextStyle(color: cs.onSurface),
-                          autofocus: true,
-                          textCapitalization:
-                              TextCapitalization.words,
-                          decoration: InputDecoration(
-                            labelText: 'Class Name',
-                            hintText: 'e.g. Grade 10 - Section A',
-                            labelStyle: TextStyle(
-                                color: cs.onSurfaceVariant),
-                            prefixIcon:
-                                const Icon(Icons.class_rounded),
-                          ),
-                          validator: (v) => (v == null || v.isEmpty)
-                              ? 'Please enter a class name'
-                              : null,
-                        ),
-                        const SizedBox(height: 20),
-                        GestureDetector(
-                          onTap: _addClass,
-                          child: Container(
-                            height: 54,
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            width: 46,
+                            height: 46,
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFF4F46E5),
-                                  Color(0xFF7C3AED)
-                                ],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
+                                colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(13),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF4F46E5)
-                                      .withValues(alpha: 0.4),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 5),
-                                )
+                                    color: const Color(0xFF4F46E5)
+                                        .withValues(alpha: 0.35),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4))
                               ],
                             ),
-                            child: const Center(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.save_rounded,
-                                      color: Colors.white, size: 20),
-                                  SizedBox(width: 10),
-                                  Text(
-                                    'Create Class',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 15,
-                                    ),
+                            child: const Icon(Icons.class_rounded,
+                                color: Colors.white, size: 22),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Create New Class',
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 18,
+                                    color: cs.onSurface,
                                   ),
-                                ],
-                              ),
+                                ),
+                                Text(
+                                  'Give your class a descriptive name',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: cs.onSurfaceVariant),
+                                ),
+                              ],
                             ),
                           ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(sheetCtx),
+                            icon: Icon(Icons.close_rounded,
+                                color: cs.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      // Form
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            TextFormField(
+                              controller: _nameController,
+                              style: TextStyle(color: cs.onSurface),
+                              autofocus: true,
+                              textCapitalization: TextCapitalization.words,
+                              onChanged: (_) => setSheetState(() {}),
+                              decoration: InputDecoration(
+                                labelText: 'Class Name',
+                                hintText: 'e.g. Grade 10 - Section A',
+                                labelStyle: TextStyle(
+                                    color: cs.onSurfaceVariant),
+                                prefixIcon: const Icon(Icons.class_rounded),
+                              ),
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? 'Please enter a class name'
+                                  : null,
+                            ),
+                            const SizedBox(height: 20),
+                            InkWell(
+                              onTap: isFormValid ? _addClass : null,
+                              child: Container(
+                                height: 54,
+                                decoration: BoxDecoration(
+                                  gradient: isFormValid ? const LinearGradient(
+                                    colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ) : null,
+                                  color: isFormValid ? null : (isDark ? Colors.white12 : Colors.black12),
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: isFormValid ? [
+                                    BoxShadow(
+                                      color: const Color(0xFF4F46E5)
+                                          .withValues(alpha: 0.4),
+                                      blurRadius: 14,
+                                      offset: const Offset(0, 5),
+                                    )
+                                  ] : [],
+                                ),
+                                child: Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.save_rounded,
+                                          color: isFormValid ? Colors.white : Colors.grey, size: 20),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'Create Class',
+                                        style: TextStyle(
+                                          color: isFormValid ? Colors.white : Colors.grey,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }),
-          ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            );
+          }
         );
       },
     );
