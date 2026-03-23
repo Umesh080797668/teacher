@@ -7872,6 +7872,95 @@ app.post('/api/whatsapp/send', verifyToken, async (req, res) => {
     }
 });
 
+// --- LMS Video Routes ---
+
+// Get LMS videos for a specific teacher
+app.get('/api/lms/videos/teacher/:teacherId', verifyToken, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    const { classId } = req.query;
+
+    let query = { teacherId };
+    
+    // If classId is provided, filter by classId as well
+    if (classId && classId !== 'all') {
+      query.classId = classId;
+    }
+
+    const videos = await LmsVideo.find(query)
+      .sort({ uploadDate: -1 })
+      .populate('classId', 'className');
+
+    res.json(videos);
+  } catch (error) {
+    console.error('Error fetching LMS videos by teacher:', error);
+    res.status(500).json({ error: 'Failed to fetch LMS videos' });
+  }
+});
+
+// Create a new LMS video
+app.post('/api/lms/videos', verifyToken, async (req, res) => {
+  try {
+    const { 
+      title, 
+      description, 
+      videoUrl, 
+      thumbnailUrl, 
+      classId, 
+      teacherId 
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !videoUrl || !classId || !teacherId) {
+      return res.status(400).json({ 
+        error: 'Title, videoUrl, classId, and teacherId are required' 
+      });
+    }
+
+    const newVideo = new LmsVideo({
+      title,
+      description,
+      videoUrl,
+      thumbnailUrl,
+      classId,
+      teacherId,
+      uploadDate: new Date()
+    });
+
+    await newVideo.save();
+
+    // Populate class info before sending back
+    const populatedVideo = await LmsVideo.findById(newVideo._id)
+      .populate('classId', 'className');
+
+    res.status(201).json({
+      message: 'LMS Material uploaded successfully',
+      video: populatedVideo
+    });
+  } catch (error) {
+    console.error('Error creating LMS video:', error);
+    res.status(500).json({ error: 'Failed to create LMS video' });
+  }
+});
+
+// Delete an LMS video
+app.delete('/api/lms/videos/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const deletedVideo = await LmsVideo.findByIdAndDelete(id);
+    
+    if (!deletedVideo) {
+      return res.status(404).json({ error: 'LMS material not found' });
+    }
+    
+    res.json({ message: 'LMS Material deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting LMS video:', error);
+    res.status(500).json({ error: 'Failed to delete LMS material' });
+  }
+});
+
 // Export the app for Vercel
 module.exports = app;
 

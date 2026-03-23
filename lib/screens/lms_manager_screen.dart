@@ -38,7 +38,9 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       if (auth.teacherId == null) return;
       final res = await http.get(
-          Uri.parse('${ApiService.baseUrl}/api/lms/videos/teacher/${auth.teacherId}'));
+          Uri.parse('${ApiService.baseUrl}/api/lms/videos/teacher/${auth.teacherId}'),
+          headers: {'Authorization': 'Bearer ${auth.token}'}
+      );
       if (res.statusCode == 200) {
         setState(() {
           _videos = jsonDecode(res.body);
@@ -350,10 +352,13 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
     try {
       final req = await http.post(
           Uri.parse('${ApiService.baseUrl}/api/lms/videos'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${auth.token}'
+          },
           body: jsonEncode({
             'title': _titleCtrl.text,
-            'url': payloadUrl,
+            'videoUrl': payloadUrl,
             'classId': _selectedClassId,
             'teacherId': auth.teacherId,
             'duration': 120,
