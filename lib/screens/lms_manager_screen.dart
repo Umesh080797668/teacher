@@ -259,15 +259,39 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
   final _urlCtrl = TextEditingController();
   String? _selectedClassId;
   String? _selectedFileName;
+  String? _selectedFileExtension;
+  int? _selectedFileSize;
   bool _isFileUpload = false;
   bool _isSubmitting = false;
+  double _uploadProgress = 0.0;
+
+  String _getFileSizeString(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  IconData _getFileIcon(String? extension) {
+    switch (extension?.toLowerCase()) {
+      case 'pdf': return Icons.picture_as_pdf;
+      case 'doc':
+      case 'docx': return Icons.description;
+      case 'jpg':
+      case 'jpeg':
+      case 'png': return Icons.image;
+      case 'mp4':
+      case 'mkv': return Icons.video_file;
+      default: return Icons.insert_drive_file;
+    }
+  }
 
   Future<void> _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null && result.files.isNotEmpty) {
       setState(() {
         _selectedFileName = result.files.first.name;
-        // In a real scenario, handle actual file upload.
+        _selectedFileExtension = result.files.first.extension;
+        _selectedFileSize = result.files.first.size;
       });
     }
   }
@@ -294,7 +318,18 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _uploadProgress = 0.0;
+    });
+
+    if (_isFileUpload) {
+      // Simulate file upload progress roughly to match requirement visualization
+      for (int i = 1; i <= 10; i++) {
+        await Future.delayed(const Duration(milliseconds: 150));
+        if (mounted) setState(() => _uploadProgress = i / 10.0);
+      }
+    }
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
     
@@ -506,37 +541,104 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
                 ),
               )
             else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: _pickFile,
-                    icon: Icon(Icons.upload_file, color: isDark ? Colors.white : Colors.black87),
-                    label: Text(
-                      'Pick File',
-                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: BorderSide(color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+              if (_selectedFileName == null)
+                OutlinedButton.icon(
+                  onPressed: _pickFile,
+                  icon: Icon(Icons.upload_file, color: isDark ? Colors.white : Colors.black87),
+                  label: Text(
+                    'Pick File',
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  if (_selectedFileName != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Selected: $_selectedFileName',
-                      style: TextStyle(
-                        color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5), 
-                        fontWeight: FontWeight.bold
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF2D2660) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isDark ? Colors.white24 : Colors.black12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(_getFileIcon(_selectedFileExtension), size: 36, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selectedFileName!,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (_selectedFileSize != null)
+                                  Text(
+                                    _getFileSizeString(_selectedFileSize!),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? Colors.white60 : Colors.black54,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          if (!_isSubmitting)
+                            IconButton(
+                              icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedFileName = null;
+                                  _selectedFileExtension = null;
+                                  _selectedFileSize = null;
+                                });
+                              },
+                            )
+                        ],
                       ),
-                      textAlign: TextAlign.center,
-                    )
-                  ]
-                ],
-              ),
+                      if (_isSubmitting) ...[
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: _uploadProgress,
+                                  backgroundColor: isDark ? Colors.white12 : Colors.black12,
+                                  valueColor: AlwaysStoppedAnimation<Color>(isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
+                                  minHeight: 6,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              '${(_uploadProgress * 100).toInt()}%',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            )
+                          ],
+                        )
+                      ]
+                    ],
+                  ),
+                ),
             
             const SizedBox(height: 24),
             ElevatedButton(
