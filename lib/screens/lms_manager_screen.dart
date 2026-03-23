@@ -11,7 +11,7 @@ import '../providers/classes_provider.dart';
 import '../services/api_service.dart';
 
 class LmsManagerScreen extends StatefulWidget {
-  const LmsManagerScreen({Key? key}) : super(key: key);
+  const LmsManagerScreen({super.key});
 
   @override
   State<LmsManagerScreen> createState() => _LmsManagerScreenState();
@@ -37,10 +37,11 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       if (auth.teacherId == null) return;
-      final res = await http.get(
-          Uri.parse('${ApiService.baseUrl}/api/lms/videos/teacher/${auth.teacherId}'),
-          headers: {'Authorization': 'Bearer ${auth.token}'}
-      );
+        final token = await ApiService.getToken();
+        final res = await http.get(
+            Uri.parse('${ApiService.baseUrl}/api/lms/videos/teacher/${auth.teacherId}'),
+            headers: token != null ? {'Authorization': 'Bearer $token'} : {}
+        );
       if (res.statusCode == 200) {
         setState(() {
           _videos = jsonDecode(res.body);
@@ -331,6 +332,8 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
       return;
     }
 
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+
     setState(() {
       _isSubmitting = true;
       _uploadProgress = 0.0;
@@ -344,17 +347,16 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
       }
     }
 
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    
     // Simulate URL generation for uploaded files to fit model requirement
     String payloadUrl = _isFileUpload ? 'uploads/$_selectedFileName' : _urlCtrl.text;
 
     try {
+      final token = await ApiService.getToken();
       final req = await http.post(
           Uri.parse('${ApiService.baseUrl}/api/lms/videos'),
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${auth.token}'
+            if (token != null) 'Authorization': 'Bearer $token'
           },
           body: jsonEncode({
             'title': _titleCtrl.text,
@@ -435,7 +437,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
 
             // Class Dropdown
             DropdownButtonFormField<String>(
-              value: _selectedClassId,
+              initialValue: _selectedClassId,
               dropdownColor: isDark ? const Color(0xFF2D2660) : Colors.white,
               style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 16),
               decoration: InputDecoration(
