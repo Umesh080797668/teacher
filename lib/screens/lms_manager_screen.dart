@@ -64,7 +64,13 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
   }
 
   Future<void> _openVideo(String urlStr) async {
-    if (urlStr.isEmpty) return;
+    if (urlStr.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Link is empty.')));
+      }
+      return;
+    }
     
     // Simple verification if it's a valid url
     if (!urlStr.startsWith('http') && !urlStr.startsWith('https')) {
@@ -78,18 +84,16 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
     final uri = Uri.parse(urlStr);
     try {
       if (await canLaunchUrl(uri)) {
-        // Run inside the app web view
-        await launchUrl(uri, mode: LaunchMode.inAppWebView);
+        // Use external Application to let the OS decide how to open the video/link to avoid webview limitations
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Cannot open this media.')));
-        }
+        // Fallback for some links that canLaunchUrl rejects but launchUrl accepts
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error opening media: $e')));
+            SnackBar(content: Text('Error opening link: $e')));
       }
     }
   }
@@ -299,7 +303,22 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
                                     ),
                                   ],
                                 ),
-                                trailing: PopupMenuButton<String>(
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (v['relatedQuizUrl'] != null && v['relatedQuizUrl'].toString().isNotEmpty)
+                                      IconButton(
+                                        icon: Icon(Icons.quiz, color: Colors.orange.shade400, size: 22),
+                                        onPressed: () => _openVideo(v['relatedQuizUrl']),
+                                        tooltip: 'Open Quiz',
+                                      ),
+                                    if (v['relatedMaterialUrl'] != null && v['relatedMaterialUrl'].toString().isNotEmpty)
+                                      IconButton(
+                                        icon: Icon(Icons.assignment, color: Colors.green.shade400, size: 22),
+                                        onPressed: () => _openVideo(v['relatedMaterialUrl']),
+                                        tooltip: 'Open Assignment/Material',
+                                      ),
+                                    PopupMenuButton<String>(
                                   icon: const Icon(Icons.more_vert),
                                   onSelected: (val) {
                                     if (val == 'watch') {
@@ -392,6 +411,9 @@ final _titleCtrl = TextEditingController();
       _titleCtrl.text = widget.initialData!['title'] ?? '';
       _urlCtrl.text = widget.initialData!['videoUrl'] ?? '';
       _descriptionCtrl.text = widget.initialData!['description'] ?? '';
+      _relatedQuizUrlCtrl.text = widget.initialData!['relatedQuizUrl'] ?? '';
+      _relatedMaterialUrlCtrl.text = widget.initialData!['relatedMaterialUrl'] ?? '';
+      _allowDownload = widget.initialData!['allowDownload'] ?? false;
       final cIdObj = widget.initialData!['classId'];
       if (cIdObj is Map) {
          _selectedClassId = cIdObj['_id'];
@@ -505,6 +527,9 @@ final isEdit = widget.initialData != null;
                 'videoUrl': payloadUrl,
                 'classId': _selectedClassId,
                 'teacherId': auth.teacherId,
+                'allowDownload': _allowDownload,
+                'relatedQuizUrl': _relatedQuizUrlCtrl.text,
+                'relatedMaterialUrl': _relatedMaterialUrlCtrl.text,
                 'duration': 120,
               }))
           : await http.post(
@@ -519,6 +544,9 @@ final isEdit = widget.initialData != null;
                 'videoUrl': payloadUrl,
                 'classId': _selectedClassId,
                 'teacherId': auth.teacherId,
+                'allowDownload': _allowDownload,
+                'relatedQuizUrl': _relatedQuizUrlCtrl.text,
+                'relatedMaterialUrl': _relatedMaterialUrlCtrl.text,
                 'duration': 120,
               }));
       if (req.statusCode == 201 || req.statusCode == 200) {
