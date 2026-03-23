@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'media_viewer_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
@@ -81,20 +82,13 @@ class _LmsManagerScreenState extends State<LmsManagerScreen> {
       }
     }
 
-    final uri = Uri.parse(urlStr);
-    try {
-      if (await canLaunchUrl(uri)) {
-        // Use external Application to let the OS decide how to open the video/link to avoid webview limitations
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        // Fallback for some links that canLaunchUrl rejects but launchUrl accepts
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error opening link: $e')));
-      }
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MediaViewerScreen(url: urlStr),
+        ),
+      );
     }
   }
 
@@ -435,6 +429,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
   bool _allowDownload = false;
   String? _selectedClassId;
   String? _selectedFileName;
+  String? _selectedFilePath;
   String? _selectedFileExtension;
   int? _selectedFileSize;
   bool _isFileUpload = false;
@@ -539,20 +534,43 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
       _uploadProgress = 0.0;
     });
 
-    if (_isFileUpload) {
-      // Simulate file upload progress roughly to match requirement visualization
-      for (int i = 1; i <= 10; i++) {
-        await Future.delayed(const Duration(milliseconds: 150));
-        if (mounted) setState(() => _uploadProgress = i / 10.0);
-      }
-    }
-
-    // Simulate URL generation for uploaded files to fit model requirement
-    String payloadUrl =
-        _isFileUpload ? 'uploads/$_selectedFileName' : _urlCtrl.text;
-
     try {
       final token = await ApiService.getToken();
+      String payloadUrl = _urlCtrl.text;
+
+      if (_isFileUpload) {
+        if (_selectedFilePath != null) {
+          // Actual file upload to backend that forwards to Cloudinary
+          var request = http.MultipartRequest(
+              'POST', Uri.parse('${ApiService.baseUrl}/api/lms/upload/video'));
+          if (token != null) {
+            request.headers['Authorization'] = 'Bearer $token';
+          }
+          request.files.add(
+              await http.MultipartFile.fromPath('file', _selectedFilePath!));
+
+          // Run in background while showing visual progress loader
+          var streamedResponse = await request.send();
+          var response = await http.Response.fromStream(streamedResponse);
+
+          if (response.statusCode == 200) {
+            var result = jsonDecode(response.body);
+            payloadUrl = result['url'];
+            if (mounted) setState(() => _uploadProgress = 1.0);
+          } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content:
+                      Text('Failed to upload video: ${response.statusCode}')));
+              setState(() => _isSubmitting = false);
+            }
+            return;
+          }
+        } else {
+          payloadUrl = 'uploads/$_selectedFileName'; // Fallback
+        }
+      }
+
       final isEdit = widget.initialData != null;
       final videoId = isEdit ? widget.initialData!['_id'] : '';
       final url = isEdit
