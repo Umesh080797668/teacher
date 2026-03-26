@@ -498,6 +498,7 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
     if (result != null && result.files.isNotEmpty) {
       setState(() {
         _selectedFileName = result.files.first.name;
+        _selectedFilePath = result.files.first.path;
         _selectedFileExtension = result.files.first.extension;
         _selectedFileSize = result.files.first.size;
       });
@@ -965,6 +966,71 @@ class _AddMaterialSheetState extends State<_AddMaterialSheet> {
                   ],
                 ),
               ),
+            const SizedBox(height: 16),
+
+            // Allow Download Toggle
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                'Allow Downloads',
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Text(
+                'Allow students to download this video offline.',
+                style: TextStyle(
+                  color: isDark ? Colors.white60 : Colors.black54,
+                  fontSize: 12,
+                ),
+              ),
+              value: _allowDownload,
+              activeColor: const Color(0xFF4F46E5),
+              onChanged: (val) => setState(() => _allowDownload = val),
+            ),
+            const SizedBox(height: 16),
+
+            // Related Assignment / Material
+            TextField(
+              controller: _relatedMaterialUrlCtrl,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
+                labelText: 'Related Assignment Link',
+                labelStyle:
+                    TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                prefixIcon: Icon(Icons.assignment,
+                    color: isDark ? Colors.white70 : Colors.black54),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                      color: isDark ? Colors.white24 : Colors.black12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Related Quiz
+            TextField(
+              controller: _relatedQuizUrlCtrl,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
+                labelText: 'Related Quiz Link',
+                labelStyle:
+                    TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                prefixIcon: Icon(Icons.quiz,
+                    color: isDark ? Colors.white70 : Colors.black54),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                      color: isDark ? Colors.white24 : Colors.black12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
 
             const SizedBox(height: 24),
             ElevatedButton(

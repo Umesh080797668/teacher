@@ -58,9 +58,24 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
   }
 
   void _initWebView() {
+    String finalUrl = widget.url;
+
+    // Convert regular YouTube links to embed links to hide UI
+    if (finalUrl.contains('youtube.com/watch?v=')) {
+      finalUrl = finalUrl.replaceFirst('watch?v=', 'embed/');
+      if (finalUrl.contains('&')) {
+        finalUrl = finalUrl.split('&').first;
+      }
+    } else if (finalUrl.contains('youtu.be/')) {
+      finalUrl = finalUrl.replaceFirst('youtu.be/', 'youtube.com/embed/');
+      if (finalUrl.contains('?')) {
+        finalUrl = finalUrl.split('?').first;
+      }
+    }
+
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse(widget.url));
+      ..loadRequest(Uri.parse(finalUrl));
   }
 
   @override
